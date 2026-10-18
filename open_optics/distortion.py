@@ -133,8 +133,9 @@ def border_free_zoom(sensor, lens, width_px, height_px,
     """Find the zoom that removes empty borders from an undistorted image.
 
     An undistorted output pixel at u samples the source at distort(u / z),
-    where the division scales lens-relative coordinates about the principal
-    point. Returns the smallest z >= 1 (a unitless scale factor, float) such
+    where the division scales about the principal point the
+    normalised image-plane coordinates (x/z, y/z), the same as OpenCV.
+    Returns the smallest z >= 1 (a unitless scale factor, float) such
     that every border pixel centre of the output image, with `samples` points
     along each of the four edges from pixel 0 to width_px - 1 / height_px - 1
     (pixels), lands inside the source pixel-centre range [0, width_px - 1] x
@@ -186,8 +187,9 @@ def classify_distortion(k1=0.0, k2=0.0, k3=0.0, radius=0.5, tolerance=1e-9):
     """Classify radial distortion at a given radius.
 
     All arguments are unitless: k1..k3 are radial coefficients, radius is a
-    lens-relative distance from the centre (must be > 0) and tolerance is the
-    allowed deviation of the radial factor from 1. Returns the string
+    unitless distance (must be > 0) in
+    normalised image-plane coordinates (x/z, y/z), the same as OpenCV, and
+    tolerance is the allowed deviation of the radial factor from 1. Returns the string
     'barrel' if the factor 1 + k1*r^2 + k2*r^4 + k3*r^6 is below
     1 - tolerance, 'pincushion' if above 1 + tolerance, else 'neutral'.
     """

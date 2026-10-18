@@ -165,5 +165,11 @@ class TestStraightLineDeviation(unittest.TestCase):
             straight_line_deviation([(0.0, 0.0)])
 
 
+class TestDistortionDocstrings(unittest.TestCase):
+    def test_no_lens_relative_wording(self):
+        self.assertNotIn("lens-relative", border_free_zoom.__doc__)
+        self.assertNotIn("lens-relative", classify_distortion.__doc__)
+
+
 if __name__ == "__main__":
     unittest.main()
