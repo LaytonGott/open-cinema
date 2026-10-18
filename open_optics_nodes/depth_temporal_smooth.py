@@ -47,8 +47,16 @@ class OpenOptics_DepthTemporalSmooth:
         float32 CPU MASK [B, H, W] of smoothed depth in metres. Raises
         ValueError if depth is not a 3-dimensional tensor.
         """
-        if not isinstance(depth, torch.Tensor) or depth.dim() != 3:
-            raise ValueError("depth must be a 3-dimensional tensor [B, H, W]")
+        if not isinstance(depth, torch.Tensor):
+            got = type(depth).__name__
+        elif depth.dim() != 3:
+            got = f"{depth.dim()} dimensions"
+        else:
+            got = None
+        if got is not None:
+            raise ValueError(
+                f"depth must be a 3-dimensional tensor [B, H, W], got {got}"
+            )
         frames = depth.detach().cpu().to(torch.float64).tolist()
         out = smooth_depth_sequence(frames, strength)
         return (torch.tensor(out, dtype=torch.float32).reshape(depth.shape),)

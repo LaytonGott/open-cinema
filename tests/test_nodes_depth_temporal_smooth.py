@@ -52,8 +52,9 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
             self.assertIn(word, desc)
 
     def test_rejects_non_3d(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "3-dimensional") as ctx:
             OpenOptics_DepthTemporalSmooth().smooth(torch.ones(4, 4), 0.7)
+        self.assertIn("2 dimensions", str(ctx.exception))
 
 
 if __name__ == "__main__":
