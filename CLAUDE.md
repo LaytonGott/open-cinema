@@ -4,11 +4,14 @@ An open rebuild of Higgsfield Cinema Studio for Comfy's "Open Source Higgsfield"
 
 ## Project rules
 
-- Python 3.12. The lens math core is standard library only (`math`, `dataclasses`, `unittest`). Torch is allowed later for ComfyUI nodes, as described in docs/spec.md.
-- Code goes in `open_optics/`, one module per topic. Tests go in `tests/`, one `test_<module>.py` per module, written with `unittest`.
-- Run the tests with `npm test` (it runs `python -m unittest discover -s tests -t .`). `package.json` exists only for that command. Run it before you finish and fix every failure.
+- Python 3.12. The lens math core, the package `open_optics/`, is standard library only (`math`, `dataclasses`, `unittest`, `json`). Torch is allowed for the ComfyUI nodes, as described in docs/spec.md, and only in the node pack package `open_optics_nodes/`. `tests/test_core_stdlib_only.py` fails if a core module imports anything else, even inside a function.
+- Core code goes in `open_optics/`, one module per topic. Node code goes in `open_optics_nodes/` and calls the core for every optics formula; it does not copy formulas. Tests go in `tests/`, one `test_<module>.py` per module, written with `unittest`.
+- ComfyUI nodes use the classic registration: classes with `INPUT_TYPES`, `RETURN_TYPES`, `FUNCTION` and `CATEGORY = "Open Optics"`, listed in `NODE_CLASS_MAPPINGS` and `NODE_DISPLAY_NAME_MAPPINGS` in `open_optics_nodes/__init__.py`, which a root-level `__init__.py` re-exports so ComfyUI finds them when the repository is a custom node folder. `IMAGE` is a float32 torch tensor `[B, H, W, C]` in 0 to 1; `MASK` is `[B, H, W]`. Node tests import the package directly and never import ComfyUI.
+- Everything runs on the CPU. Never use `.cuda()`, `device="cuda"` or `torch.compile`; tests use images of at most 64 x 64 pixels so they stay fast.
+- Run the tests with `npm test` (it runs `scripts/run-tests.js`, which runs `python -m unittest discover -s tests -t .` with the project's Python: `OPEN_OPTICS_PYTHON` if set, else `.venv`, which has CPU torch and numpy; the system Python has neither). Run it before you finish and fix every failure. Torch tests import torch directly and must not skip when it is missing.
+- You cannot install packages or use the network. ComfyUI is installed at `D:\OpenCinema\ComfyUI_windows_portable\ComfyUI`; read it for the node API if you need to, never edit it and never import it.
 - Every public function has a docstring that states its units (millimetres, metres, degrees or radians) and what it returns. Tests check known values with a stated tolerance (`assertAlmostEqual` with `places` or `delta`), taken from a formula worked by hand or a published figure, not from the function itself.
-- Do not edit `docs/research.md`, `CLAUDE.md`, `.claude/` or `.beads/`.
+- Do not edit `docs/research.md`, `docs/spec.md`, `docs/benchmarks.md`, `bench/`, `CLAUDE.md`, `.claude/`, `scripts/run-tests.js`, `scripts/py.js` or `.beads/`.
 
 ## Delegating coding
 
