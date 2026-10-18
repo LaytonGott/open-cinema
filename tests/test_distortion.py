@@ -2,9 +2,14 @@ import unittest
 
 from open_optics.distortion import (
     DistortionError,
+    border_free_zoom,
+    distort_pixel,
     distort_point,
+    undistort_pixel,
     undistort_point,
 )
+from open_optics.lens import Lens
+from open_optics.sensor import Sensor
 
 
 class TestDistortPoint(unittest.TestCase):
@@ -65,6 +70,63 @@ class TestUndistortPoint(unittest.TestCase):
     def test_failure_raises(self):
         with self.assertRaisesRegex(DistortionError, "could not undistort"):
             undistort_point(0.5, 0.5, k1=-50.0)
+
+
+class TestPixelDistortion(unittest.TestCase):
+    W, H = 1920, 1080
+    CX, CY = 959.5, 539.5
+
+    def setUp(self):
+        self.sensor = Sensor(36, 24)
+        self.lens = Lens(50, 2.8, 22)
+
+    def args(self):
+        return (self.sensor, self.lens, self.W, self.H)
+
+    def test_zero_coefficients_unchanged(self):
+        for p in [(0, 0), (100.5, 700.25), (1919, 1079)]:
+            for fn in (distort_pixel, undistort_pixel):
+                x, y = fn(*p, *self.args())
+                self.assertAlmostEqual(x, p[0], places=9)
+                self.assertAlmostEqual(y, p[1], places=9)
+
+    def test_zero_coefficients_zoom_is_one(self):
+        self.assertEqual(border_free_zoom(*self.args()), 1.0)
+
+    def test_centre_fixed(self):
+        x, y = distort_pixel(self.CX, self.CY, *self.args(), k1=-0.2)
+        self.assertAlmostEqual(x, self.CX, places=9)
+        self.assertAlmostEqual(y, self.CY, places=9)
+
+    def test_round_trip(self):
+        for p in [(0, 0), (300.5, 800.0), (1500.0, 100.0), (1919, 1079)]:
+            q = distort_pixel(*p, *self.args(), k1=-0.1)
+            x, y = undistort_pixel(*q, *self.args(), k1=-0.1)
+            self.assertAlmostEqual(x, p[0], delta=1e-4)
+            self.assertAlmostEqual(y, p[1], delta=1e-4)
+
+    def test_barrel_zoom_at_least_one(self):
+        self.assertGreaterEqual(border_free_zoom(*self.args(), k1=-0.2), 1.0)
+
+    def test_border_pixels_inside_source(self):
+        eps = 1e-6
+        n = 16
+        for i in range(-3, 4):
+            k1 = i / 10
+            z = border_free_zoom(*self.args(), k1=k1)
+            for j in range(n + 1):
+                t = j / n
+                border = [(t * (self.W - 1), 0), (t * (self.W - 1), self.H - 1),
+                          (0, t * (self.H - 1)), (self.W - 1, t * (self.H - 1))]
+                for px, py in border:
+                    u = self.CX + (px - self.CX) / z
+                    v = self.CY + (py - self.CY) / z
+                    x, y = distort_pixel(u, v, *self.args(), k1=k1)
+                    self.assertTrue(-eps <= x <= self.W - 1 + eps, (k1, px, py, x))
+                    self.assertTrue(-eps <= y <= self.H - 1 + eps, (k1, px, py, y))
+
+    def test_pincushion_zoom_above_one(self):
+        self.assertGreater(border_free_zoom(*self.args(), k1=0.2), 1.0)
 
 
 if __name__ == "__main__":
