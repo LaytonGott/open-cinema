@@ -20,6 +20,22 @@ class NodesCommonTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             common.check_image(torch.zeros(4, 4, 3))
 
+    def test_check_image_wrong_dims_names_image(self):
+        with self.assertRaisesRegex(ValueError, r"image.*\[B,H,W,C\]"):
+            common.check_image(torch.zeros(4, 4, 3))
+
+    def test_check_image_wrong_dtype_names_image(self):
+        with self.assertRaisesRegex(ValueError, r"image.*float32"):
+            common.check_image(torch.zeros(1, 4, 4, 3, dtype=torch.float64))
+
+    def test_check_image_non_tensor_names_image(self):
+        with self.assertRaisesRegex(ValueError, "image"):
+            common.check_image([[0.0]])
+
+    def test_resolve_depth_wrong_mask_dims_names_depth_mask(self):
+        with self.assertRaisesRegex(ValueError, "depth_mask"):
+            common.resolve_depth(None, depth_mask=torch.ones(1, 4, 4, 1))
+
     def test_check_image_accepts_4d(self):
         img = torch.zeros(1, 4, 4, 3)
         self.assertIs(common.check_image(img), img)

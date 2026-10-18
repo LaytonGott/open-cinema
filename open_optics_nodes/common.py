@@ -12,9 +12,10 @@ def check_image(image):
     Raises ValueError if it is not a float32 tensor with 4 dimensions.
     """
     if not isinstance(image, torch.Tensor):
-        raise ValueError("image must be a torch tensor")
+        raise ValueError(
+            f"image must be a float32 torch tensor [B,H,W,C], got {type(image).__name__}")
     if image.dtype != torch.float32:
-        raise ValueError(f"image must be float32, got {image.dtype}")
+        raise ValueError(f"image must be float32 [B,H,W,C], got {image.dtype}")
     if image.dim() != 4:
         raise ValueError(f"image must have 4 dims [B,H,W,C], got {image.dim()}")
     return image
