@@ -2,6 +2,7 @@ import unittest
 
 from open_optics.vignetting import (
     aperture_vignette,
+    combined_vignette,
     brightness_to_stops,
     natural_vignette,
     natural_vignette_px,
@@ -74,6 +75,39 @@ class ApertureVignetteTests(unittest.TestCase):
     def test_invalid_strength(self):
         with self.assertRaises(ValueError):
             aperture_vignette(1.0, 1.4, 1.4, 1.5)
+
+
+class CombinedVignetteTests(unittest.TestCase):
+    def test_combined_vignette_both_off_is_one(self):
+        for x, y in [(0, 0), (10, 5), (21.63, 14.42)]:
+            self.assertEqual(
+                combined_vignette(
+                    50, x, y, 26, 2.8, 1.4, natural=False, aperture=False
+                ),
+                1.0,
+            )
+
+    def test_combined_vignette_strength_zero_is_one(self):
+        self.assertEqual(combined_vignette(50, 15, 10, 26, 2.8, 1.4, strength=0), 1.0)
+
+    def test_combined_vignette_strength_two_squares_strength_one(self):
+        one = combined_vignette(50, 15, 10, 26, 1.4, 1.4, strength=1)
+        two = combined_vignette(50, 15, 10, 26, 1.4, 1.4, strength=2)
+        self.assertAlmostEqual(two, one**2, places=9)
+
+    def test_combined_vignette_corner_in_range(self):
+        value = combined_vignette(24, 18, 12, 21.63, 8, 1.4)
+        self.assertLessEqual(value, 1.0)
+        self.assertGreaterEqual(value, 0.0)
+
+    def test_combined_vignette_negative_strength_raises(self):
+        with self.assertRaises(ValueError):
+            combined_vignette(50, 10, 5, 26, 2.8, 1.4, strength=-0.5)
+
+    def test_combined_vignette_natural_only_hand_value(self):
+        # 1 / (1 + (21.63/50)^2)^2 = 0.7096
+        value = combined_vignette(50, 21.63, 0, 26, 2.8, 1.4, aperture=False)
+        self.assertAlmostEqual(value, 0.7096, delta=1e-3)
 
 
 if __name__ == "__main__":
