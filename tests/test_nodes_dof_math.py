@@ -2,7 +2,29 @@ import unittest
 
 import torch
 
-from open_optics_nodes.dof_math import coc_radius_map, composite_layers
+from open_optics_nodes.dof_math import coc_radius_map, composite_layers, sanitize_depth
+
+
+BAD_DEPTH = [float("nan"), float("inf"), float("-inf"), 0.0, -1.0, 2.5]
+
+
+class SanitizeDepthTest(unittest.TestCase):
+    def test_bad_values_become_far(self):
+        out = sanitize_depth(torch.tensor(BAD_DEPTH))
+        self.assertEqual(out.dtype, torch.float32)
+        for i in range(5):
+            self.assertEqual(out[i].item(), 1000.0)
+        self.assertEqual(out[5].item(), 2.5)
+
+    def test_outputs_finite(self):
+        depth = torch.tensor(BAD_DEPTH).reshape(1, 2, 3)
+        radius = coc_radius_map(depth, 50, 2.8, 3.0, 36, 20)
+        self.assertTrue(torch.isfinite(radius).all().item())
+        img = torch.rand(1, 2, 3, 3, generator=torch.Generator().manual_seed(2))
+        out = composite_layers(img, depth, radius, 4)
+        self.assertTrue(torch.isfinite(out).all().item())
+        self.assertGreaterEqual(out.min().item(), 0.0)
+        self.assertLessEqual(out.max().item(), 1.0)
 
 
 class CocRadiusMapTest(unittest.TestCase):

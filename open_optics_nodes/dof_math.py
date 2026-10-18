@@ -6,6 +6,18 @@ from open_optics import coc
 from open_optics_nodes.dof_blur import blur_layer
 
 
+def sanitize_depth(depth_m, far_m=1000.0):
+    """Return depth in metres as float32 with bad values replaced by far_m.
+
+    depth_m is a float tensor of subject distances in metres. NaN, +inf, -inf
+    and values <= 0 become far_m (metres, default 1000.0); every other value is
+    unchanged. The result has the same shape as depth_m.
+    """
+    depth = depth_m.to(torch.float32)
+    bad = ~torch.isfinite(depth) | (depth <= 0)
+    return torch.where(bad, torch.full_like(depth, far_m), depth)
+
+
 def coc_radius_map(depth_m, focal_mm, f_number, focus_m, sensor_width_mm, max_radius_px):
     """Return the circle-of-confusion radius map in pixels as float32.
 
@@ -15,7 +27,7 @@ def coc_radius_map(depth_m, focal_mm, f_number, focus_m, sensor_width_mm, max_ra
     width in pixels is depth_m.shape[-1]. The result has the same shape as
     depth_m, holds the blur radius in pixels and is capped at max_radius_px.
     """
-    depth = depth_m.to(torch.float32).clamp(min=1e-3)
+    depth = sanitize_depth(depth_m).clamp(min=1e-3)
     width = depth.shape[-1]
     uniq, inverse = torch.unique(depth, return_inverse=True)
     radii = []
@@ -37,7 +49,7 @@ def composite_layers(image_linear, depth_m, radius_map, n_layers):
     from the farthest bin to the nearest. The result is clamped to 0..1.
     """
     image = image_linear.to(torch.float32)
-    depth = depth_m.to(torch.float32)
+    depth = sanitize_depth(depth_m)
     radius = radius_map.to(torch.float32)
     d_min = depth.min().item()
     d_max = depth.max().item()
