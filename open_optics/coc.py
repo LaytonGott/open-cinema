@@ -2,7 +2,11 @@
 
 import math
 
-from open_optics.validation import require_positive, require_positive_or_inf
+from open_optics.validation import (
+    require_finite,
+    require_positive,
+    require_positive_or_inf,
+)
 
 
 def coc_for_sensor(width_mm, height_mm, standard=1500, user_value_mm=None, squeeze=1.0):
@@ -66,3 +70,35 @@ def blur_diameter_mm(focal_mm, f_number, focus_mm, subject_mm):
     if math.isinf(subject_mm):
         return scale
     return scale * (subject_mm - focus_mm) / subject_mm
+
+
+def blur_diameter_px(blur_mm, image_width_px, sensor_width_mm):
+    """Return the blur circle diameter in pixels (unitless pixel count).
+
+    blur_mm is the signed or unsigned blur diameter in millimetres,
+    image_width_px the image width in pixels and sensor_width_mm the sensor
+    width in millimetres. The result is abs(blur_mm) * image_width_px /
+    sensor_width_mm and is never negative.
+    """
+    blur_mm = require_finite("blur_mm", blur_mm)
+    image_width_px = require_positive("image_width_px", image_width_px)
+    sensor_width_mm = require_positive("sensor_width_mm", sensor_width_mm)
+    return abs(blur_mm) * image_width_px / sensor_width_mm
+
+
+def blur_radius_px(blur_mm, image_width_px, sensor_width_mm, max_px=None):
+    """Return the blur circle radius in pixels (unitless pixel count).
+
+    blur_mm is the signed or unsigned blur diameter in millimetres,
+    image_width_px the image width in pixels and sensor_width_mm the sensor
+    width in millimetres. The result is blur_diameter_px / 2 and is never
+    negative. If max_px (pixels, must be >= 0) is given, the radius is capped
+    at max_px. Raises ValueError if max_px is negative.
+    """
+    radius = blur_diameter_px(blur_mm, image_width_px, sensor_width_mm) / 2
+    if max_px is None:
+        return radius
+    max_px = require_finite("max_px", max_px)
+    if max_px < 0:
+        raise ValueError(f"max_px must be >= 0, got {max_px}")
+    return min(radius, max_px)
