@@ -47,5 +47,37 @@ class TestAnamorphicNode(unittest.TestCase):
         self.assertIn("mode", str(ctx.exception))
 
 
+class TestAnamorphicAcceptanceSizes(unittest.TestCase):
+    def setUp(self):
+        self.img = torch.rand(1, 48, 64, 3)
+        self.node = OpenOptics_Anamorphic()
+
+    def test_desqueeze_widens(self):
+        out = self.node.apply(self.img, 2.0, "desqueeze")[0]
+        self.assertEqual(tuple(out.shape), (1, 48, 128, 3))
+
+    def test_squeeze_narrows(self):
+        out = self.node.apply(self.img, 2.0, "squeeze")[0]
+        self.assertEqual(tuple(out.shape), (1, 48, 32, 3))
+
+    def test_keep_width_desqueeze(self):
+        out = self.node.apply(self.img, 2.0, "desqueeze", True)[0]
+        self.assertEqual(tuple(out.shape), (1, 24, 64, 3))
+
+    def test_keep_width_squeeze(self):
+        out = self.node.apply(self.img, 2.0, "squeeze", True)[0]
+        self.assertEqual(tuple(out.shape), (1, 96, 64, 3))
+
+    def test_default_squeeze(self):
+        spec = OpenOptics_Anamorphic.INPUT_TYPES()["required"]["squeeze"]
+        self.assertEqual(spec[1]["default"], 1.33)
+
+    def test_output_dtype_and_range(self):
+        out = self.node.apply(self.img, 2.0, "desqueeze")[0]
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertGreaterEqual(out.min().item(), 0.0)
+        self.assertLessEqual(out.max().item(), 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
