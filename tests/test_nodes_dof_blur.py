@@ -1,0 +1,41 @@
+import unittest
+
+import torch
+
+from open_optics_nodes import dof_blur
+
+
+class DofBlurTest(unittest.TestCase):
+    def test_radius_one_kernel(self):
+        k = dof_blur.disc_kernel(1.0)
+        self.assertEqual(tuple(k.shape), (3, 3))
+        for i, j in ((0, 0), (0, 2), (2, 0), (2, 2)):
+            self.assertAlmostEqual(k[i, j].item(), 0.0, places=6)
+        for i, j in ((1, 1), (0, 1), (1, 0), (1, 2), (2, 1)):
+            self.assertAlmostEqual(k[i, j].item(), 0.2, places=6)
+
+    def test_kernel_sums_to_one(self):
+        for r in (0.3, 1.0, 2.5, 4.0):
+            self.assertAlmostEqual(dof_blur.disc_kernel(r).sum().item(), 1.0, places=6)
+
+    def test_small_radius_unchanged(self):
+        x = torch.rand(1, 2, 5, 5)
+        self.assertTrue(torch.equal(dof_blur.blur_layer(x, 0.3), x))
+
+    def test_constant_image(self):
+        x = torch.full((1, 1, 6, 6), 0.7)
+        out = dof_blur.blur_layer(x, 2.0)
+        self.assertEqual(out.shape, x.shape)
+        self.assertTrue(torch.allclose(out, x, atol=1e-5))
+
+    def test_single_pixel(self):
+        x = torch.zeros(1, 1, 5, 5)
+        x[0, 0, 2, 2] = 1.0
+        out = dof_blur.blur_layer(x, 1.0)
+        for i, j in ((2, 2), (1, 2), (3, 2), (2, 1), (2, 3)):
+            self.assertAlmostEqual(out[0, 0, i, j].item(), 0.2, delta=1e-6)
+        self.assertAlmostEqual(out[0, 0, 1, 1].item(), 0.0, delta=1e-6)
+
+
+if __name__ == "__main__":
+    unittest.main()
