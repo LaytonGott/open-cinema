@@ -38,12 +38,14 @@ class OpenOptics_FocalCrop:
         focal is <= 0 or target < source.
         """
         common.check_image(image)
-        if source_focal_mm <= 0 or target_focal_mm <= 0:
-            raise ValueError("focal lengths must be positive")
+        source_focal_mm = common.require_positive("source_focal_mm", source_focal_mm)
+        target_focal_mm = common.require_positive("target_focal_mm", target_focal_mm)
         if target_focal_mm < source_focal_mm:
-            raise ValueError("target_focal_mm must be >= source_focal_mm")
-        if output_size not in ("original", "cropped"):
-            raise ValueError(f"output_size must be 'original' or 'cropped', got {output_size!r}")
+            raise ValueError(
+                f"target_focal_mm must be at least source_focal_mm ({source_focal_mm}), "
+                f"got {target_focal_mm}"
+            )
+        common.require_choice("output_size", output_size, ("original", "cropped"))
         half_src = math.radians(fov.angle_of_view(source_focal_mm, _REFERENCE_DIMENSION_MM)) / 2
         half_tgt = math.radians(fov.angle_of_view(target_focal_mm, _REFERENCE_DIMENSION_MM)) / 2
         ratio = math.tan(half_tgt) / math.tan(half_src)  # equals source / target

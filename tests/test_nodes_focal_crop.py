@@ -30,12 +30,18 @@ class FocalCropTest(unittest.TestCase):
             self.assertTrue(torch.equal(out, img))
 
     def test_target_below_source_raises(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "target_focal_mm"):
             OpenOptics_FocalCrop().crop(_image(), 50.0, 24.0, "original")
 
     def test_nonpositive_raises(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "source_focal_mm"):
             OpenOptics_FocalCrop().crop(_image(), 0.0, 50.0, "original")
+        with self.assertRaisesRegex(ValueError, "target_focal_mm"):
+            OpenOptics_FocalCrop().crop(_image(), 24.0, 0.0, "original")
+
+    def test_bad_output_size_raises(self):
+        with self.assertRaisesRegex(ValueError, "output_size"):
+            OpenOptics_FocalCrop().crop(_image(), 24.0, 50.0, "bogus")
 
     def test_registered(self):
         self.assertIs(NODE_CLASS_MAPPINGS["OpenOptics_FocalCrop"], OpenOptics_FocalCrop)
