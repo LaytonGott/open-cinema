@@ -74,6 +74,18 @@ class TestDepthOfFieldValues(unittest.TestCase):
         self.assertGreater(float((wide - img).abs().mean()),
                            float((narrow - img).abs().mean()))
 
+    def test_two_plane_sharp_edge_picks_up_no_background_blur(self):
+        img = torch.zeros(1, 32, 32, 3, dtype=torch.float32)
+        img[:, :, :16, :] = 1.0
+        depth = torch.full((1, 32, 32), 20.0)
+        depth[:, :, :16] = 2.0
+        out, coc_px = OpenOptics_DepthOfField().apply(
+            img, focal_mm=50.0, f_number=2.8, focus_m=2.0, sensor_width_mm=36.0,
+            max_radius_px=8, quality="draft", colorspace="linear", depth_mask=depth)
+        self.assertLessEqual(float((out[:, :, :12, :] - 1.0).abs().max()), 1e-4)
+        self.assertGreaterEqual(float(out[:, :, 15, :].min()), 0.9)
+        self.assertGreater(float(coc_px[:, :, 16:].min()), 0.0)
+
     def test_depth_input_errors(self):
         img = torch.rand(1, 32, 32, 3)
         node = OpenOptics_DepthOfField()
