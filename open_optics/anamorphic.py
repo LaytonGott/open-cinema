@@ -36,3 +36,15 @@ def delivered_aspect_ratio(gate_width_mm, gate_height_mm, squeeze):
     height = require_positive("gate_height_mm", gate_height_mm)
     factor = require_positive("squeeze", squeeze)
     return float(width / height * factor)
+
+
+def bokeh_aspect(squeeze, desqueezed=True):
+    """Height-to-width ratio of an out-of-focus highlight.
+
+    squeeze is the unitless anamorphic squeeze factor. Returns the unitless
+    float squeeze when desqueezed is True (oval, taller than wide), or 1.0
+    when desqueezed is False (the squeezed recording is round). Raises
+    ValueError if squeeze is not positive and finite.
+    """
+    factor = require_positive("squeeze", squeeze)
+    return float(factor) if desqueezed else 1.0

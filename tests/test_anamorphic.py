@@ -1,6 +1,10 @@
 import unittest
 
-from open_optics.anamorphic import delivered_aspect_ratio, desqueeze_size
+from open_optics.anamorphic import (
+    bokeh_aspect,
+    delivered_aspect_ratio,
+    desqueeze_size,
+)
 
 
 class TestDesqueezeSize(unittest.TestCase):
@@ -40,6 +44,21 @@ class TestDeliveredAspectRatio(unittest.TestCase):
     def test_zero_squeeze_raises(self):
         with self.assertRaises(ValueError):
             delivered_aspect_ratio(1.33, 1.0, 0)
+
+
+class TestBokehAspect(unittest.TestCase):
+    def test_2x_desqueezed(self):
+        self.assertEqual(bokeh_aspect(2.0), 2.0)
+
+    def test_spherical_is_round(self):
+        self.assertEqual(bokeh_aspect(1.0), 1.0)
+
+    def test_squeezed_recording_is_round(self):
+        self.assertEqual(bokeh_aspect(2.0, desqueezed=False), 1.0)
+
+    def test_zero_squeeze_raises(self):
+        with self.assertRaises(ValueError):
+            bokeh_aspect(0)
 
 
 if __name__ == "__main__":
