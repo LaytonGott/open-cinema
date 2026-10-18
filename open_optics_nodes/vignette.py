@@ -1,0 +1,49 @@
+"""Vignette node: apply cos^4 natural vignetting to an image."""
+
+import torch
+
+from open_optics import vignetting
+from open_optics_nodes import common
+
+
+class OpenOptics_Vignette:
+    """Darken the image towards the corners with the cos^4 law."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "focal_mm": ("FLOAT", {"default": 35.0, "min": 0.1, "max": 2000.0, "step": 0.1}),
+                "sensor_width_mm": ("FLOAT", {"default": 36.0, "min": 0.1, "max": 200.0, "step": 0.1}),
+                "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "colorspace": (["srgb", "linear"], {"default": "srgb"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "apply"
+    CATEGORY = "Open Optics"
+
+    def apply(self, image, focal_mm=35.0, sensor_width_mm=36.0, strength=1.0, colorspace="srgb"):
+        """Multiply the image by a vignette gain in linear light.
+
+        focal_mm and sensor_width_mm are in millimetres; strength is unitless,
+        0..1, with gain = 1 - strength * (1 - cos^4 gain). Returns a 1-tuple
+        with an IMAGE [B, H, W, C], 0-1. Raises ValueError if strength is
+        outside 0..1 or the inputs are invalid.
+        """
+        common.check_image(image)
+        if not 0.0 <= strength <= 1.0:
+            raise ValueError("strength must be between 0 and 1")
+        h, w = image.shape[1], image.shape[2]
+        rows = []
+        for y in range(h):
+            row = []
+            for x in range(w):
+                natural = vignetting.natural_vignette_px(focal_mm, x, y, sensor_width_mm, w, h)
+                row.append(1.0 - strength * (1.0 - natural))
+            rows.append(row)
+        gain = torch.tensor(rows, dtype=torch.float32).reshape(1, h, w, 1)
+        out = common.from_linear(common.to_linear(image, colorspace) * gain, colorspace)
+        return (common.finish(out),)
