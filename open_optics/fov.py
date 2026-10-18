@@ -3,6 +3,7 @@
 import math
 from dataclasses import dataclass
 
+from open_optics.sensor import Sensor
 from open_optics.units import deg_to_rad, rad_to_deg
 from open_optics.validation import require_finite, require_positive
 
@@ -37,6 +38,24 @@ def angle_of_view(focal_mm, dimension_mm):
     focal = require_positive("focal_mm", focal_mm)
     dimension = require_positive("dimension_mm", dimension_mm)
     return rad_to_deg(2 * math.atan(dimension / (2 * focal)))
+
+
+def sensor_angles(focal_mm, sensor):
+    """Compute the horizontal, vertical and diagonal angles of view of a sensor.
+
+    Args:
+        focal_mm: focal length in millimetres.
+        sensor: an open_optics.sensor.Sensor (dimensions in millimetres); no
+            anamorphic squeeze is applied.
+
+    Returns:
+        A tuple (horizontal_deg, vertical_deg, diagonal_deg) in degrees.
+    """
+    return (
+        angle_of_view(focal_mm, sensor.width_mm),
+        angle_of_view(focal_mm, sensor.height_mm),
+        angle_of_view(focal_mm, sensor.diagonal_mm),
+    )
 
 
 def focal_from_angle(angle_deg, dimension_mm):

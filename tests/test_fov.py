@@ -1,7 +1,8 @@
 import math
 import unittest
 
-from open_optics.fov import FieldOfView, angle_of_view, field_of_view, focal_from_angle
+from open_optics.fov import FieldOfView, angle_of_view, field_of_view, focal_from_angle, sensor_angles
+from open_optics.sensor import Sensor
 
 
 class AngleOfViewTest(unittest.TestCase):
@@ -20,6 +21,15 @@ class AngleOfViewTest(unittest.TestCase):
     def test_zero_focal_raises(self):
         with self.assertRaises(ValueError):
             angle_of_view(0, 36)
+
+
+class SensorAnglesTest(unittest.TestCase):
+    def test_50mm_on_36x24(self):
+        # 2*atan(36/100), 2*atan(24/100), 2*atan(43.2666/100) in degrees.
+        h, v, d = sensor_angles(50, Sensor(36, 24))
+        self.assertAlmostEqual(h, 39.598, delta=0.001)
+        self.assertAlmostEqual(v, 26.991, delta=0.001)
+        self.assertAlmostEqual(d, 46.793, delta=0.001)
 
 
 class FocalFromAngleTest(unittest.TestCase):
