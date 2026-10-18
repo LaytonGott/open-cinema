@@ -315,6 +315,18 @@ class TestGlobalGain(unittest.TestCase):
                     self.assertLessEqual(abs(a - b) / b, 0.12)
 
 
+class TestDeterminism(unittest.TestCase):
+    def test_repeated_calls_equal(self):
+        for strength in (0.7, 0.3):
+            with self.subTest(strength=strength):
+                noisy, _ = make_flicker_sequence(seed=7, frames=30)
+                first = smooth_depth_sequence(noisy, strength)
+                second = smooth_depth_sequence(noisy, strength)
+                third = smooth_depth_sequence(copy.deepcopy(noisy), strength)
+                self.assertEqual(first, second)
+                self.assertEqual(first, third)
+
+
 class TestDocs(unittest.TestCase):
     def test_docs_mention_key_terms(self):
         module_doc = open_optics.temporal.__doc__
