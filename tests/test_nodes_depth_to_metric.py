@@ -3,6 +3,7 @@ import unittest
 import torch
 
 from open_optics.depth import depth_to_metric
+from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
 from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric
 
 
@@ -78,6 +79,31 @@ class TestDepthToMetricNode(unittest.TestCase):
             node.convert(low_percentile=60.0, high_percentile=40.0, depth_mask=d)
         with self.assertRaises(ValueError):
             node.convert(low_percentile=0.0, high_percentile=101.0, depth_mask=d)
+
+    def test_error_messages_name_inputs(self):
+        node = OpenOptics_DepthToMetric()
+        d = torch.rand(1, 4, 4)
+        img = torch.rand(1, 4, 4, 3)
+        with self.assertRaisesRegex(ValueError, "near_m"):
+            node.convert(near_m=0.0, far_m=5.0, depth_mask=d)
+        for far in (1.0, 0.5):
+            with self.assertRaisesRegex(ValueError, "far_m"):
+                node.convert(near_m=1.0, far_m=far, depth_mask=d)
+        for lo, hi in ((50.0, 50.0), (60.0, 40.0), (0.0, 101.0)):
+            with self.assertRaisesRegex(ValueError, "percentile"):
+                node.convert(low_percentile=lo, high_percentile=hi, depth_mask=d)
+        with self.assertRaisesRegex(ValueError, "depth_mask"):
+            node.convert()
+        with self.assertRaisesRegex(ValueError, "depth_mask"):
+            node.convert(depth_mask=d, depth_image=img)
+
+    def test_mask_feeds_depth_of_field(self):
+        d = torch.rand(1, 16, 16)
+        z, _ = OpenOptics_DepthToMetric().convert(depth_mask=d)
+        image = torch.rand(1, 16, 16, 3)
+        out, mask = OpenOptics_DepthOfField().apply(image, depth_mask=z)
+        self.assertEqual(tuple(out.shape), (1, 16, 16, 3))
+        self.assertEqual(tuple(mask.shape), (1, 16, 16))
 
     def test_dtype_shape_range(self):
         d = torch.rand(2, 8, 9)
