@@ -6,7 +6,7 @@ Coordinates are unitless lens-relative or frame-fraction positions.
 import math
 
 from open_optics.pixels import lens_to_pixel, pixel_to_lens
-from open_optics.validation import require_finite
+from open_optics.validation import require_finite, require_positive
 
 
 class DistortionError(ValueError):
@@ -173,3 +173,25 @@ def border_free_zoom(sensor, lens, width_px, height_px,
         else:
             lo = mid
     return float(hi)
+
+
+def classify_distortion(k1=0.0, k2=0.0, k3=0.0, radius=0.5, tolerance=1e-9):
+    """Classify radial distortion at a given radius.
+
+    All arguments are unitless: k1..k3 are radial coefficients, radius is a
+    lens-relative distance from the centre (must be > 0) and tolerance is the
+    allowed deviation of the radial factor from 1. Returns the string
+    'barrel' if the factor 1 + k1*r^2 + k2*r^4 + k3*r^6 is below
+    1 - tolerance, 'pincushion' if above 1 + tolerance, else 'neutral'.
+    """
+    c1 = require_finite("k1", k1)
+    c2 = require_finite("k2", k2)
+    c3 = require_finite("k3", k3)
+    r = require_positive("radius", radius)
+    r2 = r * r
+    factor = 1 + c1 * r2 + c2 * r2**2 + c3 * r2**3
+    if factor < 1 - tolerance:
+        return "barrel"
+    if factor > 1 + tolerance:
+        return "pincushion"
+    return "neutral"
