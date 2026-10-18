@@ -115,5 +115,33 @@ class TestOrderEquivalence(unittest.TestCase):
         self.assertNotEqual(distort_point(x, y, *cv), distort_point_opencv(x, y, *cv))
 
 
+class TestLibraryOrderUnchanged(unittest.TestCase):
+    K1, K2, K3, P1, P2 = -0.2, 0.05, 0.01, 0.005, -0.003
+    CASES = [
+        ((0.05, 0.03), (0.049955828919652, 0.029996617351791204)),
+        ((0.2, -0.15), (0.19681205078125005, -0.14743716308593752)),
+        ((0.45, 0.3), (0.4249701290390625, 0.285360919359375)),
+    ]
+
+    def test_distort_matches_opencv_values(self):
+        for point, expected in self.CASES:
+            x, y = distort_point(
+                *point, self.K1, self.K2, self.K3, self.P1, self.P2)
+            self.assertAlmostEqual(x, expected[0], places=9)
+            self.assertAlmostEqual(y, expected[1], places=9)
+
+    def test_undistort_round_trip(self):
+        for point, expected in self.CASES[:2]:
+            x, y = undistort_point(
+                *expected, self.K1, self.K2, self.K3, self.P1, self.P2)
+            self.assertAlmostEqual(x, point[0], delta=1e-7)
+            self.assertAlmostEqual(y, point[1], delta=1e-7)
+
+    def test_positional_equals_keyword(self):
+        self.assertEqual(
+            distort_point(0.45, 0.3, -0.2, 0.05, 0.01, 0.005, -0.003),
+            distort_point(0.45, 0.3, -0.2, 0.05, k3=0.01, p1=0.005, p2=-0.003))
+
+
 if __name__ == "__main__":
     unittest.main()
