@@ -167,5 +167,45 @@ class TestDepthToMetricNode(unittest.TestCase):
         self.assertTrue(torch.equal(preview[..., 1], preview[..., 2]))
 
 
+class TestDepthToMetricOutputs(unittest.TestCase):
+    def test_preview_monotonic(self):
+        d = torch.tensor([[[i / 10.0 for i in range(11)]]])
+        z, preview = _convert(d)
+        zs = z[0, 0].tolist()
+        ps = preview[0, 0, :, 0].tolist()
+        for zi, pi in zip(zs, ps):
+            if abs(zi - 1.0) < 1e-5:
+                self.assertAlmostEqual(pi, 1.0, delta=1e-5)
+            if abs(zi - 5.0) < 1e-5:
+                self.assertAlmostEqual(pi, 0.0, delta=1e-5)
+        self.assertAlmostEqual(min(zs), 1.0, delta=1e-5)
+        self.assertAlmostEqual(max(zs), 5.0, delta=1e-5)
+        pairs = sorted(zip(zs, ps), key=lambda t: -t[0])  # z decreasing
+        for (_, p0), (_, p1) in zip(pairs, pairs[1:]):
+            self.assertGreaterEqual(p1, p0 - 1e-6)
+
+    def test_forms_agree_both_outputs(self):
+        d = torch.tensor([[[i / 10.0 for i in range(11)]]])
+        img = d.unsqueeze(-1).repeat(1, 1, 1, 3)
+        node = OpenOptics_DepthToMetric()
+        kw = dict(near_m=1.0, far_m=5.0, inverse_depth=True,
+                  low_percentile=0.0, high_percentile=100.0)
+        z1, p1 = node.convert(depth_mask=d, **kw)
+        z2, p2 = node.convert(depth_image=img, **kw)
+        self.assertTrue(torch.allclose(z1, z2, atol=1e-6))
+        self.assertTrue(torch.allclose(p1, p2, atol=1e-6))
+
+    def test_mask_output_feeds_dof_same_as_direct(self):
+        g = torch.Generator().manual_seed(0)
+        d = torch.rand(1, 16, 16, generator=g)
+        image = torch.rand(1, 16, 16, 3, generator=g)
+        z, _ = OpenOptics_DepthToMetric().convert(depth_mask=d)
+        dof = OpenOptics_DepthOfField()
+        out1, m1 = dof.apply(image, depth_mask=z)
+        out2, m2 = dof.apply(image, depth_image=z.unsqueeze(-1).repeat(1, 1, 1, 3))
+        self.assertTrue(torch.allclose(out1, out2, atol=1e-5))
+        self.assertTrue(torch.allclose(m1, m2, atol=1e-5))
+
+
 if __name__ == "__main__":
     unittest.main()
