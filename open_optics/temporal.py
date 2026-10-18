@@ -94,6 +94,13 @@ def smooth_depth_sequence(frames, strength=0.7):
     current estimate is not blended in; that frame outputs the current estimate.
     The first valid value always initialises the estimate.
 
+    Persistent changes: an outlier is remembered as pending. If the next valid value
+    is also an outlier vs the estimate but within 0.4x to 2.5x of the pending value,
+    the change is accepted at once: the estimate is set to that value (no easing) and
+    it is output. A non-outlier clears pending and blends normally; a missing value
+    leaves pending unchanged. The first frame of a change still outputs the old
+    estimate.
+
     Raises:
         ValueError: if strength is invalid, or frames is not a list of equally sized
             lists of rows of int/float entries (bool and str are rejected; nan, inf,
@@ -112,12 +119,19 @@ def smooth_depth_sequence(frames, strength=0.7):
     for r, row in enumerate(frames[0] if frames else []):
         for c in range(len(row)):
             est = None
+            pending = None
             for t, frame in enumerate(frames):
                 v = frame[r][c]
                 if _is_valid(v):
                     if est is None:
                         est = float(v)
                     elif not _is_outlier(v, est):
+                        pending = None
                         est = est + gain * (v - est)
+                    elif pending is not None and not _is_outlier(v, pending):
+                        est = float(v)
+                        pending = None
+                    else:
+                        pending = float(v)
                 out[t][r][c] = float(v) if est is None else est
     return out
