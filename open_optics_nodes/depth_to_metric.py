@@ -11,15 +11,20 @@ from open_optics_nodes import common
 def depth_percentile_range(depth, low_percentile, high_percentile):
     """Return (d_lo, d_hi) percentile values of a whole depth batch.
 
-    The whole tensor (all frames together) is flattened and sorted. Percentiles
-    are 0 to 100 and depth values are unitless. Uses linear interpolation at
-    position q/100*(n-1), the same as torch.quantile. Returns two Python floats.
-    Raises ValueError for an empty tensor or a percentile outside 0 to 100.
+    The whole tensor (all frames together) is flattened, non-finite values
+    (NaN, +-inf) are dropped, and the rest is sorted. Percentiles are 0 to 100
+    and depth values are unitless. Uses linear interpolation at position
+    q/100*(n-1) over the n finite values, the same as torch.quantile. Returns
+    two Python floats. Raises ValueError for an empty tensor, a tensor with no
+    finite values, or a percentile outside 0 to 100.
     """
     flat = depth.detach().reshape(-1).to(torch.float64)
+    if flat.numel() == 0:
+        raise ValueError("depth must not be empty")
+    flat = flat[torch.isfinite(flat)]
     n = flat.numel()
     if n == 0:
-        raise ValueError("depth must not be empty")
+        raise ValueError("depth has no finite values")
     sorted_vals, _ = torch.sort(flat)
 
     def at(q):
@@ -42,12 +47,18 @@ def depth_to_metric_tensor(depth, near_m, far_m, inverse_depth, low_percentile, 
     near_m and far_m are distances in metres; percentiles are 0 to 100 and pick
     the depth values that map to the limits (see depth_percentile_range).
     Returns a float32 tensor of the same shape in metres, within [near_m, far_m].
-    Raises ValueError for bad near/far/percentiles.
+    Non-finite depth entries are ignored in the fit and replaced before the
+    mapping: NaN and -inf become d_lo, +inf becomes d_hi, so the result is
+    always finite. Raises ValueError for bad near/far/percentiles or a depth
+    with no finite values.
     """
     validate_depth_params(near_m, far_m, low_percentile, high_percentile)
     d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
     a, b, reciprocal = metric_depth_coefficients(d_lo, d_hi, near_m, far_m, inverse_depth)
-    v = a * depth.detach().to(torch.float64) + b
+    d = depth.detach().to(torch.float64)
+    d = torch.where(torch.isposinf(d), torch.full_like(d, d_hi), d)
+    d = torch.where(torch.isfinite(d), d, torch.full_like(d, d_lo))
+    v = a * d + b
     if reciprocal:
         z = 1.0 / torch.clamp(v, 1.0 / far_m, 1.0 / near_m)
     else:
