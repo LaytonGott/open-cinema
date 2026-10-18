@@ -2,6 +2,7 @@
 
 from .anamorphic import OpenOptics_Anamorphic
 from .chromatic_aberration import OpenOptics_ChromaticAberration
+from .depth_of_field import OpenOptics_DepthOfField
 from .depth_to_metric import OpenOptics_DepthToMetric
 from .focal_crop import OpenOptics_FocalCrop
 from .vignette import OpenOptics_Vignette
@@ -9,6 +10,7 @@ from .vignette import OpenOptics_Vignette
 NODE_CLASS_MAPPINGS = {
     "OpenOptics_Anamorphic": OpenOptics_Anamorphic,
     "OpenOptics_ChromaticAberration": OpenOptics_ChromaticAberration,
+    "OpenOptics_DepthOfField": OpenOptics_DepthOfField,
     "OpenOptics_DepthToMetric": OpenOptics_DepthToMetric,
     "OpenOptics_FocalCrop": OpenOptics_FocalCrop,
     "OpenOptics_Vignette": OpenOptics_Vignette,
@@ -16,6 +18,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "OpenOptics_Anamorphic": "Open Optics: Anamorphic Squeeze",
     "OpenOptics_ChromaticAberration": "Open Optics: Chromatic Aberration",
+    "OpenOptics_DepthOfField": "Open Optics: Depth of Field",
     "OpenOptics_DepthToMetric": "Open Optics: Depth to Metric",
     "OpenOptics_FocalCrop": "Open Optics: Focal Crop",
     "OpenOptics_Vignette": "Open Optics: Vignette",
