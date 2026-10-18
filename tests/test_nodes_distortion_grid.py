@@ -87,6 +87,19 @@ class TestCropZoomApply(unittest.TestCase):
                 self.assertTrue(-1e-6 <= sx <= 31 + 1e-6)
                 self.assertTrue(-1e-6 <= sy <= 23 + 1e-6)
 
+    def test_strong_barrel_square_image(self):
+        zoom = crop_zoom_apply(33, 33, 35, 36, -0.3, 0, 0, 0, 0)
+        self.assertIsInstance(zoom, float)
+        self.assertGreaterEqual(zoom, 1.0)
+        grid = build_source_grid(33, 33, 35, 36, -0.3, 0, 0, 0, 0,
+                                 "apply", zoom=zoom)
+        for v in range(33):
+            for u in range(33):
+                if u in (0, 32) or v in (0, 32):
+                    sx, sy = grid[v][u]
+                    self.assertTrue(-1e-6 <= sx <= 32 + 1e-6)
+                    self.assertTrue(-1e-6 <= sy <= 32 + 1e-6)
+
 
 class TestSampleBilinear(unittest.TestCase):
     def setUp(self):

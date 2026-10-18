@@ -77,8 +77,11 @@ def crop_zoom_apply(width_px, height_px, focal_mm, sensor_width_mm,
         for u, v in border:
             x, y = pixels.pixel_to_lens(u, v, width_px, height_px,
                                         sensor_width_mm, focal_mm)
-            x, y = distortion.undistort_point(x / zoom, y / zoom,
-                                              k1, k2, k3, p1, p2)
+            try:
+                x, y = distortion.undistort_point(x / zoom, y / zoom,
+                                                  k1, k2, k3, p1, p2)
+            except distortion.DistortionError:
+                return False  # no source point exists, so this zoom is not border-free
             sx, sy = pixels.lens_to_pixel(x, y, width_px, height_px,
                                           sensor_width_mm, focal_mm)
             if not (-tol <= sx <= width_px - 1 + tol
