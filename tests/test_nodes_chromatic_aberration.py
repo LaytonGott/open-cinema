@@ -35,6 +35,35 @@ class ChromaticAberrationNodeTest(unittest.TestCase):
         self.assertTrue(torch.equal(out[..., 1], img[..., 1]))
         self.assertTrue(torch.equal(out[..., 2], img[..., 2]))
 
+    def test_defaults_are_zero(self):
+        req = OpenOptics_ChromaticAberration.INPUT_TYPES()["required"]
+        self.assertEqual(req["ca_r"][1]["default"], 0.0)
+        self.assertEqual(req["ca_b"][1]["default"], 0.0)
+        img = torch.rand(1, 12, 10, 3)
+        out = OpenOptics_ChromaticAberration().apply(img)[0]
+        self.assertTrue(torch.equal(out, img))
+
+    def test_blue_shift_at_8px(self):
+        # Tolerance: delta 0.05 in ramp-pixel units (bilinear sampling of a linear ramp).
+        x = torch.arange(33, dtype=torch.float32)
+        ramp = (x / 32.0).reshape(1, 1, 33)
+        img = torch.zeros(1, 33, 33, 3)
+        for c in range(3):
+            img[..., c] = ramp
+        ca = -0.05
+        out = OpenOptics_ChromaticAberration().apply(img, 0.0, ca)[0]
+        scale = chromatic.channel_scales(0.0, ca)[1]
+        self.assertAlmostEqual(scale, 0.95, delta=1e-9)
+        # x=24 is 8 px right of centre; output samples source at 16 + 8 / 0.95 = 24.421.
+        self.assertAlmostEqual(out[0, 16, 24, 2].item() * 32.0, 16 + 8 / scale, delta=0.05)
+        self.assertTrue(torch.equal(out[..., 0], img[..., 0]))
+        self.assertTrue(torch.equal(out[..., 1], img[..., 1]))
+
+    def test_alpha_channel_kept(self):
+        img = torch.rand(1, 12, 10, 4)
+        out = OpenOptics_ChromaticAberration().apply(img, 0.05, 0.0)[0]
+        self.assertTrue(torch.equal(out[..., 3], img[..., 3]))
+
 
 if __name__ == "__main__":
     unittest.main()
