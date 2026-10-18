@@ -1,3 +1,4 @@
+import math
 import unittest
 
 import torch
@@ -56,6 +57,37 @@ class TestVignetteNode(unittest.TestCase):
             self.node.apply(self.img, strength=2)
         self.assertIn("strength", str(cm.exception))
         self.assertIn("2", str(cm.exception))
+
+
+class TestVignetteWhiteImage(unittest.TestCase):
+    def setUp(self):
+        self.img = torch.ones((1, 64, 64, 3), dtype=torch.float32)
+        self.node = OpenOptics_Vignette()
+        # Pixel pitch 36/64 mm, centre at 63/2 pixels: corner offset is 31.5 pixels.
+        d = 31.5 * 36.0 / 64.0
+        r = math.hypot(d, d)
+        self.gain = math.cos(math.atan(r / 35.0)) ** 4
+
+    def test_linear_corners(self):
+        out = self.node.apply(self.img, 35.0, 36.0, 1.0, "linear")[0]
+        self.assertAlmostEqual(out[0, 0, 0, 0].item(), self.gain, delta=1e-4)
+        self.assertAlmostEqual(out[0, 63, 63, 1].item(), self.gain, delta=1e-4)
+        c = [out[0, 0, 0, 0], out[0, 0, 63, 0], out[0, 63, 0, 0], out[0, 63, 63, 0]]
+        for v in c:
+            self.assertAlmostEqual(v.item(), c[0].item(), delta=1e-6)
+
+    def test_srgb_corner(self):
+        out = self.node.apply(self.img, 35.0, 36.0, 1.0, "srgb")[0]
+        expected = 1.055 * self.gain ** (1 / 2.4) - 0.055
+        self.assertAlmostEqual(out[0, 0, 0, 0].item(), expected, delta=1e-4)
+
+    def test_centre_and_diagonal(self):
+        out = self.node.apply(self.img, 35.0, 36.0, 1.0, "linear")[0]
+        self.assertAlmostEqual(out[0, 31, 31, 0].item(), 1.0, delta=0.01)
+        self.assertAlmostEqual(out[0, 32, 32, 0].item(), 1.0, delta=0.01)
+        diag = [out[0, i, i, 0].item() for i in range(32, 64)]
+        for a, b in zip(diag, diag[1:]):
+            self.assertGreaterEqual(a, b)
 
 
 if __name__ == "__main__":
