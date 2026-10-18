@@ -111,5 +111,13 @@ class TestAnamorphicRoundTrip(unittest.TestCase):
         self.assertLessEqual(float((out - img).abs().max()), 0.003)
 
 
+class TestAnamorphicMinSize(unittest.TestCase):
+    def test_one_pixel_minimum(self):
+        img = torch.rand(1, 1, 1, 3)
+        # library height 1/4 = 0.25 rounds to 0 and is raised to 1
+        out = OpenOptics_Anamorphic().apply(img, 4.0, "desqueeze", True)[0]
+        self.assertEqual(tuple(out.shape), (1, 1, 1, 3))
+
+
 if __name__ == "__main__":
     unittest.main()
