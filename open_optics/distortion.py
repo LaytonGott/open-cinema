@@ -236,3 +236,15 @@ def opencv_to_library_coeffs(k1, k2, p1, p2, k3=0.0):
     t2 = require_finite("p2", p2)
     c3 = require_finite("k3", k3)
     return (float(c1), float(c2), float(c3), float(t1), float(t2))
+
+
+def undistort_point_opencv(x_d, y_d, k1, k2, p1, p2, k3=0.0):
+    """Undistort a point using OpenCV-ordered distortion coefficients.
+
+    x_d and y_d are unitless normalised image-plane coordinates (x/z, y/z),
+    the same as OpenCV. Coefficients are unitless, in OpenCV order
+    (k1, k2, p1, p2, k3). Returns the undistorted (x, y) tuple of floats.
+    Raises DistortionError if it could not undistort.
+    """
+    c1, c2, c3, t1, t2 = opencv_to_library_coeffs(k1, k2, p1, p2, k3)
+    return undistort_point(x_d, y_d, c1, c2, c3, t1, t2)
