@@ -1,0 +1,8 @@
+{
+  "name": "open-cinema",
+  "private": true,
+  "description": "Open Cinema is a Python project. This file exists only so the loop's test command, npm test, runs the Python unit tests.",
+  "scripts": {
+    "test": "python -m unittest discover -s tests -t ."
+  }
+}
