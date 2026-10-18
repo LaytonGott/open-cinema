@@ -79,6 +79,19 @@ class TestSampleBilinear(unittest.TestCase):
         expected = self.image[:, :, 0:1, :].expand(-1, -1, 7, -1)
         self.assertTrue(torch.allclose(out, expected, atol=1e-5))
 
+    def test_black_outside_zeroes_out_of_range(self):
+        grid = torch.stack([torch.full_like(self.u, -5.0), self.v], dim=-1)
+        out = sample_bilinear(self.image, grid, outside="black")
+        self.assertTrue(torch.equal(out, torch.zeros_like(out)))
+        ident = torch.stack([self.u, self.v], dim=-1)
+        out = sample_bilinear(self.image, ident, outside="black")
+        self.assertTrue(torch.allclose(out, self.image, atol=1e-5))
+
+    def test_bad_outside_raises(self):
+        grid = torch.stack([self.u, self.v], dim=-1)
+        with self.assertRaisesRegex(ValueError, "outside"):
+            sample_bilinear(self.image, grid, outside="wrap")
+
 
 if __name__ == "__main__":
     unittest.main()

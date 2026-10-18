@@ -54,14 +54,19 @@ def crop_zoom(width_px, height_px, focal_mm, sensor_width_mm,
         k1, k2, k3, p1, p2))
 
 
-def sample_bilinear(image, grid_px):
+def sample_bilinear(image, grid_px, outside="border"):
     """Sample an image at source pixel positions with bilinear filtering.
 
     image is a float32 tensor [B, H, W, C]; grid_px is a float tensor
     [H, W, 2] of (sx, sy) source positions in pixels (0-based, sx the column,
-    sy the row), shared by every batch item. Positions outside the image take
-    the nearest border pixel. Returns a float32 tensor [B, H, W, C].
+    sy the row), shared by every batch item. outside 'border' (default) makes
+    positions outside the image take the nearest border pixel; 'black' sets
+    every channel to 0 where (sx, sy) lies outside [0, W-1] x [0, H-1] by more
+    than 1e-4 pixels. Returns a float32 tensor [B, H, W, C]. Raises
+    ValueError for any other outside value.
     """
+    if outside not in ("border", "black"):
+        raise ValueError("outside must be 'border' or 'black', got %r" % (outside,))
     b, h, w, _ = image.shape
     sx = grid_px[..., 0].to(torch.float32)
     sy = grid_px[..., 1].to(torch.float32)
@@ -71,4 +76,10 @@ def sample_bilinear(image, grid_px):
     out = F.grid_sample(image.to(torch.float32).permute(0, 3, 1, 2), grid,
                         mode="bilinear", padding_mode="border",
                         align_corners=True)
-    return out.permute(0, 2, 3, 1).contiguous()
+    out = out.permute(0, 2, 3, 1).contiguous()
+    if outside == "black":
+        tol = 1e-4
+        valid = ((sx >= -tol) & (sx <= w - 1 + tol)
+                 & (sy >= -tol) & (sy <= h - 1 + tol))
+        out = out * valid.to(torch.float32)[None, :, :, None]
+    return out
