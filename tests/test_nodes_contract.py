@@ -1,4 +1,4 @@
-"""Tensor contract and determinism tests shared by all seven nodes."""
+"""Tensor contract and determinism tests shared by all eight nodes."""
 
 import unittest
 

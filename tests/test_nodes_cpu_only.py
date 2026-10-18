@@ -59,7 +59,7 @@ class TestNodesRunOnCpuQuickly(unittest.TestCase):
         torch.manual_seed(7)
         image = torch.rand(1, 64, 64, 3, dtype=torch.float32)
         depth = 0.5 + 7.5 * torch.rand(1, 64, 64, dtype=torch.float32)
-        self.assertEqual(len(NODE_CLASS_MAPPINGS), 7)
+        self.assertEqual(len(NODE_CLASS_MAPPINGS), 8)
         start = time.perf_counter()
         for key, cls in NODE_CLASS_MAPPINGS.items():
             kwargs = _defaults(cls)

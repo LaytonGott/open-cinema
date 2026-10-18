@@ -18,6 +18,7 @@ EXPECTED_NAMES = {
     "OpenOptics_ChromaticAberration": "Open Optics: Chromatic Aberration",
     "OpenOptics_Anamorphic": "Open Optics: Anamorphic Squeeze",
     "OpenOptics_DepthToMetric": "Open Optics: Depth to Metric",
+    "OpenOptics_DepthTemporalSmooth": "Open Optics: Depth Temporal Smooth",
 }
 
 
