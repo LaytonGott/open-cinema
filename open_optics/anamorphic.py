@@ -24,6 +24,26 @@ def desqueeze_size(width_px, height_px, squeeze, mode="widen"):
     raise ValueError(f"mode must be 'widen' or 'shorten', got {mode!r}")
 
 
+def squeeze_size(width_px, height_px, squeeze, mode="widen"):
+    """Squeezed image size, the inverse of desqueeze_size with the same mode.
+
+    width_px and height_px are the desqueezed size in pixels; squeeze is the
+    unitless squeeze factor. mode 'widen' returns (width_px / squeeze,
+    height_px); mode 'shorten' returns (width_px, height_px * squeeze).
+    Returns a (width, height) tuple of unrounded floats in pixels. Raises
+    ValueError if any input is not positive and finite or if mode is not
+    'widen' or 'shorten'.
+    """
+    width = require_positive("width_px", width_px)
+    height = require_positive("height_px", height_px)
+    factor = require_positive("squeeze", squeeze)
+    if mode == "widen":
+        return (float(width / factor), float(height))
+    if mode == "shorten":
+        return (float(width), float(height * factor))
+    raise ValueError(f"mode must be 'widen' or 'shorten', got {mode!r}")
+
+
 def delivered_aspect_ratio(gate_width_mm, gate_height_mm, squeeze):
     """Aspect ratio of the desqueezed image delivered from a sensor gate.
 

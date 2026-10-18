@@ -4,6 +4,7 @@ from open_optics.anamorphic import (
     bokeh_aspect,
     delivered_aspect_ratio,
     desqueeze_size,
+    squeeze_size,
 )
 
 
@@ -34,6 +35,32 @@ class TestDesqueezeSize(unittest.TestCase):
     def test_bad_mode_raises(self):
         with self.assertRaises(ValueError):
             desqueeze_size(1280, 720, 2.0, mode="stretch")
+
+
+class TestSqueezeSize(unittest.TestCase):
+    def test_round_trip(self):
+        for mode in ("widen", "shorten"):
+            for squeeze in (1.33, 1.5, 1.8, 2.0):
+                with self.subTest(mode=mode, squeeze=squeeze):
+                    w, h = desqueeze_size(1920, 1080, squeeze, mode=mode)
+                    w, h = squeeze_size(w, h, squeeze, mode=mode)
+                    self.assertAlmostEqual(w, 1920, places=9)
+                    self.assertAlmostEqual(h, 1080, places=9)
+
+    def test_rounded_round_trip_width(self):
+        for squeeze in (1.33, 1.5, 1.8, 2.0):
+            with self.subTest(squeeze=squeeze):
+                w, h = desqueeze_size(1920, 1080, squeeze)
+                w, _ = squeeze_size(round(w), round(h), squeeze)
+                self.assertAlmostEqual(w, 1920, delta=1)
+
+    def test_zero_squeeze_raises(self):
+        with self.assertRaises(ValueError):
+            squeeze_size(1920, 1080, 0)
+
+    def test_bad_mode_raises(self):
+        with self.assertRaises(ValueError):
+            squeeze_size(1920, 1080, 2.0, mode="stretch")
 
 
 class TestDeliveredAspectRatio(unittest.TestCase):
