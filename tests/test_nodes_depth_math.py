@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from open_optics_nodes.depth_to_metric import depth_percentile_range
+from open_optics_nodes.depth_to_metric import depth_percentile_range, depth_to_metric_tensor
 
 
 class DepthPercentileRangeTests(unittest.TestCase):
@@ -22,6 +22,34 @@ class DepthPercentileRangeTests(unittest.TestCase):
         lo, hi = depth_percentile_range(depth, 0, 100)
         self.assertAlmostEqual(lo, 0.0, delta=1e-6)
         self.assertAlmostEqual(hi, 1.0, delta=1e-6)
+
+
+class DepthToMetricTensorTests(unittest.TestCase):
+    def _check(self, out, expected):
+        self.assertEqual(len(out), len(expected))
+        for o, e in zip(out.tolist(), expected):
+            self.assertAlmostEqual(o, e, delta=1e-5)
+
+    def test_inverse_true_values(self):
+        out = depth_to_metric_tensor(torch.tensor([0.0, 0.5, 1.0]), 1, 5, True, 0, 100)
+        self._check(out, [5.0, 1.666667, 1.0])
+
+    def test_inverse_false_values(self):
+        out = depth_to_metric_tensor(torch.tensor([0.0, 0.5, 1.0]), 1, 5, False, 0, 100)
+        self._check(out, [1.0, 3.0, 5.0])
+
+    def test_constant_map(self):
+        for inv in (True, False):
+            out = depth_to_metric_tensor(torch.full((2, 4, 4), 0.7), 1, 5, inv, 0, 100)
+            self.assertEqual(out.shape, (2, 4, 4))
+            self._check(out.reshape(-1), [3.0] * 32)
+
+    def test_clamp_outside_fitted_range(self):
+        out = depth_to_metric_tensor(torch.linspace(0, 1, 101), 1, 5, True, 25, 75)
+        self.assertGreaterEqual(out.min().item(), 1)
+        self.assertLessEqual(out.max().item(), 5)
+        self.assertAlmostEqual(out[0].item(), 5.0, delta=1e-5)
+        self.assertAlmostEqual(out[100].item(), 1.0, delta=1e-5)
 
 
 if __name__ == "__main__":

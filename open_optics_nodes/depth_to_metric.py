@@ -4,6 +4,8 @@ import math
 
 import torch
 
+from open_optics.depth import metric_depth_coefficients, validate_depth_params
+
 
 def depth_percentile_range(depth, low_percentile, high_percentile):
     """Return (d_lo, d_hi) percentile values of a whole depth batch.
@@ -31,3 +33,22 @@ def depth_percentile_range(depth, low_percentile, high_percentile):
         return a + (b - a) * frac
 
     return at(low_percentile), at(high_percentile)
+
+
+def depth_to_metric_tensor(depth, near_m, far_m, inverse_depth, low_percentile, high_percentile):
+    """Convert a relative depth tensor of any shape to metres.
+
+    near_m and far_m are distances in metres; percentiles are 0 to 100 and pick
+    the depth values that map to the limits (see depth_percentile_range).
+    Returns a float32 tensor of the same shape in metres, within [near_m, far_m].
+    Raises ValueError for bad near/far/percentiles.
+    """
+    validate_depth_params(near_m, far_m, low_percentile, high_percentile)
+    d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
+    a, b, reciprocal = metric_depth_coefficients(d_lo, d_hi, near_m, far_m, inverse_depth)
+    v = a * depth.detach().to(torch.float64) + b
+    if reciprocal:
+        z = 1.0 / torch.clamp(v, 1.0 / far_m, 1.0 / near_m)
+    else:
+        z = torch.clamp(v, near_m, far_m)
+    return z.to(torch.float32)
