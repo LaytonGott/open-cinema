@@ -1,6 +1,7 @@
 import unittest
 
 from open_optics.vignetting import (
+    aperture_vignette,
     brightness_to_stops,
     natural_vignette,
     natural_vignette_px,
@@ -42,6 +43,37 @@ class NaturalVignettePxTests(unittest.TestCase):
     def test_invalid_focal(self):
         with self.assertRaises(ValueError):
             natural_vignette_px(0, 0, 0, 36, 3600, 2400)
+
+
+class ApertureVignetteTests(unittest.TestCase):
+    def test_wide_open_edge(self):
+        self.assertAlmostEqual(aperture_vignette(1.0, 1.4, 1.4, 0.4), 0.6, places=9)
+
+    def test_wide_open_inside_threshold(self):
+        for radius in (0.55, 0.3, 0.0):
+            self.assertEqual(aperture_vignette(radius, 1.4, 1.4, 0.4), 1.0)
+
+    def test_two_stops_down(self):
+        # 2 * log2(2.8 / 1.4) = 2 stops, so the effect has faded fully.
+        for radius in (0, 0.7, 1.0):
+            self.assertAlmostEqual(
+                aperture_vignette(radius, 2.8, 1.4, 0.4), 1.0, delta=1e-9
+            )
+
+    def test_more_than_two_stops_down(self):
+        self.assertEqual(aperture_vignette(1.0, 4.0, 1.4, 0.4), 1.0)
+
+    def test_longer_fade(self):
+        # 2 of 4 stops: fade 0.5, so 1 - 0.4 * 0.5 = 0.8.
+        value = aperture_vignette(1.0, 2.8, 1.4, 0.4, fade_stops=4)
+        self.assertAlmostEqual(value, 0.8, delta=1e-9)
+
+    def test_zero_strength(self):
+        self.assertEqual(aperture_vignette(1.0, 1.4, 1.4, 0), 1.0)
+
+    def test_invalid_strength(self):
+        with self.assertRaises(ValueError):
+            aperture_vignette(1.0, 1.4, 1.4, 1.5)
 
 
 if __name__ == "__main__":
