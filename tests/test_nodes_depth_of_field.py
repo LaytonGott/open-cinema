@@ -118,5 +118,33 @@ class TestDepthOfFieldValues(unittest.TestCase):
             node.apply(img, depth_mask=depth, quality="bogus")
 
 
+class TestCocMask(unittest.TestCase):
+    def test_coc_saturates_at_one(self):
+        img = torch.rand(1, 32, 32, 3)
+        depth = torch.full((1, 32, 32), 0.2)
+        _, coc_px = OpenOptics_DepthOfField().apply(
+            img, focal_mm=100.0, f_number=1.4, focus_m=3.0, sensor_width_mm=36.0,
+            max_radius_px=2, depth_mask=depth)
+        self.assertLessEqual(float((coc_px - 1.0).abs().max()), 1e-6)
+        blur = coc.blur_diameter_mm(100, 1.4, 3000, 200)
+        self.assertGreater(coc.blur_radius_px(blur, 32, 36.0, max_px=1000) / 2, 1)
+
+    def test_coc_per_pixel_map(self):
+        img = torch.rand(1, 32, 32, 3)
+        depth = torch.full((1, 32, 32), 3.0)
+        depth[:, :, 16:] = 1.0
+        _, coc_px = OpenOptics_DepthOfField().apply(
+            img, focal_mm=50.0, f_number=2.8, focus_m=3.0, sensor_width_mm=36.0,
+            max_radius_px=16, depth_mask=depth)
+        self.assertEqual(tuple(coc_px.shape), (1, 32, 32))
+        self.assertEqual(coc_px.dtype, torch.float32)
+        self.assertTrue(bool((coc_px[:, :, :16] == 0).all()))
+        blur = coc.blur_diameter_mm(50, 2.8, 3000, 1000)
+        expected = coc.blur_radius_px(blur, 32, 36.0, max_px=16) / 16
+        self.assertLessEqual(float((coc_px[:, :, 16:] - expected).abs().max()), 1e-4)
+        self.assertGreaterEqual(float(coc_px.min()), 0.0)
+        self.assertLessEqual(float(coc_px.max()), 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
