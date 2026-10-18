@@ -1,6 +1,8 @@
 import os
 import unittest
 
+from open_optics_nodes import NODE_CLASS_MAPPINGS
+
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 NODE_TESTS = [
@@ -30,6 +32,30 @@ class TestNodeCoverage(unittest.TestCase):
         self.assertTrue(
             os.path.exists(os.path.join(TESTS_DIR, "test_nodes_registration.py"))
         )
+
+    def test_required_inputs_have_defaults(self):
+        for key, cls in NODE_CLASS_MAPPINGS.items():
+            for name, spec in cls.INPUT_TYPES()["required"].items():
+                if spec[0] in ("IMAGE", "MASK"):
+                    continue
+                with self.subTest(node=key, input=name):
+                    if isinstance(spec[0], list):
+                        self.assertGreater(len(spec[0]), 0)
+                        if len(spec) > 1 and "default" in spec[1]:
+                            self.assertIn(spec[1]["default"], spec[0])
+                    else:
+                        self.assertGreater(len(spec), 1)
+                        self.assertIsInstance(spec[1], dict)
+                        self.assertIn("default", spec[1])
+
+    def test_depth_inputs_are_optional(self):
+        for key in ("OpenOptics_DepthOfField", "OpenOptics_DepthToMetric"):
+            with self.subTest(node=key):
+                types = NODE_CLASS_MAPPINGS[key].INPUT_TYPES()
+                self.assertEqual(types["optional"]["depth_mask"][0], "MASK")
+                self.assertEqual(types["optional"]["depth_image"][0], "IMAGE")
+                self.assertNotIn("depth_mask", types["required"])
+                self.assertNotIn("depth_image", types["required"])
 
 
 if __name__ == "__main__":
