@@ -6,6 +6,8 @@ one frame to the next.
 """
 
 
+import math
+
 from open_optics.validation import require_finite
 
 
@@ -18,6 +20,11 @@ def _require_strength(value):
     if not 0 <= strength <= 1:
         raise ValueError(f"strength must be between 0 and 1, got {value!r}")
     return strength
+
+
+def _is_valid(value):
+    """Return True if a depth value (metres) is finite and positive, else False."""
+    return math.isfinite(value) and value > 0
 
 
 def _validate_frames(frames):
@@ -71,6 +78,9 @@ def smooth_depth_sequence(frames, strength=0.7):
         strength: unitless smoothing amount from 0 to 1 (currently unused otherwise).
             Strength 0 returns the input values unchanged (as a float copy). Raises ValueError if it is not a finite number between 0 and 1.
 
+    Missing values (nan, inf, zero, negative) never change the running estimate; the
+    output for that frame is the current estimate, or the value itself if none yet.
+
     Raises:
         ValueError: if strength is invalid, or frames is not a list of equally sized
             lists of rows of int/float entries (bool and str are rejected; nan, inf,
@@ -84,4 +94,14 @@ def smooth_depth_sequence(frames, strength=0.7):
     _validate_frames(frames)
     if strength == 0:
         return [[[float(v) for v in row] for row in frame] for frame in frames]
-    return [[[float(v) for v in row] for row in frame] for frame in frames]
+    gain = 1 - 0.9 * strength
+    out = [[[0.0] * len(row) for row in frame] for frame in frames]
+    for r, row in enumerate(frames[0] if frames else []):
+        for c in range(len(row)):
+            est = None
+            for t, frame in enumerate(frames):
+                v = frame[r][c]
+                if _is_valid(v):
+                    est = float(v) if est is None else est + gain * (v - est)
+                out[t][r][c] = float(v) if est is None else est
+    return out
