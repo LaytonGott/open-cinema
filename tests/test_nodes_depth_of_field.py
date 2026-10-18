@@ -201,5 +201,32 @@ class TestDepthOfFieldEdgeCases(unittest.TestCase):
                 self._img(), quality="ultra", depth_mask=torch.full((1, 16, 16), 3.0))
 
 
+class TestDepthOfFieldLayers(unittest.TestCase):
+    def _split(self, left_depth, right_depth):
+        img = torch.zeros(1, 32, 32, 3)
+        img[:, :, :16, :] = 1.0
+        depth = torch.full((1, 32, 32), right_depth)
+        depth[:, :, :16] = left_depth
+        return img, depth
+
+    def test_normal_and_draft_no_halo(self):
+        img, depth = self._split(2.0, 30.0)
+        for quality in ("draft", "normal"):
+            out, _ = OpenOptics_DepthOfField().apply(
+                img, focal_mm=50.0, f_number=2.8, focus_m=2.0, max_radius_px=8,
+                quality=quality, colorspace="linear", depth_mask=depth)
+            left = out[:, :, :14, :]
+            self.assertLessEqual(float((left - 1.0).abs().max()), 1e-4, quality)
+            self.assertGreaterEqual(float(out[:, :, 15, :].min()), 0.9, quality)
+
+    def test_blurred_foreground_spreads_over_background(self):
+        img, depth = self._split(0.7, 3.0)
+        out, _ = OpenOptics_DepthOfField().apply(
+            img, focal_mm=85.0, f_number=1.8, focus_m=3.0, max_radius_px=8,
+            colorspace="linear", depth_mask=depth)
+        self.assertGreater(float(out[:, :, 17, :].mean()), 0.01)
+        self.assertLess(float(out[:, :, 28:32, :].max()), 1e-3)
+
+
 if __name__ == "__main__":
     unittest.main()
