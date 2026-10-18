@@ -180,5 +180,25 @@ class TestLensDistortionFitModes(unittest.TestCase):
             self.assertAlmostEqual(float(out[0, 16, 16, c]), 1.0, delta=1e-5)
 
 
+class TestLensDistortionCropFit(unittest.TestCase):
+    def _check(self, direction, k1, check_keep=True):
+        img = torch.ones(1, 33, 33, 3, dtype=torch.float32)
+        node = OpenOptics_LensDistortion()
+        kw = dict(focal_mm=35.0, sensor_width_mm=36.0, k1=k1,
+                  direction=direction)
+        (crop,) = node.apply(img, fit="crop", **kw)
+        self.assertEqual(crop.shape, img.shape)
+        self.assertGreater(float(crop.min()), 0.999)
+        if check_keep:
+            (keep,) = node.apply(img, fit="keep", **kw)
+            self.assertEqual(float(keep.min()), 0.0)
+
+    def test_remove_k1_positive(self):
+        self._check("remove", 0.3)
+
+    def test_apply_k1_negative(self):
+        self._check("apply", -0.3, check_keep=False)
+
+
 if __name__ == "__main__":
     unittest.main()
