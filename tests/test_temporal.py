@@ -80,5 +80,24 @@ class TestSmoothShape(unittest.TestCase):
         self._check(smooth_depth_sequence(self._frames()))
 
 
+class TestStrengthValidation(unittest.TestCase):
+    def test_invalid_strengths_raise(self):
+        for s in (-0.1, 1.5, float("nan"), float("inf"), True, "a"):
+            with self.subTest(strength=s):
+                with self.assertRaises((ValueError, TypeError)) as ctx:
+                    smooth_depth_sequence([[[2.0]]], s)
+                self.assertIn("strength", str(ctx.exception))
+
+    def test_invalid_strength_raises_for_empty_frames(self):
+        with self.assertRaises((ValueError, TypeError)) as ctx:
+            smooth_depth_sequence([], 1.5)
+        self.assertIn("strength", str(ctx.exception))
+
+    def test_valid_strengths_accepted(self):
+        for s in (0, 1, 0.0, 1.0, 0.5):
+            with self.subTest(strength=s):
+                self.assertIsInstance(smooth_depth_sequence([[[2.0]]], s), list)
+
+
 if __name__ == "__main__":
     unittest.main()
