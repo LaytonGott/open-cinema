@@ -69,7 +69,7 @@ def smooth_depth_sequence(frames, strength=0.7):
         frames: list of depth maps, each a list of rows of floats in metres. All
             depth maps have the same size.
         strength: unitless smoothing amount from 0 to 1 (currently unused otherwise).
-            Raises ValueError if it is not a finite number between 0 and 1.
+            Strength 0 returns the input values unchanged (as a float copy). Raises ValueError if it is not a finite number between 0 and 1.
 
     Raises:
         ValueError: if strength is invalid, or frames is not a list of equally sized
@@ -82,4 +82,6 @@ def smooth_depth_sequence(frames, strength=0.7):
     """
     _require_strength(strength)
     _validate_frames(frames)
+    if strength == 0:
+        return [[[float(v) for v in row] for row in frame] for frame in frames]
     return [[[float(v) for v in row] for row in frame] for frame in frames]
