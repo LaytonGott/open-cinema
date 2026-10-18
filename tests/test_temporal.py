@@ -1,5 +1,6 @@
 import copy
 import math
+import statistics
 import unittest
 
 import open_optics.temporal
@@ -292,6 +293,26 @@ class TestAccuracy(unittest.TestCase):
                             total += abs(a - b) / b
                             count += 1
                 self.assertLessEqual(total / count, 0.06)
+
+
+class TestGlobalGain(unittest.TestCase):
+    def test_gain_flicker_reduced(self):
+        truth = [[2.0, 2.0, 6.0, 6.0] for _ in range(4)]
+        frames = []
+        for t in range(48):
+            gain = 1 + 0.1 * math.sin(2 * math.pi * t / 8)
+            frames.append([[v * gain for v in row] for row in truth])
+        out = smooth_depth_sequence(frames, 0.7)
+        for r, c in ((0, 0), (0, 3)):
+            with self.subTest(true_depth=truth[r][c]):
+                rel_in = [frames[t][r][c] / truth[r][c] for t in range(8, 48)]
+                rel_out = [out[t][r][c] / truth[r][c] for t in range(8, 48)]
+                self.assertLessEqual(statistics.pstdev(rel_out),
+                                     0.7 * statistics.pstdev(rel_in))
+        for out_frame in out:
+            for out_row, true_row in zip(out_frame, truth):
+                for a, b in zip(out_row, true_row):
+                    self.assertLessEqual(abs(a - b) / b, 0.12)
 
 
 class TestDocs(unittest.TestCase):
