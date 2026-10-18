@@ -49,11 +49,15 @@ def undistort_point(x_d, y_d, k1=0.0, k2=0.0, k3=0.0, p1=0.0, p2=0.0,
                     max_iterations=200, tolerance=1e-12):
     """Invert Brown-Conrady distortion by fixed-point iteration.
 
-    All arguments are unitless: x_d and y_d are distorted lens-relative or
-    frame-fraction positions, k1..k3 are radial and p1, p2 tangential
-    coefficients. Iteration stops when the change is below tolerance (unitless).
-    Returns an (x, y) tuple of floats in unitless frame fractions. Raises
-    DistortionError if it could not undistort the point.
+    All arguments are unitless. x_d and y_d are distorted
+    normalised image-plane coordinates (x/z, y/z), the same as OpenCV. The
+    coefficients are unitless, in the order (k1, k2, k3, p1, p2): k1..k3 radial
+    and p1, p2 tangential. OpenCV uses the order (k1, k2, p1, p2, k3); see
+    undistort_point_opencv, which takes that order, and opencv_to_library_coeffs
+    for converting. Iteration stops when the change is below tolerance
+    (unitless). Returns an (x, y) tuple of floats, the undistorted normalised
+    image-plane coordinates. Raises DistortionError if it could not undistort
+    the point.
     """
     qx = require_finite("x_d", x_d)
     qy = require_finite("y_d", y_d)
