@@ -99,5 +99,43 @@ class TestStrengthValidation(unittest.TestCase):
                 self.assertIsInstance(smooth_depth_sequence([[[2.0]]], s), list)
 
 
+class TestMalformedSequences(unittest.TestCase):
+    def _raises(self, frames, text):
+        with self.assertRaises(ValueError) as ctx:
+            smooth_depth_sequence(frames)
+        self.assertIn(text, str(ctx.exception))
+
+    def test_different_heights(self):
+        self._raises([[[1.0], [2.0]], [[1.0]]], "frame 1 has size 1x1")
+
+    def test_different_widths(self):
+        self._raises([[[1.0, 2.0]], [[1.0]]], "frame 1 has size 1x1")
+
+    def test_ragged_row(self):
+        self._raises([[[1.0, 2.0], [3.0]]], "frame 0 row 1 has length 1")
+
+    def test_non_list_frame(self):
+        self._raises([(([1.0],))], "frame 0 must be a list")
+        self._raises([3], "frame 0 must be a list")
+
+    def test_non_list_row(self):
+        self._raises([[(1.0, 2.0)]], "frame 0 row 0 must be a list")
+
+    def test_string_entry(self):
+        self._raises([[["x"]]], "frame 0 row 0 entry 0")
+
+    def test_bool_entry(self):
+        self._raises([[[True]]], "frame 0 row 0 entry 0")
+
+    def test_non_list_frames(self):
+        self._raises(((([1.0],),),), "frames must be a list")
+
+    def test_zero_rows_accepted(self):
+        self.assertEqual(smooth_depth_sequence([[], []]), [[], []])
+
+    def test_zero_columns_accepted(self):
+        self.assertEqual(smooth_depth_sequence([[[]], [[]]]), [[[]], [[]]])
+
+
 if __name__ == "__main__":
     unittest.main()
