@@ -33,5 +33,32 @@ class TestInputUntouched(unittest.TestCase):
                 self.assertIsNot(out_row, in_row)
 
 
+class TestTrivialSequences(unittest.TestCase):
+    def test_empty(self):
+        result = smooth_depth_sequence([])
+        self.assertIsInstance(result, list)
+        self.assertEqual(result, [])
+
+    def test_single_frame_same_values(self):
+        frame = [[2.0, 6.0], [3.5, 4.0]]
+        frames = [frame]
+        result = smooth_depth_sequence(frames, 0.7)
+        self.assertEqual(result, [frame])
+        self.assertIsNot(result, frames)
+        self.assertIsNot(result[0], frame)
+        for out_row, in_row in zip(result[0], frame):
+            self.assertIsNot(out_row, in_row)
+
+    def test_single_frame_strength_one(self):
+        frame = [[2.0, 6.0], [3.5, 4.0]]
+        frames = [frame]
+        result = smooth_depth_sequence(frames, 1.0)
+        self.assertEqual(result, [frame])
+        self.assertIsNot(result, frames)
+        self.assertIsNot(result[0], frame)
+        for out_row, in_row in zip(result[0], frame):
+            self.assertIsNot(out_row, in_row)
+
+
 if __name__ == "__main__":
     unittest.main()
