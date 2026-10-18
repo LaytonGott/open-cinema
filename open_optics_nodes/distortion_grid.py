@@ -54,6 +54,52 @@ def crop_zoom(width_px, height_px, focal_mm, sensor_width_mm,
         k1, k2, k3, p1, p2))
 
 
+def crop_zoom_apply(width_px, height_px, focal_mm, sensor_width_mm,
+                    k1, k2, k3, p1, p2, samples=64, max_zoom=10.0):
+    """Find the zoom that removes empty borders after distortion is applied.
+
+    width_px and height_px are in pixels; focal_mm and sensor_width_mm are in
+    millimetres; k1, k2, k3, p1, p2 and max_zoom are unitless; samples is the
+    number of border points per edge. Returns the smallest unitless zoom
+    z >= 1 (float) for which every sampled border pixel centre, mapped through
+    the 'apply' source formula of build_source_grid, lands inside
+    [0, W-1] x [0, H-1] (1e-9 pixel tolerance). Returns 1.0 if z = 1 works.
+    Raises ValueError if max_zoom does not work.
+    """
+    tol = 1e-9
+    border = []
+    for i in range(samples):
+        u = (width_px - 1) * i / (samples - 1) if samples > 1 else 0.0
+        v = (height_px - 1) * i / (samples - 1) if samples > 1 else 0.0
+        border += [(u, 0), (u, height_px - 1), (0, v), (width_px - 1, v)]
+
+    def fits(zoom):
+        for u, v in border:
+            x, y = pixels.pixel_to_lens(u, v, width_px, height_px,
+                                        sensor_width_mm, focal_mm)
+            x, y = distortion.undistort_point(x / zoom, y / zoom,
+                                              k1, k2, k3, p1, p2)
+            sx, sy = pixels.lens_to_pixel(x, y, width_px, height_px,
+                                          sensor_width_mm, focal_mm)
+            if not (-tol <= sx <= width_px - 1 + tol
+                    and -tol <= sy <= height_px - 1 + tol):
+                return False
+        return True
+
+    if fits(1.0):
+        return 1.0
+    if not fits(max_zoom):
+        raise ValueError("no border-free zoom up to max_zoom %r" % (max_zoom,))
+    lo, hi = 1.0, float(max_zoom)
+    for _ in range(50):
+        mid = (lo + hi) / 2
+        if fits(mid):
+            hi = mid
+        else:
+            lo = mid
+    return hi
+
+
 def sample_bilinear(image, grid_px, outside="border"):
     """Sample an image at source pixel positions with bilinear filtering.
 

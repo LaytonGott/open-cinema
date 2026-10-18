@@ -6,7 +6,7 @@ from open_optics import distortion, pixels
 from open_optics.lens import Lens
 from open_optics.sensor import Sensor
 from open_optics_nodes.distortion_grid import (
-    build_source_grid, crop_zoom, sample_bilinear)
+    build_source_grid, crop_zoom, crop_zoom_apply, sample_bilinear)
 
 
 class TestBuildSourceGrid(unittest.TestCase):
@@ -67,6 +67,21 @@ class TestCropZoom(unittest.TestCase):
         self.assertGreater(zoom, 1.0)
         grid = build_source_grid(32, 24, 35.0, 36.0, 0.2, 0, 0, 0, 0,
                                  "remove", zoom=zoom)
+        for row in grid:
+            for sx, sy in row:
+                self.assertTrue(-1e-6 <= sx <= 31 + 1e-6)
+                self.assertTrue(-1e-6 <= sy <= 23 + 1e-6)
+
+
+class TestCropZoomApply(unittest.TestCase):
+    def test_zero_coefficients(self):
+        self.assertEqual(crop_zoom_apply(32, 24, 35, 36, 0, 0, 0, 0, 0), 1.0)
+
+    def test_border_free(self):
+        zoom = crop_zoom_apply(32, 24, 35, 36, -0.2, 0, 0, 0, 0)
+        self.assertGreater(zoom, 1.0)
+        grid = build_source_grid(32, 24, 35, 36, -0.2, 0, 0, 0, 0,
+                                 "apply", zoom=zoom)
         for row in grid:
             for sx, sy in row:
                 self.assertTrue(-1e-6 <= sx <= 31 + 1e-6)
