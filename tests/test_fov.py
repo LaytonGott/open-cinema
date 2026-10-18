@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from open_optics.fov import FieldOfView, field_of_view
@@ -31,6 +32,37 @@ class FieldOfViewTest(unittest.TestCase):
             field_of_view(0, 36, 24)
         with self.assertRaises(TypeError):
             field_of_view(50, 36, 24, squeeze="2")
+
+
+class AnamorphicSqueezeTest(unittest.TestCase):
+    # 22 x 12.37 mm gate, 50 mm lens.
+    def test_hfov_values(self):
+        # 2*atan(44/100) = 47.499 deg; 2*atan(22/100) = 24.815 deg.
+        self.assertAlmostEqual(field_of_view(50, 22, 12.37, squeeze=2.0).hfov_deg, 47.499, delta=0.001)
+        self.assertAlmostEqual(field_of_view(50, 22, 12.37, squeeze=1.0).hfov_deg, 24.815, delta=0.001)
+
+    def test_vfov_unaffected_by_squeeze(self):
+        v2 = field_of_view(50, 22, 12.37, squeeze=2.0).vfov_deg
+        v1 = field_of_view(50, 22, 12.37, squeeze=1.0).vfov_deg
+        self.assertAlmostEqual(v2, v1, places=12)
+        self.assertAlmostEqual(v1, math.degrees(2 * math.atan(12.37 / 100)), delta=0.001)
+
+    def test_dfov_squeeze_one(self):
+        fov = field_of_view(50, 22, 12.37, squeeze=1.0)
+        expected = math.degrees(2 * math.atan(math.hypot(22, 12.37) / 100))
+        self.assertAlmostEqual(fov.dfov_deg, expected, delta=0.001)
+
+    def test_equiv_focal_squeeze_two(self):
+        fov = field_of_view(50, 22, 12.37, squeeze=2.0)
+        self.assertAlmostEqual(fov.equiv_focal_ff_mm, 50 * 43.2666 / math.hypot(44, 12.37), places=6)
+
+    def test_focal_errors(self):
+        for bad in (0, -5):
+            with self.assertRaises(ValueError) as ctx:
+                field_of_view(bad, 22, 12.37)
+            self.assertIn("focal_mm", str(ctx.exception))
+        with self.assertRaises(TypeError):
+            field_of_view("50", 22, 12.37)
 
 
 if __name__ == "__main__":
