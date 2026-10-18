@@ -1,6 +1,7 @@
 import math
 import unittest
 
+from open_optics.coc import coc_for_sensor_obj
 from open_optics.lens import Lens
 from open_optics.sensor import Sensor
 from open_optics.summary import _fmt, shot_summary
@@ -37,6 +38,28 @@ class TestShotSummaryOptics(unittest.TestCase):
     def test_zero_focus_raises(self):
         with self.assertRaises(ValueError):
             shot_summary(self.sensor, self.lens, 2, 0)
+
+
+class TestShotSummaryDof(unittest.TestCase):
+    def setUp(self):
+        self.sensor = Sensor(36, 24)
+        self.lens = Lens(50, 2, 22)
+
+    def test_hyperfocal_line(self):
+        coc = coc_for_sensor_obj(self.sensor, standard=1500, squeeze=self.lens.squeeze)
+        expected = (50 * 50 / (2 * coc) + 50) / 1000
+        text = shot_summary(self.sensor, self.lens, 2, 3)
+        self.assertIn(f"Hyperfocal: {expected:.2f} m", text)
+
+    def test_far_limit_infinite_beyond_hyperfocal(self):
+        text = shot_summary(self.sensor, self.lens, 2, 100)
+        self.assertIn("Far limit: inf m", text)
+
+    def test_limit_lines_order(self):
+        lines = shot_summary(self.sensor, self.lens, 2, 3).split("\n")
+        self.assertTrue(lines[8].startswith("Near limit:"))
+        self.assertTrue(lines[9].startswith("Far limit:"))
+        self.assertTrue(lines[10].startswith("Hyperfocal:"))
 
 
 if __name__ == "__main__":
