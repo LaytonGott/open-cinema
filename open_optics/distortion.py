@@ -5,6 +5,7 @@ Coordinates are unitless lens-relative or frame-fraction positions.
 
 import math
 
+from open_optics.pixels import lens_to_pixel, pixel_to_lens
 from open_optics.validation import require_finite
 
 
@@ -82,3 +83,38 @@ def undistort_point(x_d, y_d, k1=0.0, k2=0.0, k3=0.0, p1=0.0, p2=0.0,
             return (float(px), float(py))
     raise DistortionError(
         "could not undistort point: iteration did not converge")
+
+
+def distort_pixel(px, py, sensor, lens, width_px, height_px,
+                  k1=0.0, k2=0.0, k3=0.0, p1=0.0, p2=0.0, cx=None, cy=None):
+    """Apply Brown-Conrady distortion to a pixel position.
+
+    px, py, width_px, height_px, cx and cy are in pixels (cx and cy default to
+    the image centre); sensor.width_mm and lens.focal_mm are in millimetres;
+    k1..k3 and p1, p2 are unitless coefficients. Returns a distorted (px, py)
+    tuple of floats in pixels. Zero coefficients return the input unchanged.
+    """
+    x, y = pixel_to_lens(px, py, width_px, height_px,
+                         sensor.width_mm, lens.focal_mm, cx, cy)
+    x, y = distort_point(x, y, k1, k2, k3, p1, p2)
+    ox, oy = lens_to_pixel(x, y, width_px, height_px,
+                           sensor.width_mm, lens.focal_mm, cx, cy)
+    return (float(ox), float(oy))
+
+
+def undistort_pixel(px, py, sensor, lens, width_px, height_px,
+                    k1=0.0, k2=0.0, k3=0.0, p1=0.0, p2=0.0, cx=None, cy=None):
+    """Invert Brown-Conrady distortion for a pixel position.
+
+    px, py, width_px, height_px, cx and cy are in pixels (cx and cy default to
+    the image centre); sensor.width_mm and lens.focal_mm are in millimetres;
+    k1..k3 and p1, p2 are unitless coefficients. Returns an undistorted
+    (px, py) tuple of floats in pixels. Raises DistortionError if the point
+    could not be undistorted.
+    """
+    x, y = pixel_to_lens(px, py, width_px, height_px,
+                         sensor.width_mm, lens.focal_mm, cx, cy)
+    x, y = undistort_point(x, y, k1, k2, k3, p1, p2)
+    ox, oy = lens_to_pixel(x, y, width_px, height_px,
+                           sensor.width_mm, lens.focal_mm, cx, cy)
+    return (float(ox), float(oy))
