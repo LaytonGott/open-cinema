@@ -35,3 +35,20 @@ def dof_limits_mm(focal_mm, f_number, focus_mm, coc_mm):
     near = s * (h - f) / (h + s - 2 * f)
     far = s * (h - f) / (h - s) if s < h else math.inf
     return (near, far)
+
+
+def dof_summary(focal_mm, f_number, focus_mm, coc_mm):
+    """Return a dict summarising depth of field, with all values in millimetres.
+
+    focal_mm, focus_mm and coc_mm are in millimetres; f_number is unitless.
+    Keys: 'hyperfocal_mm', 'near_mm', 'far_mm' and 'total_mm', where total_mm
+    is far_mm - near_mm, or math.inf when far_mm is infinity. Divide any value
+    by 1000 to get metres.
+    """
+    near, far = dof_limits_mm(focal_mm, f_number, focus_mm, coc_mm)
+    return {
+        "hyperfocal_mm": hyperfocal_mm(focal_mm, f_number, coc_mm),
+        "near_mm": near,
+        "far_mm": far,
+        "total_mm": math.inf if math.isinf(far) else far - near,
+    }
