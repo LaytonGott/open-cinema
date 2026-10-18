@@ -257,5 +257,21 @@ class TestNoiseReduction(unittest.TestCase):
         self.assertLessEqual(mean_abs_diff(high), mean_abs_diff(low))
 
 
+class TestAccuracy(unittest.TestCase):
+    def test_mean_relative_error(self):
+        for seed in (1, 2, 3):
+            with self.subTest(seed=seed):
+                noisy, truth = make_flicker_sequence(seed=seed, frames=40)
+                out = smooth_depth_sequence(noisy, strength=0.7)
+                total = 0.0
+                count = 0
+                for out_frame, true_frame in zip(out, truth):
+                    for out_row, true_row in zip(out_frame, true_frame):
+                        for a, b in zip(out_row, true_row):
+                            total += abs(a - b) / b
+                            count += 1
+                self.assertLessEqual(total / count, 0.06)
+
+
 if __name__ == "__main__":
     unittest.main()
