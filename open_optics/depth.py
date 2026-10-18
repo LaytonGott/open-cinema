@@ -69,6 +69,21 @@ def fit_depth_mapping(d_lo, d_hi, near_m, far_m, inverse_depth=True):
     return (a, b)
 
 
+def metric_depth_coefficients(d_lo, d_hi, near_m, far_m, inverse_depth):
+    """Coefficients that map a relative depth d to metres.
+
+    d_lo and d_hi are unitless relative depths that map to the limits near_m
+    and far_m as in fit_depth_mapping; near_m and far_m are in metres. Returns the
+    tuple (a, b, reciprocal) of floats: the distance in metres is
+    Z = 1/(a*d+b) when reciprocal is True, else Z = a*d+b. If d_hi == d_lo
+    returns (0.0, (near_m+far_m)/2, False), a constant in metres.
+    """
+    if d_hi == d_lo:
+        return (0.0, (near_m + far_m) / 2, False)
+    a, b = fit_depth_mapping(d_lo, d_hi, near_m, far_m, inverse_depth)
+    return (a, b, bool(inverse_depth))
+
+
 def depth_to_metric(d, d_lo, d_hi, near_m, far_m, inverse_depth=True):
     """Convert a unitless relative depth d to metres.
 

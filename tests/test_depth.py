@@ -5,6 +5,7 @@ import unittest
 from open_optics.depth import (
     depth_to_metric,
     fit_depth_mapping,
+    metric_depth_coefficients,
     percentile,
     validate_depth_params,
 )
@@ -74,6 +75,22 @@ class TestValidate(unittest.TestCase):
             with self.subTest(args=args):
                 with self.assertRaises(ValueError):
                     validate_depth_params(*args)
+
+
+class TestMetricDepthCoefficients(unittest.TestCase):
+    def assertCoefficients(self, got, want):
+        self.assertAlmostEqual(got[0], want[0], places=9)
+        self.assertAlmostEqual(got[1], want[1], places=9)
+        self.assertIs(got[2], want[2])
+
+    def test_inverse(self):
+        self.assertCoefficients(metric_depth_coefficients(0, 1, 1, 5, True), (0.8, 0.2, True))
+
+    def test_linear(self):
+        self.assertCoefficients(metric_depth_coefficients(0, 1, 1, 5, False), (4.0, 1.0, False))
+
+    def test_constant(self):
+        self.assertCoefficients(metric_depth_coefficients(0.5, 0.5, 1, 5, True), (0.0, 3.0, False))
 
 
 if __name__ == "__main__":
