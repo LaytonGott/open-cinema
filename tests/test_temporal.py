@@ -4,6 +4,7 @@ import statistics
 import unittest
 
 import open_optics.temporal
+from open_optics.coc import blur_diameter_mm, blur_radius_px
 from open_optics.temporal import smooth_depth_sequence
 from tests.temporal_synth import make_flicker_sequence
 
@@ -369,6 +370,30 @@ class TestCutHandling(unittest.TestCase):
         for row in out[11]:
             for v in row:
                 self.assertAlmostEqual(v, 6.0, delta=0.9)
+
+
+class TestBlurRadiusStability(unittest.TestCase):
+    def test_smoothed_blur_varies_less(self):
+        noisy, _ = make_flicker_sequence(seed=1, frames=40)
+        smoothed = smooth_depth_sequence(noisy, 0.7)
+
+        def radii(frames):
+            return [
+                [
+                    [
+                        blur_radius_px(
+                            blur_diameter_mm(50.0, 2.0, 3000.0,
+                                             max(d, 0.1) * 1000.0),
+                            1920, 36.0)
+                        for d in row
+                    ]
+                    for row in frame
+                ]
+                for frame in frames
+            ]
+
+        self.assertLess(mean_abs_diff(radii(smoothed)),
+                        mean_abs_diff(radii(noisy)))
 
 
 class TestDocs(unittest.TestCase):
