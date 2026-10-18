@@ -1,4 +1,6 @@
+.venv/
 __pycache__/
 *.pyc
-.venv/
 node_modules/
+bench/out/
+bench/results/*.samples.jsonl

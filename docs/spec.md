@@ -286,7 +286,9 @@ Maps a move preset to model-specific conditioning.
 | target | `ltx2_lora` or `wan_camera_embed` |
 | speed | Speed of the move |
 
-- **`ltx2_lora`:** outputs the LoRA filename `LTX-2-19b-LoRA-Camera-Control-<Move>` and its strength. The user applies it with a standard `LoraLoaderModelOnly`.
+- **`ltx2_lora`:** outputs the LoRA filename and its strength. The user applies it with a standard `LoraLoaderModelOnly`.
+  - Hugging Face repo: `Lightricks/LTX-2-19b-LoRA-Camera-Control-<Move>`.
+  - ComfyUI's own LTX-2 template expects the lowercase local filename `ltx-2-19b-lora-camera-control-<move>.safetensors`.
 - **`wan_camera_embed`:** outputs the parameters for core `WanCameraEmbedding`.
 - **`focal_mm` link:** a dolly move can optionally be linked to the shot's focal length, which enables a **dolly-zoom (vertigo)** helper.
   - Keep subject size constant: `f_t = f_0 · d_t / d_0`, where `d` is the camera-to-subject distance.
@@ -341,7 +343,7 @@ Reference values below were computed analytically for this spec. A test passes w
 | C3 | FOV: 50 mm 2× anamorphic, 22 mm-wide gate | HFOV 47.499° (spherical would be 24.815°) |
 | C4 | Crop factor, Super 35 (24.89×18.66) | 1.3909 |
 | C5 | DoF: f = 50, N = 2.8, s = 3 m, c = 43.2666/1500 = 0.028844 mm | H = 31.004 m, near = 2.7390 m, far = 3.3160 m, total = 0.5771 m (±0.1 mm) |
-| C6 | DoF: s ≥ H | far = ∞, near = H/2 (±0.5 %) |
+| C6 | DoF at and beyond hyperfocal | s = H: near = H/2 exactly; s > H: far = ∞ and near = s(H−f)/(H+s−2f) |
 | C7 | Cross-check | 20 random (f, N, s, c) cases agree with an independent closed-form implementation written in the test file, rel. error < 1e-9 |
 | C8 | FocusCurve diopter interpolation, 3 m → 1.2 m over 121 frames, linear | Frame 60: D = (1/3 + 1/1.2)/2 = 0.58333 m⁻¹ → s = 1.7143 m (±0.1 mm) |
 | C9 | FocusCurve endpoints and monotonicity | Frames 0 and 120 equal the keyframes exactly; the curve is strictly monotone for a 2-key pull |
