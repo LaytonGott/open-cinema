@@ -55,5 +55,21 @@ class DepthOfFieldBatchTest(unittest.TestCase):
             self.assertTrue(torch.allclose(coc[i], single_coc[0], atol=1e-5))
 
 
+class DepthToMetricBatchTest(unittest.TestCase):
+    def test_depth_to_metric_fits_whole_batch(self):
+        from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric
+
+        depth = torch.tensor([[[0.0, 0.5]], [[0.5, 1.0]]])
+        node = OpenOptics_DepthToMetric()
+        kwargs = dict(near_m=1.0, far_m=5.0, inverse_depth=False,
+                      low_percentile=0.0, high_percentile=100.0)
+        batch = node.convert(depth_mask=depth, **kwargs)[0]
+        expected = torch.tensor([[[1.0, 3.0]], [[3.0, 5.0]]])
+        self.assertTrue(torch.allclose(batch, expected, atol=1e-5))
+        single = node.convert(depth_mask=depth[0:1], **kwargs)[0]
+        self.assertTrue(torch.allclose(single, torch.tensor([[[1.0, 5.0]]]), atol=1e-5))
+        self.assertFalse(torch.allclose(single, batch[0:1], atol=1e-5))
+
+
 if __name__ == "__main__":
     unittest.main()
