@@ -207,5 +207,35 @@ class TestDepthToMetricOutputs(unittest.TestCase):
         self.assertTrue(torch.allclose(m1, m2, atol=1e-5))
 
 
+class TestDepthToMetricRobustness(unittest.TestCase):
+    def test_nan_input_finite_in_range(self):
+        d = torch.linspace(0.0, 1.0, 16).reshape(1, 4, 4).clone()
+        d[0, 1, 1] = float("nan")
+        d[0, 2, 2] = float("inf")
+        for inv in (True, False):
+            z, preview = _convert(d, inverse_depth=inv)
+            self.assertTrue(torch.isfinite(z).all())
+            self.assertGreaterEqual(float(z.min()), 1.0 - 1e-5)
+            self.assertLessEqual(float(z.max()), 5.0 + 1e-5)
+            self.assertTrue(torch.isfinite(preview).all())
+            self.assertGreaterEqual(float(preview.min()), 0.0)
+            self.assertLessEqual(float(preview.max()), 1.0)
+
+    def test_each_bad_param_raises(self):
+        d = torch.rand(1, 4, 4)
+        cases = [
+            (dict(near_m=0.0, far_m=5.0), "near_m"),
+            (dict(near_m=1.0, far_m=1.0), "far_m"),
+            (dict(near_m=1.0, far_m=0.5), "far_m"),
+            (dict(low_percentile=60.0, high_percentile=40.0), "percentile"),
+            (dict(low_percentile=50.0, high_percentile=50.0), "percentile"),
+            (dict(low_percentile=0.0, high_percentile=101.0), "percentile"),
+        ]
+        for kw, name in cases:
+            with self.subTest(kw=kw):
+                with self.assertRaisesRegex(ValueError, name):
+                    OpenOptics_DepthToMetric().convert(depth_mask=d, **kw)
+
+
 if __name__ == "__main__":
     unittest.main()
