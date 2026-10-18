@@ -75,6 +75,43 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
             for a, b in zip(out.flatten().tolist(), depth.flatten().tolist()):
                 self.assertAlmostEqual(a, b, delta=1e-6)
 
+    def _invalid_depth(self):
+        g = torch.Generator().manual_seed(7)
+        depth = (torch.rand(6, 8, 8, generator=g) * 4.0 + 2.0).to(torch.float32)
+        bad = (float("nan"), float("inf"), float("-inf"), 0.0, -1.0)
+        for i, v in enumerate(bad):
+            depth[0, i, i] = v
+            depth[2 + i % 4, i + 1, 7 - i] = v
+        depth[5, 3, 3] = float("nan")
+        return depth
+
+    def test_invalid_values_never_reach_output(self):
+        depth = self._invalid_depth()
+        (out,) = OpenOptics_DepthTemporalSmooth().smooth(depth, 0.7)
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertEqual(out.device.type, "cpu")
+        self.assertEqual(tuple(out.shape), (6, 8, 8))
+        self.assertTrue(torch.isfinite(out).all())
+        self.assertTrue((out > 0).all())
+        self.assertNotEqual(out.data_ptr(), depth.data_ptr())
+
+    def test_invalid_values_large_tensor(self):
+        g = torch.Generator().manual_seed(8)
+        depth = (torch.rand(4, 64, 64, generator=g) * 4.0 + 2.0).to(torch.float32)
+        bad = (float("nan"), float("inf"), float("-inf"), 0.0, -1.0)
+        for k in range(200):
+            depth[k % 4, (k * 7) % 64, (k * 13) % 64] = bad[k % 5]
+        (out,) = OpenOptics_DepthTemporalSmooth().smooth(depth, 0.7)
+        self.assertEqual(tuple(out.shape), (4, 64, 64))
+        self.assertTrue(torch.isfinite(out).all())
+        self.assertTrue((out > 0).all())
+
+    def test_input_tensor_unchanged(self):
+        depth = self._invalid_depth()
+        clone = depth.clone()
+        OpenOptics_DepthTemporalSmooth().smooth(depth, 0.7)
+        torch.testing.assert_close(depth, clone, rtol=0, atol=0, equal_nan=True)
+
 
 if __name__ == "__main__":
     unittest.main()
