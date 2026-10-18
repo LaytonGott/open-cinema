@@ -1,5 +1,7 @@
 """Shared image helpers for the Open Optics nodes (CPU torch tensors, [B, H, W, C], 0-1)."""
 
+import math
+
 import torch
 
 
@@ -16,6 +18,29 @@ def check_image(image):
     if image.dim() != 4:
         raise ValueError(f"image must have 4 dims [B,H,W,C], got {image.dim()}")
     return image
+
+
+def require_positive(name, value):
+    """Check that value (in any unit, the caller's) is finite and greater than 0.
+
+    Returns value as a float in the same unit. Raises ValueError naming the
+    input and the bad value if value <= 0, NaN or infinite.
+    """
+    v = float(value)
+    if not math.isfinite(v) or v <= 0:
+        raise ValueError(f"{name} must be greater than 0, got {value}")
+    return v
+
+
+def require_choice(name, value, allowed):
+    """Check that value (unitless) is one of allowed.
+
+    Returns value unchanged. Raises ValueError naming the input, the allowed
+    choices and the bad value otherwise.
+    """
+    if value not in allowed:
+        raise ValueError(f"{name} must be one of {list(allowed)}, got {value!r}")
+    return value
 
 
 def srgb_to_linear_t(t):

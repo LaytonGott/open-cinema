@@ -59,6 +59,29 @@ class NodesCommonTest(unittest.TestCase):
         self.assertEqual(from_img[0, 0, 0].item(), 3.0)
         self.assertEqual(common.resolve_depth(None, depth_mask=torch.ones(1, 2, 2)).shape, (1, 2, 2))
 
+    def test_require_positive_returns_float(self):
+        out = common.require_positive("focal_length_mm", 35)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 35.0)
+
+    def test_require_positive_rejects_bad_values(self):
+        for bad in (0, -2.5, float("nan"), float("inf")):
+            with self.assertRaises(ValueError) as ctx:
+                common.require_positive("aperture", bad)
+            msg = str(ctx.exception)
+            self.assertIn("aperture", msg)
+            self.assertIn(str(bad), msg)
+            self.assertIn("must be greater than 0", msg)
+
+    def test_require_choice(self):
+        self.assertEqual(common.require_choice("mode", "a", ["a", "b"]), "a")
+        with self.assertRaises(ValueError) as ctx:
+            common.require_choice("mode", "zzz", ["a", "b"])
+        msg = str(ctx.exception)
+        self.assertIn("mode", msg)
+        self.assertIn("'zzz'", msg)
+        self.assertIn("['a', 'b']", msg)
+
 
 if __name__ == "__main__":
     unittest.main()
