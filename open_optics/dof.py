@@ -2,7 +2,7 @@
 
 import math
 
-from open_optics.validation import require_positive
+from open_optics.validation import require_positive, require_positive_or_inf
 
 
 def hyperfocal_mm(focal_mm, f_number, coc_mm):
@@ -26,6 +26,31 @@ def hyperfocal_focus_mm(focal_mm, f_number, coc_mm):
     This equals the hyperfocal distance.
     """
     return hyperfocal_mm(focal_mm, f_number, coc_mm)
+
+
+def focus_for_range_mm(focal_mm, f_number, coc_mm, near_mm, far_mm):
+    """Return the focus distance in millimetres that keeps near_mm to far_mm sharp.
+
+    focal_mm, coc_mm, near_mm and far_mm are in millimetres (far_mm may be
+    math.inf); f_number is unitless. Returns the farthest focus distance that
+    still covers the range, which is the hyperfocal distance when far_mm is
+    infinite. Raises ValueError if near_mm > far_mm or if the range cannot be
+    covered at this aperture.
+    """
+    near = require_positive("near_mm", near_mm)
+    far = require_positive_or_inf("far_mm", far_mm)
+    if near > far:
+        raise ValueError(f"near_mm must not exceed far_mm, got {near_mm} > {far_mm}")
+    big_h = hyperfocal_mm(focal_mm, f_number, coc_mm)
+    f = focal_mm
+    h = big_h - f
+    s2 = big_h if math.isinf(far) else far * (h + f) / (h + far)
+    s1 = near * (h - f) / (h - near) if near < h else math.inf
+    if s2 > s1:
+        raise ValueError(
+            "range near-far cannot be covered at this aperture; stop down or narrow the range"
+        )
+    return s2
 
 
 def dof_limits_mm(focal_mm, f_number, focus_mm, coc_mm):
