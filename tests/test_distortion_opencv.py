@@ -2,8 +2,10 @@ import unittest
 
 from open_optics.distortion import (
     DistortionError,
+    distort_point,
     distort_point_opencv,
     opencv_to_library_coeffs,
+    undistort_point,
     undistort_point_opencv,
 )
 
@@ -82,6 +84,35 @@ class TestUndistortPointOpenCV(unittest.TestCase):
     def test_non_finite_raises(self):
         with self.assertRaises(ValueError):
             undistort_point_opencv(float("nan"), 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+class TestOrderEquivalence(unittest.TestCase):
+    K1, K2, K3, P1, P2 = -0.2, 0.05, 0.01, 0.005, -0.003
+    POINTS = [(0.05, 0.03), (0.2, -0.15), (0.45, 0.3), (-0.6, 0.5), (0.0, 0.0)]
+
+    def test_distort_matches_library_order(self):
+        for x, y in self.POINTS:
+            self.assertEqual(
+                distort_point_opencv(x, y, self.K1, self.K2, self.P1, self.P2, self.K3),
+                distort_point(x, y, self.K1, self.K2, self.K3, self.P1, self.P2))
+
+    def test_undistort_matches_library_order(self):
+        for x, y in self.POINTS:
+            self.assertEqual(
+                undistort_point_opencv(x, y, self.K1, self.K2, self.P1, self.P2, self.K3),
+                undistort_point(x, y, self.K1, self.K2, self.K3, self.P1, self.P2))
+
+    def test_converter_matches_opencv(self):
+        lib = opencv_to_library_coeffs(self.K1, self.K2, self.P1, self.P2, self.K3)
+        for x, y in self.POINTS:
+            self.assertEqual(
+                distort_point(x, y, *lib),
+                distort_point_opencv(x, y, self.K1, self.K2, self.P1, self.P2, self.K3))
+
+    def test_unconverted_opencv_vector_differs(self):
+        x, y = 0.45, 0.3
+        cv = (self.K1, self.K2, self.P1, self.P2, self.K3)
+        self.assertNotEqual(distort_point(x, y, *cv), distort_point_opencv(x, y, *cv))
 
 
 if __name__ == "__main__":
