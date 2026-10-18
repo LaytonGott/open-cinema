@@ -32,3 +32,14 @@ def linear_to_srgb(value):
     if v <= 0.0031308:
         return v * 12.92
     return 1.055 * v ** (1 / 2.4) - 0.055
+
+
+def apply_vignette_linear(srgb_value, brightness):
+    """Darken an sRGB channel value by a brightness factor applied in linear light.
+
+    srgb_value is unitless, in [0, 1]; brightness is unitless, in [0, 1].
+    Returns the darkened sRGB-encoded value as a float, unitless, in [0, 1].
+    Raises ValueError if either argument is outside [0, 1] or not finite.
+    """
+    b = _unit_interval("brightness", brightness)
+    return linear_to_srgb(srgb_to_linear(srgb_value) * b)
