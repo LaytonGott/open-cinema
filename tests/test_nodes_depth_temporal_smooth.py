@@ -56,6 +56,25 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
             OpenOptics_DepthTemporalSmooth().smooth(torch.ones(4, 4), 0.7)
         self.assertIn("2 dimensions", str(ctx.exception))
 
+    def test_rejects_2d_with_message(self):
+        with self.assertRaisesRegex(ValueError, "3-dimensional"):
+            OpenOptics_DepthTemporalSmooth().smooth(torch.ones(4, 4), 0.7)
+
+    def test_rejects_bad_strength(self):
+        depth = torch.ones(3, 4, 4)
+        for bad in (2, -0.1, float("nan")):
+            with self.assertRaisesRegex(ValueError, "strength"):
+                OpenOptics_DepthTemporalSmooth().smooth(depth, bad)
+
+    def test_single_frame_unchanged(self):
+        g = torch.Generator().manual_seed(2)
+        depth = (torch.rand(1, 5, 5, generator=g) * 5.0 + 1.0).to(torch.float32)
+        for strength in (0.7, 1.0):
+            (out,) = OpenOptics_DepthTemporalSmooth().smooth(depth, strength)
+            self.assertEqual(tuple(out.shape), (1, 5, 5))
+            for a, b in zip(out.flatten().tolist(), depth.flatten().tolist()):
+                self.assertAlmostEqual(a, b, delta=1e-6)
+
 
 if __name__ == "__main__":
     unittest.main()
