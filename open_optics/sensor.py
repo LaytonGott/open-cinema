@@ -28,6 +28,33 @@ class Sensor:
         if self.coc_mm is not None:
             require_positive("coc_mm", self.coc_mm)
 
+    def to_dict(self):
+        """Return a JSON-compatible dict with keys width_mm, height_mm, name, coc_mm (sizes in millimetres)."""
+        return {
+            "width_mm": self.width_mm,
+            "height_mm": self.height_mm,
+            "name": self.name,
+            "coc_mm": self.coc_mm,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Build a Sensor from a dict as made by to_dict (sizes in millimetres).
+
+        name and coc_mm are optional. Raises ValueError naming a missing
+        width_mm or height_mm key; invalid values raise the constructor's
+        ValueError. Returns a Sensor.
+        """
+        for key in ("width_mm", "height_mm"):
+            if key not in data:
+                raise ValueError(f"missing required key: {key}")
+        return cls(
+            data["width_mm"],
+            data["height_mm"],
+            name=data.get("name"),
+            coc_mm=data.get("coc_mm"),
+        )
+
     @property
     def diagonal_mm(self):
         """Sensor diagonal in millimetres, returned as a float."""
