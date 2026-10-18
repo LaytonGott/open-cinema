@@ -50,6 +50,30 @@ class TestDepthOfFieldValues(unittest.TestCase):
         self.assertTrue(torch.allclose(a, b))
         self.assertTrue(torch.allclose(ca, cb))
 
+    def _run_constant_depth(self, depth_m, f_number):
+        torch.manual_seed(7)
+        img = torch.rand(1, 32, 32, 3, dtype=torch.float32)
+        depth = torch.full((1, 32, 32), depth_m)
+        out, coc_px = OpenOptics_DepthOfField().apply(
+            img, focal_mm=200.0, f_number=f_number, focus_m=2.0, sensor_width_mm=36.0,
+            max_radius_px=8, quality="draft", colorspace="linear", depth_mask=depth)
+        return img, out, coc_px
+
+    def test_depth_at_focus_returns_input(self):
+        img, out, _ = self._run_constant_depth(2.0, 2.8)
+        self.assertLessEqual(float((out - img).abs().max()), 1e-4)
+
+    def test_far_depth_blurs_image(self):
+        img, out, coc_px = self._run_constant_depth(20.0, 2.8)
+        self.assertGreater(float((out - img).abs().mean()), 0.01)
+        self.assertGreater(float(coc_px.max()), 0.0)
+
+    def test_lower_f_number_blurs_more(self):
+        img, wide, _ = self._run_constant_depth(20.0, 1.8)
+        _, narrow, _ = self._run_constant_depth(20.0, 8.0)
+        self.assertGreater(float((wide - img).abs().mean()),
+                           float((narrow - img).abs().mean()))
+
     def test_depth_input_errors(self):
         img = torch.rand(1, 32, 32, 3)
         node = OpenOptics_DepthOfField()
