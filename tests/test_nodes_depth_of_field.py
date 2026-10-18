@@ -3,7 +3,8 @@ import unittest
 import torch
 
 from open_optics import coc
-from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
+from open_optics_nodes import dof_math
+from open_optics_nodes.depth_of_field import _LAYERS, OpenOptics_DepthOfField
 
 
 class TestDepthOfFieldValues(unittest.TestCase):
@@ -226,6 +227,24 @@ class TestDepthOfFieldLayers(unittest.TestCase):
             colorspace="linear", depth_mask=depth)
         self.assertGreater(float(out[:, :, 17, :].mean()), 0.01)
         self.assertLess(float(out[:, :, 28:32, :].max()), 1e-3)
+
+    def test_normal_at_least_as_close_to_fine_reference(self):
+        gen = torch.Generator().manual_seed(0)
+        img = torch.rand(1, 32, 32, 3, generator=gen)
+        ramp = torch.linspace(1.0, 20.0, 32)
+        depth = ramp.view(1, 1, 32).expand(1, 32, 32).contiguous()
+        args = dict(focal_mm=85.0, f_number=1.8, focus_m=3.0, max_radius_px=8)
+        radius = dof_math.coc_radius_map(
+            dof_math.sanitize_depth(depth), 85.0, 1.8, 3.0, 36.0, 8)
+        ref = dof_math.composite_layers(
+            img, dof_math.sanitize_depth(depth), radius, 32)
+        errs = {}
+        for quality in ("draft", "normal"):
+            out, _ = OpenOptics_DepthOfField().apply(
+                img, quality=quality, colorspace="linear", depth_mask=depth, **args)
+            errs[quality] = float((out - ref).abs().mean())
+        self.assertLessEqual(errs["normal"], errs["draft"] + 1e-6)
+        self.assertGreater(_LAYERS["normal"], _LAYERS["draft"])
 
 
 if __name__ == "__main__":
