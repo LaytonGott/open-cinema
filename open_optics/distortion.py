@@ -1,6 +1,6 @@
 """Brown-Conrady lens distortion.
 
-Coordinates are unitless lens-relative or frame-fraction positions.
+Point coordinates are unitless normalised image-plane coordinates (x/z, y/z), the same as OpenCV.
 """
 
 import math
@@ -203,10 +203,10 @@ def classify_distortion(k1=0.0, k2=0.0, k3=0.0, radius=0.5, tolerance=1e-9):
 def straight_line_deviation(points):
     """Largest distance of points from their best-fit straight line.
 
-    points is a list of at least 2 (x, y) tuples in unitless frame fractions.
+    points is a list of at least 2 (x, y) tuples in unitless normalised image-plane coordinates (x/z, y/z), the same as OpenCV.
     The line is fitted by total least squares (centroid and principal axis of
     the 2x2 covariance). Returns the largest perpendicular distance of any
-    point from that line as a float in the same unitless frame fractions;
+    point from that line as a float in the same unitless normalised image-plane coordinates (x/z, y/z), the same as OpenCV;
     0.0 if all points coincide or the covariance is degenerate. Raises
     ValueError if fewer than 2 points are given.
     """
