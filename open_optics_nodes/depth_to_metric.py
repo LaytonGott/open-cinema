@@ -5,6 +5,7 @@ import math
 import torch
 
 from open_optics.depth import metric_depth_coefficients, validate_depth_params
+from open_optics_nodes import common
 
 
 def depth_percentile_range(depth, low_percentile, high_percentile):
@@ -52,3 +53,45 @@ def depth_to_metric_tensor(depth, near_m, far_m, inverse_depth, low_percentile, 
     else:
         z = torch.clamp(v, near_m, far_m)
     return z.to(torch.float32)
+
+
+class OpenOptics_DepthToMetric:
+    """Convert a relative depth map to metric depth in metres."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "near_m": ("FLOAT", {"default": 0.5, "min": 0.001, "max": 100000.0, "step": 0.1}),
+                "far_m": ("FLOAT", {"default": 10.0, "min": 0.001, "max": 100000.0, "step": 0.1}),
+                "inverse_depth": ("BOOLEAN", {"default": True}),
+                "low_percentile": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "high_percentile": ("FLOAT", {"default": 98.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+            },
+            "optional": {
+                "depth_mask": ("MASK",),
+                "depth_image": ("IMAGE",),
+            },
+        }
+
+    RETURN_TYPES = ("MASK", "IMAGE")
+    RETURN_NAMES = ("depth_m", "preview")
+    FUNCTION = "convert"
+    CATEGORY = "Open Optics"
+
+    def convert(self, near_m=0.5, far_m=10.0, inverse_depth=True, low_percentile=2.0,
+                high_percentile=98.0, depth_mask=None, depth_image=None):
+        """Convert relative depth to metres.
+
+        near_m and far_m are in metres; percentiles are 0 to 100. Exactly one
+        of depth_mask or depth_image must be connected. Returns a 2-tuple:
+        depth_m, a float32 MASK [B, H, W] in metres, and preview, a float32
+        IMAGE [B, H, W, 3] with (far_m - Z) / (far_m - near_m) clamped to 0..1.
+        Raises ValueError for bad inputs.
+        """
+        depth = common.resolve_depth(None, depth_mask, depth_image)
+        z = depth_to_metric_tensor(depth, near_m, far_m, inverse_depth,
+                                   low_percentile, high_percentile)
+        shade = torch.clamp((far_m - z) / (far_m - near_m), 0.0, 1.0)
+        preview = shade.unsqueeze(-1).repeat(1, 1, 1, 3).to(torch.float32)
+        return (z, preview)

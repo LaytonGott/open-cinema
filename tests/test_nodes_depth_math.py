@@ -2,7 +2,9 @@ import unittest
 
 import torch
 
-from open_optics_nodes.depth_to_metric import depth_percentile_range, depth_to_metric_tensor
+import open_optics_nodes
+from open_optics_nodes.depth_to_metric import (
+    OpenOptics_DepthToMetric, depth_percentile_range, depth_to_metric_tensor)
 
 
 class DepthPercentileRangeTests(unittest.TestCase):
@@ -50,6 +52,25 @@ class DepthToMetricTensorTests(unittest.TestCase):
         self.assertLessEqual(out.max().item(), 5)
         self.assertAlmostEqual(out[0].item(), 5.0, delta=1e-5)
         self.assertAlmostEqual(out[100].item(), 1.0, delta=1e-5)
+
+
+class DepthToMetricNodeTests(unittest.TestCase):
+    def test_convert_smoke(self):
+        depth = torch.tensor([[[0.0, 0.5, 1.0]]])
+        z, preview = OpenOptics_DepthToMetric().convert(1.0, 5.0, True, 0.0, 100.0, depth_mask=depth)
+        self.assertEqual(z.shape, (1, 1, 3))
+        for o, e in zip(z.reshape(-1).tolist(), [5.0, 1.666667, 1.0]):
+            self.assertAlmostEqual(o, e, delta=1e-5)
+        self.assertEqual(preview.shape, (1, 1, 3, 3))
+        self.assertEqual(preview.dtype, torch.float32)
+        self.assertAlmostEqual(preview[0, 0, 0, 0].item(), 0.0, delta=1e-6)
+        self.assertAlmostEqual(preview[0, 0, 2, 2].item(), 1.0, delta=1e-6)
+
+    def test_registration(self):
+        self.assertIs(open_optics_nodes.NODE_CLASS_MAPPINGS["OpenOptics_DepthToMetric"],
+                      OpenOptics_DepthToMetric)
+        self.assertEqual(open_optics_nodes.NODE_DISPLAY_NAME_MAPPINGS["OpenOptics_DepthToMetric"],
+                         "Open Optics: Depth to Metric")
 
 
 if __name__ == "__main__":
