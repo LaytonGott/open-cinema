@@ -24,6 +24,21 @@ class FieldOfView:
     equiv_focal_ff_mm: float
 
 
+def angle_of_view(focal_mm, dimension_mm):
+    """Compute the angle of view across one sensor dimension.
+
+    Args:
+        focal_mm: focal length in millimetres.
+        dimension_mm: sensor dimension (width, height or diagonal) in millimetres.
+
+    Returns:
+        The angle of view in degrees, 2 * atan(dimension / (2 * focal)).
+    """
+    focal = require_positive("focal_mm", focal_mm)
+    dimension = require_positive("dimension_mm", dimension_mm)
+    return rad_to_deg(2 * math.atan(dimension / (2 * focal)))
+
+
 def field_of_view(focal_mm, sensor_w_mm, sensor_h_mm, squeeze=1.0):
     """Compute the field of view of a lens on a sensor.
 

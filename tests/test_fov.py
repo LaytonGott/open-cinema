@@ -1,7 +1,25 @@
 import math
 import unittest
 
-from open_optics.fov import FieldOfView, field_of_view
+from open_optics.fov import FieldOfView, angle_of_view, field_of_view
+
+
+class AngleOfViewTest(unittest.TestCase):
+    def test_50mm_values(self):
+        # 2*atan(36/100) = 39.598; 2*atan(24/100) = 26.991; 2*atan(43.2666/100) = 46.793.
+        self.assertAlmostEqual(angle_of_view(50, 36), 39.598, delta=0.001)
+        self.assertAlmostEqual(angle_of_view(50, 24), 26.991, delta=0.001)
+        self.assertAlmostEqual(angle_of_view(50, 43.2666), 46.793, delta=0.001)
+
+    def test_extremes(self):
+        long = angle_of_view(10000, 36)
+        self.assertGreater(long, 0)
+        self.assertLess(long, 1)
+        self.assertLess(angle_of_view(1, 36), 180)
+
+    def test_zero_focal_raises(self):
+        with self.assertRaises(ValueError):
+            angle_of_view(0, 36)
 
 
 class FieldOfViewTest(unittest.TestCase):
