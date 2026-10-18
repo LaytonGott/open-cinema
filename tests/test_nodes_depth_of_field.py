@@ -148,5 +148,58 @@ class TestCocMask(unittest.TestCase):
         self.assertLessEqual(float(coc_px.max()), 1.0)
 
 
+class TestDepthOfFieldEdgeCases(unittest.TestCase):
+    def _img(self):
+        g = torch.Generator().manual_seed(3)
+        return torch.rand(1, 16, 16, 3, generator=g)
+
+    def test_nan_and_zero_depth_finite(self):
+        img = self._img()
+        depth = torch.full((1, 16, 16), 3.0)
+        depth[0, 0, 0] = float("nan")
+        depth[0, 0, 1] = 0.0
+        depth[0, 0, 2] = float("inf")
+        depth[0, 0, 3] = -1.0
+        for quality in ("draft", "normal"):
+            with self.subTest(quality=quality):
+                out, coc_px = OpenOptics_DepthOfField().apply(
+                    img, max_radius_px=4, quality=quality, depth_mask=depth)
+                self.assertTrue(bool(torch.isfinite(out).all()))
+                self.assertGreaterEqual(float(out.min()), 0.0)
+                self.assertLessEqual(float(out.max()), 1.0)
+                self.assertTrue(bool(torch.isfinite(coc_px).all()))
+                self.assertGreaterEqual(float(coc_px.min()), 0.0)
+                self.assertLessEqual(float(coc_px.max()), 1.0)
+
+    def test_max_radius_zero_identity(self):
+        img = self._img()
+        depth = torch.full((1, 16, 16), 20.0)
+        out, coc_px = OpenOptics_DepthOfField().apply(
+            img, max_radius_px=0, depth_mask=depth)
+        self.assertTrue(torch.allclose(out, img, atol=1e-6))
+        self.assertEqual(tuple(coc_px.shape), (1, 16, 16))
+        self.assertTrue(bool((coc_px == 0).all()))
+
+    def test_small_radius_nearly_unblurred(self):
+        img = self._img()
+        depth = torch.full((1, 16, 16), 50.0)
+        out, _ = OpenOptics_DepthOfField().apply(
+            img, max_radius_px=1, depth_mask=depth)
+        self.assertLess(float((out - img).abs().mean()), 0.2)
+
+    def test_uniform_depth_runs(self):
+        img = self._img()
+        depth = torch.full((1, 16, 16), 5.0)
+        out, coc_px = OpenOptics_DepthOfField().apply(
+            img, max_radius_px=4, depth_mask=depth)
+        self.assertEqual(tuple(out.shape), (1, 16, 16, 3))
+        self.assertEqual(tuple(coc_px.shape), (1, 16, 16))
+
+    def test_invalid_quality_raises(self):
+        with self.assertRaisesRegex(ValueError, "quality"):
+            OpenOptics_DepthOfField().apply(
+                self._img(), quality="ultra", depth_mask=torch.full((1, 16, 16), 3.0))
+
+
 if __name__ == "__main__":
     unittest.main()
