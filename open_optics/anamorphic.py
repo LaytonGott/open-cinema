@@ -1,6 +1,6 @@
 """Anamorphic desqueeze helpers."""
 
-from open_optics.validation import require_positive
+from open_optics.validation import require_finite, require_positive
 
 
 def desqueeze_size(width_px, height_px, squeeze, mode="widen"):
@@ -42,6 +42,52 @@ def squeeze_size(width_px, height_px, squeeze, mode="widen"):
     if mode == "shorten":
         return (float(width), float(height * factor))
     raise ValueError(f"mode must be 'widen' or 'shorten', got {mode!r}")
+
+
+def desqueeze_point(x, y, squeeze, mode="widen", fractional=False):
+    """Desqueezed position of a point in a squeezed frame.
+
+    x and y are pixel positions when fractional is False, or frame fractions
+    (0..1 of the frame) when True; squeeze is the unitless squeeze factor. In
+    pixels, mode 'widen' returns (x * squeeze, y) and mode 'shorten' returns
+    (x, y / squeeze). Frame fractions are unchanged in either mode because the
+    frame scales with the point. Returns an (x, y) tuple of floats in the same
+    units as the input. Raises ValueError if squeeze is not positive and
+    finite, x or y is not finite, or mode is not 'widen' or 'shorten'.
+    """
+    px = require_finite("x", x)
+    py = require_finite("y", y)
+    factor = require_positive("squeeze", squeeze)
+    if mode not in ("widen", "shorten"):
+        raise ValueError(f"mode must be 'widen' or 'shorten', got {mode!r}")
+    if fractional:
+        return (float(px), float(py))
+    if mode == "widen":
+        return (float(px * factor), float(py))
+    return (float(px), float(py / factor))
+
+
+def squeeze_point(x, y, squeeze, mode="widen", fractional=False):
+    """Squeezed position of a point, the inverse of desqueeze_point.
+
+    x and y are pixel positions in the desqueezed frame when fractional is
+    False, or frame fractions (0..1 of the frame) when True; squeeze is the
+    unitless squeeze factor. In pixels, mode 'widen' returns (x / squeeze, y)
+    and mode 'shorten' returns (x, y * squeeze). Frame fractions are unchanged
+    in either mode. Returns an (x, y) tuple of floats in the same units as the
+    input. Raises ValueError if squeeze is not positive and finite, x or y is
+    not finite, or mode is not 'widen' or 'shorten'.
+    """
+    px = require_finite("x", x)
+    py = require_finite("y", y)
+    factor = require_positive("squeeze", squeeze)
+    if mode not in ("widen", "shorten"):
+        raise ValueError(f"mode must be 'widen' or 'shorten', got {mode!r}")
+    if fractional:
+        return (float(px), float(py))
+    if mode == "widen":
+        return (float(px / factor), float(py))
+    return (float(px), float(py * factor))
 
 
 def delivered_aspect_ratio(gate_width_mm, gate_height_mm, squeeze):

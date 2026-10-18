@@ -3,9 +3,51 @@ import unittest
 from open_optics.anamorphic import (
     bokeh_aspect,
     delivered_aspect_ratio,
+    desqueeze_point,
     desqueeze_size,
+    squeeze_point,
     squeeze_size,
 )
+
+
+class TestPointConversion(unittest.TestCase):
+    def test_desqueeze_point_widen(self):
+        x, y = desqueeze_point(100, 50, 2.0, "widen")
+        self.assertAlmostEqual(x, 200.0, places=9)
+        self.assertAlmostEqual(y, 50.0, places=9)
+
+    def test_desqueeze_point_shorten(self):
+        x, y = desqueeze_point(100, 50, 2.0, "shorten")
+        self.assertAlmostEqual(x, 100.0, places=9)
+        self.assertAlmostEqual(y, 25.0, places=9)
+
+    def test_fractional_unchanged(self):
+        for mode in ("widen", "shorten"):
+            self.assertEqual(
+                desqueeze_point(0.25, 0.75, 2.0, mode, fractional=True),
+                (0.25, 0.75),
+            )
+            self.assertEqual(
+                squeeze_point(0.25, 0.75, 2.0, mode, fractional=True),
+                (0.25, 0.75),
+            )
+
+    def test_round_trip(self):
+        for mode in ("widen", "shorten"):
+            sx, sy = desqueeze_point(123.5, 67.25, 1.33, mode)
+            x, y = squeeze_point(sx, sy, 1.33, mode)
+            self.assertAlmostEqual(x, 123.5, places=9)
+            self.assertAlmostEqual(y, 67.25, places=9)
+
+    def test_invalid(self):
+        with self.assertRaises(ValueError):
+            desqueeze_point(1, 1, -1)
+        with self.assertRaises(ValueError):
+            squeeze_point(1, 1, -1)
+        with self.assertRaises(ValueError):
+            desqueeze_point(1, 1, 2.0, "bad")
+        with self.assertRaises(ValueError):
+            squeeze_point(float("nan"), 1, 2.0)
 
 
 class TestDesqueezeSize(unittest.TestCase):
