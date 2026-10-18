@@ -3,8 +3,8 @@
 import math
 from dataclasses import dataclass
 
-from open_optics.units import rad_to_deg
-from open_optics.validation import require_positive
+from open_optics.units import deg_to_rad, rad_to_deg
+from open_optics.validation import require_finite, require_positive
 
 _FULL_FRAME_DIAGONAL_MM = 43.2666
 
@@ -37,6 +37,26 @@ def angle_of_view(focal_mm, dimension_mm):
     focal = require_positive("focal_mm", focal_mm)
     dimension = require_positive("dimension_mm", dimension_mm)
     return rad_to_deg(2 * math.atan(dimension / (2 * focal)))
+
+
+def focal_from_angle(angle_deg, dimension_mm):
+    """Compute the focal length that gives an angle of view across one sensor dimension.
+
+    Args:
+        angle_deg: angle of view in degrees, strictly between 0 and 180.
+        dimension_mm: sensor dimension (width, height or diagonal) in millimetres.
+
+    Returns:
+        The focal length in millimetres, dimension / (2 * tan(angle / 2)).
+
+    Raises:
+        ValueError: if angle_deg <= 0 or angle_deg >= 180.
+    """
+    angle = require_finite("angle_deg", angle_deg)
+    dimension = require_positive("dimension_mm", dimension_mm)
+    if angle <= 0 or angle >= 180:
+        raise ValueError(f"angle_deg must be between 0 and 180 degrees (exclusive), got {angle_deg!r}")
+    return dimension / (2 * math.tan(deg_to_rad(angle) / 2))
 
 
 def field_of_view(focal_mm, sensor_w_mm, sensor_h_mm, squeeze=1.0):

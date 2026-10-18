@@ -1,7 +1,7 @@
 import math
 import unittest
 
-from open_optics.fov import FieldOfView, angle_of_view, field_of_view
+from open_optics.fov import FieldOfView, angle_of_view, field_of_view, focal_from_angle
 
 
 class AngleOfViewTest(unittest.TestCase):
@@ -20,6 +20,22 @@ class AngleOfViewTest(unittest.TestCase):
     def test_zero_focal_raises(self):
         with self.assertRaises(ValueError):
             angle_of_view(0, 36)
+
+
+class FocalFromAngleTest(unittest.TestCase):
+    def test_known_value(self):
+        # 36 / (2*tan(19.799 deg)) = 36 / 0.72 = 50 mm.
+        self.assertAlmostEqual(focal_from_angle(39.598, 36), 50.0, delta=0.01)
+
+    def test_round_trip(self):
+        for focal in (35, 85, 200):
+            back = focal_from_angle(angle_of_view(focal, 36), 36)
+            self.assertLess(abs(back - focal) / focal, 1e-9)
+
+    def test_angle_out_of_range_raises(self):
+        for bad in (180, 0, -5):
+            with self.assertRaises(ValueError):
+                focal_from_angle(bad, 36)
 
 
 class FieldOfViewTest(unittest.TestCase):
