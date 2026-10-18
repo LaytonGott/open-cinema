@@ -46,6 +46,11 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
                             self.assertTrue(math.isfinite(got))
                             self.assertGreater(got, 0.0)
 
+    def test_description_help_text(self):
+        desc = OpenOptics_DepthTemporalSmooth.DESCRIPTION
+        for word in ("metres", "spike", "missing", "Depth of Field"):
+            self.assertIn(word, desc)
+
     def test_rejects_non_3d(self):
         with self.assertRaises(ValueError):
             OpenOptics_DepthTemporalSmooth().smooth(torch.ones(4, 4), 0.7)
