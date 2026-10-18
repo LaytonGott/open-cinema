@@ -7,6 +7,29 @@ Units:
     confusion) are in millimetres. Angles are in degrees at the public surface;
     radians appear only via the open_optics.units helpers. Every public function's
     docstring states its units and what it returns.
+
+Where to find things:
+    fov          field of view and angle of view from focal length and sensor size
+    crop         crop factor and full-frame equivalent focal length and f-number
+    anamorphic   squeeze and desqueeze of sizes and points, delivered aspect, bokeh shape
+    coc          circle of confusion and blur diameter in mm and pixels
+    dof          hyperfocal distance, focus for a range, depth-of-field limits
+    pixels       conversion between pixel coordinates and lens (angle) coordinates
+    distortion   radial lens distortion of points
+    chromatic    lateral chromatic aberration
+    vignetting   light falloff towards the corners
+    color        colour helpers for the optical effects
+    breathing    focus breathing (field of view change with focus distance)
+    focus_pull   focus distance changes over a shot
+    dolly        dolly and dolly-zoom camera moves
+    exposure     exposure maths (f-number, shutter, ISO)
+    presets      named sensor and lens presets
+    summary      one-call shot summary combining the other modules
+    sensor       the Sensor dataclass
+    lens         the Lens dataclass
+
+Needs no third-party software. Importing the package prints nothing, and all
+results are deterministic.
 """
 
 from .units import deg_to_rad, rad_to_deg
