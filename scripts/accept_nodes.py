@@ -1,9 +1,14 @@
 """Goal check: the ComfyUI node pack. Run with: node scripts/run-py.js scripts/accept_nodes.py
 
-Checks the registration (classic NODE_CLASS_MAPPINGS) and then runs every registered node once on a small CPU image
-with default or synthesised inputs: outputs must be finite, IMAGE outputs float32 [B, H, W, C] in 0..1, MASK outputs
-float32 [B, H, W], and two runs give identical results. It does not check the optics; the unit tests do that.
-Prints one line per problem and exits 1 if there is any.
+Checks the registration (classic NODE_CLASS_MAPPINGS) and then runs every registered node on a small CPU image with
+default or synthesised inputs: outputs must be finite, IMAGE outputs float32 [B, H, W, C] in 0..1, MASK outputs
+float32 [B, H, W], and two runs give identical results.
+
+Depth inputs: a node that takes depth as either an IMAGE or a MASK declares them as two optional inputs (a MASK one and an
+IMAGE one whose names contain "depth"). Such a node is run once with each of them alone, must give the same result for the
+same data in either form, and must raise ValueError when neither or both are connected.
+
+It does not check the optics; the unit tests do that. Prints one line per problem and exits 1 if there is any.
 """
 import importlib.util
 import sys
@@ -15,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 REQUIRED = {
     "OpenOptics_FocalCrop": "crop",
     "OpenOptics_DepthOfField": "depth of field",
+    "OpenOptics_DepthToMetric": "depth to metric",
     "OpenOptics_LensDistortion": "distortion",
     "OpenOptics_Vignette": "vignette",
     "OpenOptics_ChromaticAberration": "chromatic",
@@ -63,18 +69,27 @@ if root_init.exists():
 
 torch.manual_seed(0)
 IMAGE = torch.rand(2, 16, 16, 3, dtype=torch.float32)
-DEPTH = (torch.rand(2, 16, 16, dtype=torch.float32) * 4.0 + 1.0)  # metres
+METRES = (torch.rand(2, 16, 16, dtype=torch.float32) * 4.0 + 1.0)  # metric depth, 1 to 5 m
+RELATIVE = torch.rand(2, 16, 16, dtype=torch.float32)  # relative or inverse depth, 0 to 1 (what a depth estimator outputs)
 
 
-def synth(name, spec):
+def depth_data(key):
+    return RELATIVE if key == "OpenOptics_DepthToMetric" else METRES
+
+
+def as_image(mask):
+    return mask.unsqueeze(-1).repeat(1, 1, 1, 3).contiguous()
+
+
+def synth(key, name, spec):
     kind = spec[0]
     options = spec[1] if len(spec) > 1 and isinstance(spec[1], dict) else {}
     if isinstance(kind, (list, tuple)):
         return kind[0]
     if kind == "IMAGE":
-        return IMAGE.clone()
+        return as_image(depth_data(key)) if "depth" in name.lower() else IMAGE.clone()
     if kind == "MASK":
-        return DEPTH.clone()
+        return depth_data(key).clone()
     if kind in ("FLOAT", "INT", "BOOLEAN", "STRING"):
         if "default" in options:
             return options["default"]
@@ -82,9 +97,19 @@ def synth(name, spec):
     raise ValueError(f"cannot synthesise an input of type {kind} for {name}")
 
 
-def run_once(cls):
+def depth_options(inputs):
+    """The optional IMAGE / MASK inputs that carry depth (a node that offers a choice has at least two)."""
+    optional = inputs.get("optional", {}) or {}
+    return {name: spec for name, spec in optional.items() if spec and spec[0] in ("IMAGE", "MASK") and "depth" in name.lower()}
+
+
+def call(cls, key, extra=None, with_optional=()):
     inputs = cls.INPUT_TYPES()
-    kwargs = {name: synth(name, spec) for name, spec in inputs.get("required", {}).items()}
+    kwargs = {name: synth(key, name, spec) for name, spec in inputs.get("required", {}).items()}
+    optional = inputs.get("optional", {}) or {}
+    for name in with_optional:
+        kwargs[name] = synth(key, name, optional[name])
+    kwargs.update(extra or {})
     return getattr(cls(), cls.FUNCTION)(**kwargs)
 
 
@@ -101,6 +126,27 @@ def check_output(key, kind, value):
         check(value.dim() == 3, f"{key}: MASK output has shape {tuple(value.shape)}, expected [B, H, W]")
 
 
+def check_results(key, cls, first, second, label):
+    ok = isinstance(first, tuple) and len(first) == len(cls.RETURN_TYPES)
+    check(ok, f"{key}{label}: the function must return a tuple with one item per RETURN_TYPES entry")
+    if not ok:
+        return
+    for kind, value, again in zip(cls.RETURN_TYPES, first, second):
+        if kind in ("IMAGE", "MASK"):
+            check_output(key + label, kind, value)
+            check(isinstance(again, torch.Tensor) and torch.equal(value, again), f"{key}{label}: two runs with the same input gave different {kind} outputs")
+
+
+def raises_value_error(cls, key, with_optional):
+    try:
+        call(cls, key, with_optional=with_optional)
+    except ValueError:
+        return True
+    except Exception:
+        return False
+    return False
+
+
 for key, cls in sorted(classes.items()):
     for attr in ("INPUT_TYPES", "RETURN_TYPES", "FUNCTION", "CATEGORY"):
         check(hasattr(cls, attr), f"{key} has no {attr}")
@@ -108,19 +154,27 @@ for key, cls in sorted(classes.items()):
         continue
     check(str(cls.CATEGORY).startswith("Open Optics"), f"{key}: CATEGORY is {cls.CATEGORY!r}, expected it to start with 'Open Optics'")
     check(hasattr(cls, cls.FUNCTION), f"{key}: FUNCTION {cls.FUNCTION!r} is not a method")
+    choices = depth_options(cls.INPUT_TYPES())
     try:
-        first = run_once(cls)
-        second = run_once(cls)
+        if len(choices) >= 2:
+            masks = [n for n, s in choices.items() if s[0] == "MASK"]
+            images = [n for n, s in choices.items() if s[0] == "IMAGE"]
+            check(bool(masks) and bool(images), f"{key}: depth must be offered both as a MASK input and as an IMAGE input (optional inputs with 'depth' in the name)")
+            results = {}
+            for name in choices:
+                results[name] = (call(cls, key, with_optional=[name]), call(cls, key, with_optional=[name]))
+                check_results(key, cls, results[name][0], results[name][1], f" (depth from {name})")
+            if masks and images:
+                a, b = results[masks[0]][0], results[images[0]][0]
+                same = isinstance(a, tuple) and isinstance(b, tuple) and len(a) == len(b) and all(
+                    torch.allclose(x, y, atol=1e-5, rtol=1e-5) for x, y in zip(a, b) if isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor))
+                check(same, f"{key}: the same depth data gave different results as a MASK and as an IMAGE (an IMAGE depth is read as the mean of its channels)")
+            check(raises_value_error(cls, key, ()), f"{key}: with no depth connected it must raise ValueError")
+            check(raises_value_error(cls, key, list(choices)), f"{key}: with both a MASK and an IMAGE depth connected it must raise ValueError")
+        else:
+            check_results(key, cls, call(cls, key), call(cls, key), "")
     except Exception as exc:
-        problems.append(f"{key}: running with default inputs on a 2x16x16 image failed: {type(exc).__name__}: {exc}")
-        continue
-    check(isinstance(first, tuple) and len(first) == len(cls.RETURN_TYPES), f"{key}: the function must return a tuple with one item per RETURN_TYPES entry")
-    if not (isinstance(first, tuple) and len(first) == len(cls.RETURN_TYPES)):
-        continue
-    for kind, value, again in zip(cls.RETURN_TYPES, first, second):
-        if kind in ("IMAGE", "MASK"):
-            check_output(key, kind, value)
-            check(isinstance(again, torch.Tensor) and torch.equal(value, again), f"{key}: two runs with the same input gave different {kind} outputs")
+        problems.append(f"{key}: running on a 2x16x16 image failed: {type(exc).__name__}: {exc}")
 
 for path in sorted((ROOT / "open_optics_nodes").glob("*.py")):
     text = path.read_text(encoding="utf-8")
