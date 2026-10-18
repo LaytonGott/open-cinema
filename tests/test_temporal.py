@@ -198,6 +198,26 @@ class TestInvalidValues(unittest.TestCase):
             self.assertEqual(out[i][0][1], 2.0)
 
 
+class TestMissingAtStart(unittest.TestCase):
+    def test_leading_missing_backfilled(self):
+        vals = [float("nan"), 0.0, 3.0, 3.0, 3.0, 3.0]
+        out = smooth_depth_sequence([[[v]] for v in vals], 0.7)
+        self.assertEqual(len(out), 6)
+        for frame in out:
+            self.assertAlmostEqual(frame[0][0], 3.0, places=6)
+
+    def test_never_valid_pixel(self):
+        bad = [float("nan"), float("inf"), 0.0, -1.0]
+        frames = [[[v, 2.0]] for v in bad]
+        out = smooth_depth_sequence(frames, 0.7)
+        self.assertEqual(len(out), 4)
+        for frame in out:
+            self.assertTrue(math.isfinite(frame[0][0]))
+            self.assertGreater(frame[0][0], 0)
+            self.assertAlmostEqual(frame[0][0], 1.0, places=6)
+            self.assertAlmostEqual(frame[0][1], 2.0, places=6)
+
+
 class TestSpikeRejection(unittest.TestCase):
     def _check(self, spike):
         frames = [[[2.0]] for _ in range(12)]
