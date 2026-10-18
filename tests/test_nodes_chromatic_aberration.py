@@ -73,6 +73,20 @@ class ChromaticAberrationNodeTest(unittest.TestCase):
         self.assertTrue(torch.equal(out_pos[..., 1], img[..., 1]))
         self.assertTrue(torch.equal(out_neg[..., 1], img[..., 1]))
 
+    def test_blue_opposite_signs(self):
+        x = torch.arange(33, dtype=torch.float32)
+        ramp = (x / 32.0).reshape(1, 1, 33)
+        img = torch.zeros(1, 33, 33, 3)
+        for c in range(3):
+            img[..., c] = ramp
+        out_pos = OpenOptics_ChromaticAberration().apply(img, 0.0, 0.05)[0]
+        out_neg = OpenOptics_ChromaticAberration().apply(img, 0.0, -0.05)[0]
+        # Output samples source at r / scale: nearer centre for +, farther for -.
+        self.assertLess(out_pos[0, 16, 24, 2].item(), img[0, 16, 24, 2].item())
+        self.assertGreater(out_neg[0, 16, 24, 2].item(), img[0, 16, 24, 2].item())
+        self.assertTrue(torch.equal(out_pos[..., 0], img[..., 0]))
+        self.assertTrue(torch.equal(out_neg[..., 0], img[..., 0]))
+
     def test_alpha_channel_kept(self):
         img = torch.rand(1, 12, 10, 4)
         out = OpenOptics_ChromaticAberration().apply(img, 0.05, 0.0)[0]
