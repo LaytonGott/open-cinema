@@ -121,5 +121,27 @@ class TestVignetteStrength(unittest.TestCase):
         self.assertLessEqual(out.max().item(), 1.0)
 
 
+class VignetteAcrossLensesTest(unittest.TestCase):
+    def setUp(self):
+        self.img = torch.ones(1, 17, 25, 3, dtype=torch.float32)
+        self.node = OpenOptics_Vignette()
+
+    def run_lens(self, focal_mm):
+        return self.node.apply(self.img, focal_mm, 36.0, 1.0, "linear")[0]
+
+    def test_wide_lens_darker_corner(self):
+        wide = self.run_lens(14)
+        tele = self.run_lens(50)
+        self.assertLess(wide[0, 0, 0, 0].item(), tele[0, 0, 0, 0].item())
+        for out in (wide, tele):
+            self.assertGreaterEqual(out.min().item(), 0.0)
+            self.assertLessEqual(out.max().item(), 1.0)
+
+    def test_gain_symmetric_and_bounded(self):
+        out = self.run_lens(14)
+        self.assertTrue(torch.allclose(out, out.flip(1), atol=1e-6))
+        self.assertTrue(torch.allclose(out, out.flip(2), atol=1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()
