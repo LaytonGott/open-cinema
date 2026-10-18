@@ -17,7 +17,7 @@ def build_source_grid(width_px, height_px, focal_mm, sensor_width_mm,
     millimetres; k1, k2, k3, p1, p2 and zoom are unitless. direction 'remove'
     means the output is the undistorted image: the source is
     distort(x / zoom, y / zoom). direction 'apply' means the output is the
-    distorted image: the source is undistort(x, y), and zoom is ignored.
+    distorted image: the source is undistort(x / zoom, y / zoom).
     Returns a list of height_px rows, each a list of width_px (sx, sy) float
     tuples in source pixels. Raises ValueError for any other direction.
     """
@@ -33,7 +33,7 @@ def build_source_grid(width_px, height_px, focal_mm, sensor_width_mm,
                 x, y = distortion.distort_point(x / zoom, y / zoom,
                                                 k1, k2, k3, p1, p2)
             else:
-                x, y = distortion.undistort_point(x, y, k1, k2, k3, p1, p2)
+                x, y = distortion.undistort_point(x / zoom, y / zoom, k1, k2, k3, p1, p2)
             row.append(tuple(float(c) for c in pixels.lens_to_pixel(
                 x, y, width_px, height_px, sensor_width_mm, focal_mm)))
         grid.append(row)

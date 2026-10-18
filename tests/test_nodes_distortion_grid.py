@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from open_optics import distortion
+from open_optics import distortion, pixels
 from open_optics.lens import Lens
 from open_optics.sensor import Sensor
 from open_optics_nodes.distortion_grid import (
@@ -37,6 +37,25 @@ class TestBuildSourceGrid(unittest.TestCase):
     def test_bad_direction(self):
         with self.assertRaises(ValueError):
             build_source_grid(5, 4, 35.0, 36.0, 0, 0, 0, 0, 0, "bad")
+
+
+class TestApplyZoom(unittest.TestCase):
+    def test_default_zoom_is_one(self):
+        default = build_source_grid(32, 24, 35.0, 36.0, -0.2, 0, 0, 0, 0, "apply")
+        explicit = build_source_grid(32, 24, 35.0, 36.0, -0.2, 0, 0, 0, 0,
+                                     "apply", zoom=1.0)
+        for v in range(24):
+            for u in range(32):
+                self.assertEqual(default[v][u], explicit[v][u])
+
+    def test_zoom_two_matches_hand_chain(self):
+        grid = build_source_grid(32, 24, 35.0, 36.0, -0.2, 0, 0, 0, 0,
+                                 "apply", zoom=2.0)
+        x, y = pixels.pixel_to_lens(7, 5, 32, 24, 36, 35)
+        x, y = distortion.undistort_point(x / 2, y / 2, -0.2, 0, 0, 0, 0)
+        ex, ey = pixels.lens_to_pixel(x, y, 32, 24, 36, 35)
+        self.assertAlmostEqual(grid[5][7][0], ex, places=9)
+        self.assertAlmostEqual(grid[5][7][1], ey, places=9)
 
 
 class TestCropZoom(unittest.TestCase):
