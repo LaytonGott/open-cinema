@@ -195,3 +195,29 @@ def classify_distortion(k1=0.0, k2=0.0, k3=0.0, radius=0.5, tolerance=1e-9):
     if factor > 1 + tolerance:
         return "pincushion"
     return "neutral"
+
+
+def straight_line_deviation(points):
+    """Largest distance of points from their best-fit straight line.
+
+    points is a list of at least 2 (x, y) tuples in unitless frame fractions.
+    The line is fitted by total least squares (centroid and principal axis of
+    the 2x2 covariance). Returns the largest perpendicular distance of any
+    point from that line as a float in the same unitless frame fractions;
+    0.0 if all points coincide or the covariance is degenerate. Raises
+    ValueError if fewer than 2 points are given.
+    """
+    pts = [(float(x), float(y)) for x, y in points]
+    n = len(pts)
+    if n < 2:
+        raise ValueError("points must contain at least 2 points")
+    cx = sum(p[0] for p in pts) / n
+    cy = sum(p[1] for p in pts) / n
+    sxx = sum((p[0] - cx) ** 2 for p in pts)
+    syy = sum((p[1] - cy) ** 2 for p in pts)
+    sxy = sum((p[0] - cx) * (p[1] - cy) for p in pts)
+    if sxx + syy == 0.0:
+        return 0.0
+    theta = 0.5 * math.atan2(2 * sxy, sxx - syy)
+    dx, dy = math.cos(theta), math.sin(theta)
+    return float(max(abs(-(p[0] - cx) * dy + (p[1] - cy) * dx) for p in pts))
