@@ -24,6 +24,8 @@ import math
 
 from open_optics.validation import require_finite
 
+_NEVER_VALID_DEPTH_M = 1.0  # metres; output for a pixel with no valid depth in any frame
+
 
 def _require_strength(value):
     """Check a smoothing strength (unitless) and return it as a float.
@@ -102,7 +104,9 @@ def smooth_depth_sequence(frames, strength=0.7):
             Strength 0 returns the input values unchanged (as a float copy). Raises ValueError if it is not a finite number between 0 and 1.
 
     Values that are missing (nan, inf, zero, negative) never change the running estimate; the
-    output for that frame is the current estimate, or the value itself if none yet.
+    output for that frame is the current estimate. Leading missing frames are
+    backfilled: they output the pixel's first valid value in metres once one appears.
+    A pixel that is never valid outputs 1.0 metre (_NEVER_VALID_DEPTH_M) in every frame.
 
     Spike rejection (a one-frame spike is ignored): a valid value more than 2.5 times or less than 0.4 times the
     current estimate is not blended in; that frame outputs the current estimate.
@@ -134,6 +138,7 @@ def smooth_depth_sequence(frames, strength=0.7):
         for c in range(len(row)):
             est = None
             pending = None
+            first_t = None
             for t, frame in enumerate(frames):
                 v = frame[r][c]
                 if _is_valid(v):
@@ -147,5 +152,10 @@ def smooth_depth_sequence(frames, strength=0.7):
                         pending = None
                     else:
                         pending = float(v)
+                    if first_t is None:
+                        first_t = t
                 out[t][r][c] = float(v) if est is None else est
+            lead = _NEVER_VALID_DEPTH_M if first_t is None else out[first_t][r][c]
+            for t in range(len(frames) if first_t is None else first_t):
+                out[t][r][c] = lead
     return out
