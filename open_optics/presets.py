@@ -17,6 +17,18 @@ def sensor_names():
     return sorted(SENSOR_PRESETS)
 
 
+def _lookup(table, kind, name):
+    """Case-insensitive lookup of name in table; raises on bad input."""
+    if not isinstance(name, str):
+        raise TypeError(f"name must be a str, got {type(name).__name__}")
+    key = name.strip().lower()
+    if key not in table:
+        raise ValueError(
+            f"unknown {kind} {name!r}; available: {', '.join(sorted(table))}"
+        )
+    return table[key]
+
+
 def get_sensor(name):
     """Look up a preset Sensor (width and height in millimetres) by name.
 
@@ -24,11 +36,28 @@ def get_sensor(name):
     TypeError if name is not a str, and ValueError listing all available
     names if it is unknown.
     """
-    if not isinstance(name, str):
-        raise TypeError(f"name must be a str, got {type(name).__name__}")
-    key = name.strip().lower()
-    if key not in SENSOR_PRESETS:
-        raise ValueError(
-            f"unknown sensor {name!r}; available: {', '.join(sensor_names())}"
-        )
-    return SENSOR_PRESETS[key]
+    return _lookup(SENSOR_PRESETS, "sensor", name)
+
+
+SQUEEZE_PRESETS = {
+    "spherical": 1.0,
+    "1.33x": 1.33,
+    "1.5x": 1.5,
+    "1.8x": 1.8,
+    "2x": 2.0,
+}
+
+
+def squeeze_names():
+    """Return the sorted list of lowercase preset squeeze names (strings)."""
+    return sorted(SQUEEZE_PRESETS)
+
+
+def get_squeeze(name):
+    """Look up a preset lens squeeze factor (unitless float) by name.
+
+    The name is stripped and lowercased first. Returns the squeeze as a
+    float. Raises TypeError if name is not a str, and ValueError listing all
+    available names if it is unknown.
+    """
+    return _lookup(SQUEEZE_PRESETS, "squeeze", name)

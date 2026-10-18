@@ -1,6 +1,13 @@
 import unittest
 
-from open_optics.presets import SENSOR_PRESETS, get_sensor, sensor_names
+from open_optics.presets import (
+    SENSOR_PRESETS,
+    SQUEEZE_PRESETS,
+    get_sensor,
+    get_squeeze,
+    sensor_names,
+    squeeze_names,
+)
 
 
 class TestPresets(unittest.TestCase):
@@ -33,6 +40,25 @@ class TestPresets(unittest.TestCase):
         s = get_sensor("full frame")
         self.assertAlmostEqual(s.width_mm, 36.0, delta=1e-9)
         self.assertAlmostEqual(s.height_mm, 24.0, delta=1e-9)
+
+
+class TestSqueezePresets(unittest.TestCase):
+    def test_2x_case_insensitive(self):
+        self.assertAlmostEqual(get_squeeze("2X"), 2.0, delta=1e-12)
+
+    def test_spherical(self):
+        self.assertAlmostEqual(get_squeeze("spherical"), 1.0, delta=1e-12)
+
+    def test_unknown_lists_names(self):
+        with self.assertRaises(ValueError) as cm:
+            get_squeeze("nonsense")
+        self.assertIn("1.33x", str(cm.exception))
+
+    def test_squeeze_names_sorted(self):
+        names = squeeze_names()
+        self.assertEqual(names, sorted(names))
+        self.assertEqual(set(names), set(SQUEEZE_PRESETS))
+        self.assertEqual(len(names), 5)
 
 
 if __name__ == "__main__":
