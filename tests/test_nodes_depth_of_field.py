@@ -110,10 +110,12 @@ class TestDepthOfFieldValues(unittest.TestCase):
         img = torch.rand(1, 32, 32, 3)
         depth = torch.full((1, 32, 32), 3.0)
         node = OpenOptics_DepthOfField()
-        for name in ("focal_mm", "f_number", "focus_m", "sensor_width_mm", "max_radius_px"):
+        for name in ("focal_mm", "f_number", "focus_m", "sensor_width_mm"):
             with self.subTest(name=name):
                 with self.assertRaisesRegex(ValueError, name):
                     node.apply(img, depth_mask=depth, **{name: 0})
+        with self.assertRaisesRegex(ValueError, "max_radius_px"):
+            node.apply(img, depth_mask=depth, max_radius_px=-1)
         with self.assertRaisesRegex(ValueError, "quality"):
             node.apply(img, depth_mask=depth, quality="bogus")
 
