@@ -1,7 +1,10 @@
+import math
 import unittest
 
 import torch
 
+from open_optics.temporal import smooth_depth_sequence
+from tests.temporal_synth import make_flicker_sequence
 from open_optics_nodes.depth_temporal_smooth import OpenOptics_DepthTemporalSmooth
 
 
@@ -25,6 +28,23 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
         (out,) = OpenOptics_DepthTemporalSmooth().smooth(depth, 0.0)
         for a, b in zip(out.flatten().tolist(), depth.flatten().tolist()):
             self.assertAlmostEqual(a, b, places=5)
+
+    def test_matches_core_smoothing(self):
+        seq, _truth = make_flicker_sequence(seed=3, frames=12, height=6, width=6)
+        for strength in (0.7, 0.3):
+            core = smooth_depth_sequence(seq, strength)
+            (out,) = OpenOptics_DepthTemporalSmooth().smooth(
+                torch.tensor(seq, dtype=torch.float32), strength)
+            self.assertEqual(tuple(out.shape), (12, 6, 6))
+            for t in range(12):
+                for r in range(6):
+                    for c in range(6):
+                        expected = core[t][r][c]
+                        got = out[t, r, c].item()
+                        self.assertAlmostEqual(got, expected, delta=1e-5)
+                        if expected > 0:
+                            self.assertTrue(math.isfinite(got))
+                            self.assertGreater(got, 0.0)
 
     def test_rejects_non_3d(self):
         with self.assertRaises(ValueError):
