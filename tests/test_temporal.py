@@ -60,5 +60,25 @@ class TestTrivialSequences(unittest.TestCase):
             self.assertIsNot(out_row, in_row)
 
 
+class TestSmoothShape(unittest.TestCase):
+    def _frames(self):
+        return [[[2, 2.0], [6.0, 6.0]] for _ in range(3)]
+
+    def _check(self, result):
+        self.assertEqual(len(result), 3)
+        for frame in result:
+            self.assertEqual(len(frame), 2)
+            for row in frame:
+                self.assertEqual(len(row), 2)
+                for v in row:
+                    self.assertIsInstance(v, float)
+
+    def test_three_frames_2x2(self):
+        self._check(smooth_depth_sequence(self._frames(), 0.5))
+
+    def test_default_strength(self):
+        self._check(smooth_depth_sequence(self._frames()))
+
+
 if __name__ == "__main__":
     unittest.main()
