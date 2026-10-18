@@ -31,6 +31,25 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "[]")
 
+    def test_distortion_opencv_import_silent_and_stdlib_only(self):
+        code = (
+            "import sys; before = set(sys.modules); import open_optics.distortion as d; "
+            "names = ('opencv_to_library_coeffs', 'distort_point_opencv', 'undistort_point_opencv'); "
+            "assert all(callable(getattr(d, n, None)) for n in names); "
+            "d.opencv_to_library_coeffs(-0.2, 0.05, 0.005, -0.003, 0.01); "
+            "extra = sorted(m for m in {n.split('.')[0] for n in set(sys.modules) - before} "
+            "if m not in sys.stdlib_module_names and not m.startswith('_') "
+            "and m != 'open_optics' and m != '__main__'); "
+            "assert not extra, extra"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "")
+
     def test_all_names_exist(self):
         import open_optics
         for name in open_optics.__all__:
