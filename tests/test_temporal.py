@@ -355,6 +355,22 @@ class TestMovingObject(unittest.TestCase):
         self.assertGreater(left, 0)
 
 
+class TestCutHandling(unittest.TestCase):
+    def test_cut_within_15_percent_after_five_frames(self):
+        frames = [
+            [[2.0 if t < 6 else 6.0] * 4 for _ in range(4)]
+            for t in range(12)
+        ]
+        out = smooth_depth_sequence(frames, 0.7)
+        for t in range(6):
+            for row in out[t]:
+                for v in row:
+                    self.assertAlmostEqual(v, 2.0, delta=0.04)
+        for row in out[11]:
+            for v in row:
+                self.assertAlmostEqual(v, 6.0, delta=0.9)
+
+
 class TestDocs(unittest.TestCase):
     def test_docs_mention_key_terms(self):
         module_doc = open_optics.temporal.__doc__
