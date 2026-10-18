@@ -115,6 +115,32 @@ class TestOrderEquivalence(unittest.TestCase):
         self.assertNotEqual(distort_point(x, y, *cv), distort_point_opencv(x, y, *cv))
 
 
+class TestRadialOnlyOpenCV(unittest.TestCase):
+    POINTS = [(0.05, 0.03), (0.45, 0.3), (-0.6, 0.5)]
+
+    def test_k1_only_matches_opencv(self):
+        x, y = distort_point_opencv(0.05, 0.03, -0.2, 0.0, 0.0, 0.0)
+        self.assertAlmostEqual(x, 0.049966, delta=1e-9)
+        self.assertAlmostEqual(y, 0.0299796, delta=1e-9)
+
+    def test_all_zero_distort_is_identity(self):
+        for x, y in self.POINTS:
+            self.assertEqual(distort_point_opencv(x, y, 0, 0, 0, 0), (x, y))
+
+    def test_all_zero_undistort_is_identity(self):
+        for x, y in self.POINTS:
+            ux, uy = undistort_point_opencv(x, y, 0, 0, 0, 0)
+            self.assertAlmostEqual(ux, x, delta=1e-12)
+            self.assertAlmostEqual(uy, y, delta=1e-12)
+
+    def test_omitted_k3_equals_zero_and_library_default(self):
+        for x, y in self.POINTS:
+            omitted = distort_point_opencv(x, y, -0.2, 0.05, 0.0, 0.0)
+            self.assertEqual(
+                omitted, distort_point_opencv(x, y, -0.2, 0.05, 0.0, 0.0, k3=0.0))
+            self.assertEqual(omitted, distort_point(x, y, -0.2, 0.05))
+
+
 class TestLibraryOrderUnchanged(unittest.TestCase):
     K1, K2, K3, P1, P2 = -0.2, 0.05, 0.01, 0.005, -0.003
     CASES = [
