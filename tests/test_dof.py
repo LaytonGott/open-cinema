@@ -1,7 +1,7 @@
 import math
 import unittest
 
-from open_optics.dof import dof_limits_mm, hyperfocal_mm
+from open_optics.dof import dof_limits_mm, hyperfocal_focus_mm, hyperfocal_mm
 
 
 class TestDof(unittest.TestCase):
@@ -24,6 +24,16 @@ class TestDof(unittest.TestCase):
         near, far = dof_limits_mm(50, 2.8, h, 0.029)
         self.assertEqual(far, math.inf)
         self.assertTrue(math.isfinite(near))
+
+    def test_hyperfocal_focus_mm(self):
+        # 50^2 / (2.8 * 0.028844) + 50 = 31004.7 mm
+        focus = hyperfocal_focus_mm(50, 2.8, 0.028844)
+        self.assertEqual(focus, hyperfocal_mm(50, 2.8, 0.028844))
+        self.assertAlmostEqual(focus, 31004, delta=1)
+        near, far = dof_limits_mm(50, 2.8, focus, 0.028844)
+        self.assertEqual(far, math.inf)
+        # near = H / 2 when focused at H (approximately)
+        self.assertAlmostEqual(near, focus / 2, delta=focus / 2 * 0.005)
 
     def test_infinite_focus_rejected(self):
         with self.assertRaises(ValueError):
