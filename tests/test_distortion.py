@@ -3,8 +3,10 @@ import unittest
 from open_optics.distortion import (
     DistortionError,
     border_free_zoom,
+    classify_distortion,
     distort_pixel,
     distort_point,
+    straight_line_deviation,
     undistort_pixel,
     undistort_point,
 )
@@ -127,6 +129,40 @@ class TestPixelDistortion(unittest.TestCase):
 
     def test_pincushion_zoom_above_one(self):
         self.assertGreater(border_free_zoom(*self.args(), k1=0.2), 1.0)
+
+
+class TestClassifyDistortion(unittest.TestCase):
+    def test_barrel(self):
+        # 1 - 0.1 * 0.5**2 = 0.975 < 1
+        self.assertEqual(classify_distortion(k1=-0.1), "barrel")
+
+    def test_pincushion(self):
+        self.assertEqual(classify_distortion(k1=0.1), "pincushion")
+
+    def test_neutral(self):
+        self.assertEqual(classify_distortion(), "neutral")
+
+
+class TestStraightLineDeviation(unittest.TestCase):
+    def setUp(self):
+        self.points = [(0.5, -0.5 + i * 0.05) for i in range(21)]
+
+    def test_straight_line_is_zero(self):
+        self.assertLess(straight_line_deviation(self.points), 1e-12)
+
+    def test_barrel_bows_line(self):
+        # middle x = 0.5 * (1 - 0.1 * 0.25) = 0.4875, ends x = 0.475
+        distorted = [distort_point(x, y, k1=-0.1) for x, y in self.points]
+        self.assertGreater(straight_line_deviation(distorted), 0.001)
+
+    def test_undistort_straightens_line(self):
+        distorted = [distort_point(x, y, k1=-0.1) for x, y in self.points]
+        restored = [undistort_point(x, y, k1=-0.1) for x, y in distorted]
+        self.assertLess(straight_line_deviation(restored), 0.001)
+
+    def test_single_point_raises(self):
+        with self.assertRaises(ValueError):
+            straight_line_deviation([(0.0, 0.0)])
 
 
 if __name__ == "__main__":
