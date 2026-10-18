@@ -18,6 +18,16 @@ def hyperfocal_mm(focal_mm, f_number, coc_mm):
     return f * f / (n * c) + f
 
 
+def hyperfocal_focus_mm(focal_mm, f_number, coc_mm):
+    """Return the focus distance in millimetres that puts the far DoF limit at infinity.
+
+    focal_mm is the focal length in millimetres, f_number is the unitless
+    aperture (N) and coc_mm is the circle of confusion in millimetres.
+    This equals the hyperfocal distance.
+    """
+    return hyperfocal_mm(focal_mm, f_number, coc_mm)
+
+
 def dof_limits_mm(focal_mm, f_number, focus_mm, coc_mm):
     """Return the depth-of-field limits (near_mm, far_mm) in millimetres.
 
