@@ -237,5 +237,42 @@ class TestDepthToMetricRobustness(unittest.TestCase):
                     OpenOptics_DepthToMetric().convert(depth_mask=d, **kw)
 
 
+class TestDepthToMetricBatchFit(unittest.TestCase):
+    def test_batch_equals_concatenated_fit(self):
+        f0 = torch.linspace(0.0, 1.0, 12).reshape(3, 4)
+        f1 = torch.linspace(0.0, 0.4, 12).reshape(3, 4)
+        d = torch.stack([f0, f1])  # [2, 3, 4]
+        one = d.reshape(1, 6, 4)
+        node = OpenOptics_DepthToMetric()
+        for inv in (True, False):
+            with self.subTest(inverse_depth=inv):
+                z, _ = node.convert(near_m=1.0, far_m=5.0, inverse_depth=inv, depth_mask=d)
+                z1, _ = node.convert(near_m=1.0, far_m=5.0, inverse_depth=inv, depth_mask=one)
+                self.assertTrue(torch.allclose(z.reshape(1, 6, 4), z1, atol=1e-5))
+
+    def test_same_value_same_metres_across_frames(self):
+        f0 = torch.linspace(0.0, 1.0, 12).reshape(3, 4)
+        f1 = torch.linspace(0.0, 0.4, 12).reshape(3, 4)
+        d = torch.stack([f0, f1])
+        d[0, 1, 1] = 0.3
+        d[1, 2, 3] = 0.3
+        for inv in (True, False):
+            with self.subTest(inverse_depth=inv):
+                z, _ = OpenOptics_DepthToMetric().convert(
+                    near_m=1.0, far_m=5.0, inverse_depth=inv, depth_mask=d)
+                self.assertAlmostEqual(float(z[0, 1, 1]), float(z[1, 2, 3]), delta=1e-5)
+
+    def test_constant_map_midpoint(self):
+        d = torch.full((2, 4, 4), 0.7)
+        img = d.unsqueeze(-1).repeat(1, 1, 1, 3)
+        node = OpenOptics_DepthToMetric()
+        for inv in (True, False):
+            for kw in (dict(depth_mask=d), dict(depth_image=img)):
+                with self.subTest(inverse_depth=inv, form=next(iter(kw))):
+                    z, _ = node.convert(near_m=1.0, far_m=5.0, inverse_depth=inv, **kw)
+                    for v in z.flatten().tolist():
+                        self.assertAlmostEqual(v, 3.0, delta=1e-5)
+
+
 if __name__ == "__main__":
     unittest.main()
