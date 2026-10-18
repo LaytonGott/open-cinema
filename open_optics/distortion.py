@@ -221,3 +221,18 @@ def straight_line_deviation(points):
     theta = 0.5 * math.atan2(2 * sxy, sxx - syy)
     dx, dy = math.cos(theta), math.sin(theta)
     return float(max(abs(-(p[0] - cx) * dy + (p[1] - cy) * dx) for p in pts))
+
+
+def opencv_to_library_coeffs(k1, k2, p1, p2, k3=0.0):
+    """Reorder OpenCV distortion coefficients into this library's order.
+
+    All arguments are unitless. OpenCV's order is (k1, k2, p1, p2, k3); the
+    library's order is (k1, k2, k3, p1, p2). Each value is checked with
+    require_finite. Returns the tuple (k1, k2, k3, p1, p2) as floats.
+    """
+    c1 = require_finite("k1", k1)
+    c2 = require_finite("k2", k2)
+    t1 = require_finite("p1", p1)
+    t2 = require_finite("p2", p2)
+    c3 = require_finite("k3", k3)
+    return (float(c1), float(c2), float(c3), float(t1), float(t2))
