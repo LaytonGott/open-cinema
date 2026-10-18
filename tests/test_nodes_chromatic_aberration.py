@@ -92,6 +92,11 @@ class ChromaticAberrationNodeTest(unittest.TestCase):
         out = OpenOptics_ChromaticAberration().apply(img, 0.05, 0.0)[0]
         self.assertTrue(torch.equal(out[..., 3], img[..., 3]))
 
+    def test_single_channel_identity(self):
+        img = torch.rand(1, 12, 10, 1)
+        out = OpenOptics_ChromaticAberration().apply(img, 0.05, -0.05)[0]
+        self.assertTrue(torch.equal(out, img))
+
 
 if __name__ == "__main__":
     unittest.main()
