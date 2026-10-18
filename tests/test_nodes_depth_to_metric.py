@@ -167,6 +167,28 @@ class TestDepthToMetricNode(unittest.TestCase):
         self.assertTrue(torch.equal(preview[..., 1], preview[..., 2]))
 
 
+class TestDepthToMetricDefaults(unittest.TestCase):
+    def test_input_defaults(self):
+        req = OpenOptics_DepthToMetric.INPUT_TYPES()["required"]
+        self.assertEqual(req["near_m"][1]["default"], 0.5)
+        self.assertEqual(req["far_m"][1]["default"], 10.0)
+        self.assertEqual(req["inverse_depth"][1]["default"], True)
+        self.assertEqual(req["low_percentile"][1]["default"], 2.0)
+        self.assertEqual(req["high_percentile"][1]["default"], 98.0)
+
+    def test_default_convert_on_ramp(self):
+        # 101-value ramp: d_lo = 0.02, d_hi = 0.98 by hand.
+        d = torch.tensor([[[i / 100.0 for i in range(101)]]])
+        z, _ = OpenOptics_DepthToMetric().convert(depth_mask=d)
+        a = (1.0 / 0.5 - 1.0 / 10.0) / 0.96
+        b = 2.0 - a * 0.98
+        self.assertAlmostEqual(float(z[0, 0, 100]), 0.5, places=5)
+        self.assertAlmostEqual(float(z[0, 0, 0]), 10.0, places=5)
+        self.assertAlmostEqual(float(z[0, 0, 50]), 1.0 / (a * 0.5 + b), places=5)
+        self.assertAlmostEqual(float(z[0, 0, 98]), 0.5, places=5)
+        self.assertAlmostEqual(float(z[0, 0, 2]), 10.0, places=5)
+
+
 class TestDepthToMetricOutputs(unittest.TestCase):
     def test_preview_monotonic(self):
         d = torch.tensor([[[i / 10.0 for i in range(11)]]])
