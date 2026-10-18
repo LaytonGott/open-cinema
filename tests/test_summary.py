@@ -80,5 +80,34 @@ class TestShotSummaryCorner(unittest.TestCase):
         self.assertLessEqual(fraction, 1.0)
 
 
+class TestShotSummaryOverall(unittest.TestCase):
+    def setUp(self):
+        self.sensor = Sensor(36, 24)
+        self.lens = Lens(50, 1.8, 22)
+
+    def test_finite_far_limit(self):
+        # 2*atan(18/50) = 39.60 deg; hyperfocal is about 31 m, so far limit is finite
+        text = shot_summary(self.sensor, self.lens, 2.8, 3.0)
+        self.assertIn("39.60", text)
+        for token in ("mm", "m", "deg"):
+            self.assertIn(token, text)
+        self.assertNotIn("inf", text)
+
+    def test_deterministic(self):
+        self.assertEqual(
+            shot_summary(self.sensor, self.lens, 2.8, 3.0),
+            shot_summary(self.sensor, self.lens, 2.8, 3.0),
+        )
+
+    def test_far_limit_infinite(self):
+        text = shot_summary(self.sensor, self.lens, 2.8, 100.0)
+        self.assertIn("inf", text)
+
+    def test_bad_focus(self):
+        for bad in (0, -1.0):
+            with self.assertRaises(ValueError):
+                shot_summary(self.sensor, self.lens, 2.8, bad)
+
+
 if __name__ == "__main__":
     unittest.main()
