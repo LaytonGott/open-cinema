@@ -99,6 +99,47 @@ class TestDepthToMetricNode(unittest.TestCase):
                 want = depth_to_metric(i / 10.0, 0.02, 0.98, 0.5, 10.0, inv)
                 self.assertAlmostEqual(float(z[0, 0, i]), want, delta=1e-4)
 
+    def test_full_range_mask_values(self):
+        d = torch.tensor([[[0.0, 0.5, 1.0]]])
+        z, _ = _convert(d, inverse_depth=True)
+        # 1/Z = 0.2 + 0.8 d, so d = 0.5 gives 1 / 0.6 by hand.
+        for got, want in zip(z[0, 0].tolist(), [5.0, 1.0 / 0.6, 1.0]):
+            self.assertAlmostEqual(got, want, places=5)
+        z, _ = _convert(d, inverse_depth=False)
+        for got, want in zip(z[0, 0].tolist(), [1.0, 3.0, 5.0]):
+            self.assertAlmostEqual(got, want, places=5)
+
+    def test_percentile_clamping(self):
+        d = torch.tensor([[[i / 100.0 for i in range(101)]]])
+        z, _ = _convert(d, inverse_depth=True, low_percentile=10.0, high_percentile=90.0)
+        vals = z[0, 0].tolist()
+        for i in range(0, 10):  # below the 10th percentile (0.10)
+            self.assertAlmostEqual(vals[i], 5.0, places=5)
+        for i in range(91, 101):  # above the 90th percentile (0.90)
+            self.assertAlmostEqual(vals[i], 1.0, places=5)
+        self.assertGreaterEqual(min(vals), 1.0 - 1e-6)
+        self.assertLessEqual(max(vals), 5.0 + 1e-6)
+
+    def test_default_percentiles_values(self):
+        # 101-value ramp: 2nd and 98th percentiles are 0.02 and 0.98 by hand.
+        d = torch.tensor([[[i / 100.0 for i in range(101)]]])
+        z, _ = OpenOptics_DepthToMetric().convert(near_m=1.0, far_m=5.0, depth_mask=d)
+        a = (1.0 / 1.0 - 1.0 / 5.0) / 0.96
+        b = 1.0 / 1.0 - a * 0.98
+        self.assertAlmostEqual(float(z[0, 0, 50]), 1.0 / (a * 0.5 + b), places=5)
+        self.assertAlmostEqual(float(z[0, 0, 0]), 5.0, places=5)
+        self.assertAlmostEqual(float(z[0, 0, 100]), 1.0, places=5)
+
+    def test_preview_grey_near_bright(self):
+        d = torch.tensor([[[0.0, 1.0]]])
+        z, preview = _convert(d, inverse_depth=True)
+        self.assertAlmostEqual(float(z[0, 0, 1]), 1.0, places=5)
+        self.assertAlmostEqual(float(z[0, 0, 0]), 5.0, places=5)
+        self.assertAlmostEqual(float(preview[0, 0, 1, 0]), 1.0, places=5)
+        self.assertAlmostEqual(float(preview[0, 0, 0, 0]), 0.0, places=5)
+        self.assertTrue(torch.equal(preview[..., 0], preview[..., 1]))
+        self.assertTrue(torch.equal(preview[..., 1], preview[..., 2]))
+
 
 if __name__ == "__main__":
     unittest.main()
