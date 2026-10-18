@@ -37,9 +37,10 @@ class OpenOptics_LensDistortion:
         focal_mm and sensor_width_mm are in millimetres; k1, k2, k3, p1, p2
         are unitless. With direction 'apply' the output pixel (u, v) samples
         the source at undistort_point of its position (ideal to lens); with
-        'remove' it samples at distort_point (lens to ideal). fit 'crop' zooms
-        in to hide empty borders, only when direction is 'remove'. Returns a
-        1-tuple with an IMAGE [B, H, W, C], 0-1.
+        'remove' it samples at distort_point (lens to ideal). fit 'keep' fills
+        areas that map outside the source with black; fit 'crop' zooms in to
+        hide them. The output size equals the input size. Returns a 1-tuple
+        with an IMAGE [B, H, W, C], 0-1.
         """
         common.check_image(image)
         common.require_positive("focal_mm", focal_mm)
@@ -48,10 +49,13 @@ class OpenOptics_LensDistortion:
         common.require_choice("fit", fit, ("keep", "crop"))
         h, w = image.shape[1], image.shape[2]
         zoom = 1.0
-        if fit == "crop" and direction == "remove":
-            zoom = distortion_grid.crop_zoom(
-                w, h, focal_mm, sensor_width_mm, k1, k2, k3, p1, p2)
+        outside = "black"
+        if fit == "crop":
+            outside = "border"
+            crop = (distortion_grid.crop_zoom if direction == "remove"
+                    else distortion_grid.crop_zoom_apply)
+            zoom = crop(w, h, focal_mm, sensor_width_mm, k1, k2, k3, p1, p2)
         grid = distortion_grid.build_source_grid(
             w, h, focal_mm, sensor_width_mm, k1, k2, k3, p1, p2, direction, zoom)
         grid_t = torch.tensor(grid, dtype=torch.float32).reshape(h, w, 2)
-        return (distortion_grid.sample_bilinear(image, grid_t),)
+        return (distortion_grid.sample_bilinear(image, grid_t, outside=outside),)

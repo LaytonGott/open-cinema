@@ -4,6 +4,7 @@ import torch
 
 import open_optics_nodes
 from open_optics import distortion, pixels
+from open_optics_nodes import distortion_grid
 from open_optics_nodes.lens_distortion import OpenOptics_LensDistortion
 
 
@@ -162,6 +163,21 @@ class TestLensDistortionRoundTrip(unittest.TestCase):
 
     def test_remove_then_apply_negative_k1(self):
         self._check("remove", "apply", k1=-0.1)
+
+
+class TestLensDistortionFitModes(unittest.TestCase):
+    def test_keep_fills_outside_with_black(self):
+        corner = distortion_grid.build_source_grid(
+            33, 33, 35, 36, 0.3, 0, 0, 0, 0, "remove")[0][0]
+        self.assertLess(corner[0], 0)
+        self.assertLess(corner[1], 0)
+        img = torch.ones(1, 33, 33, 3, dtype=torch.float32)
+        (out,) = OpenOptics_LensDistortion().apply(
+            img, focal_mm=35.0, sensor_width_mm=36.0, k1=0.3,
+            direction="remove", fit="keep")
+        for c in range(3):
+            self.assertEqual(float(out[0, 0, 0, c]), 0.0)
+            self.assertAlmostEqual(float(out[0, 16, 16, c]), 1.0, delta=1e-5)
 
 
 if __name__ == "__main__":
