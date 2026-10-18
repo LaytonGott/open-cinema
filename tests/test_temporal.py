@@ -2,6 +2,7 @@ import copy
 import math
 import unittest
 
+import open_optics.temporal
 from open_optics.temporal import smooth_depth_sequence
 from tests.temporal_synth import make_flicker_sequence
 
@@ -271,6 +272,16 @@ class TestAccuracy(unittest.TestCase):
                             total += abs(a - b) / b
                             count += 1
                 self.assertLessEqual(total / count, 0.06)
+
+
+class TestDocs(unittest.TestCase):
+    def test_docs_mention_key_terms(self):
+        module_doc = open_optics.temporal.__doc__
+        func_doc = smooth_depth_sequence.__doc__
+        for word in ("metres", "spike", "missing"):
+            self.assertIn(word, module_doc)
+            self.assertIn(word, func_doc)
+        self.assertIn("DepthOfField", module_doc)
 
 
 if __name__ == "__main__":

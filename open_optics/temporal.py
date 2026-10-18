@@ -3,6 +3,20 @@
 This module smooths per-frame depth maps (rows of floats in metres) over time, to
 stop depth-of-field blur from shimmering when the estimated depth flickers from
 one frame to the next.
+
+Method: each pixel keeps a running estimate of its depth over time. Every new valid
+depth is blended into the estimate with a gain derived from the strength (higher
+strength means a smaller gain and a steadier result). All depths are in metres.
+
+Values that are missing (nan, inf, zero, negative) never enter the estimate. A one-frame
+spike (more than 2.5x or less than 0.4x the estimate) is ignored. A persistent
+change of two frames or more is accepted at once.
+
+smooth_depth_sequence returns a new list with the same shape as its input, holding
+floats in metres; the input is left untouched.
+
+Tip: smooth the depth first with this module, then feed the result to the
+DepthOfField node for blur.
 """
 
 
@@ -87,10 +101,10 @@ def smooth_depth_sequence(frames, strength=0.7):
         strength: unitless smoothing amount from 0 to 1 (currently unused otherwise).
             Strength 0 returns the input values unchanged (as a float copy). Raises ValueError if it is not a finite number between 0 and 1.
 
-    Missing values (nan, inf, zero, negative) never change the running estimate; the
+    Values that are missing (nan, inf, zero, negative) never change the running estimate; the
     output for that frame is the current estimate, or the value itself if none yet.
 
-    Spike rejection: a valid value more than 2.5 times or less than 0.4 times the
+    Spike rejection (a one-frame spike is ignored): a valid value more than 2.5 times or less than 0.4 times the
     current estimate is not blended in; that frame outputs the current estimate.
     The first valid value always initialises the estimate.
 
