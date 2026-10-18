@@ -2,6 +2,7 @@ import math
 import unittest
 
 from open_optics.dof import (
+    dof_summary,
     dof_limits_mm,
     focus_for_range_mm,
     hyperfocal_focus_mm,
@@ -105,6 +106,24 @@ class TestDof(unittest.TestCase):
     def test_focus_for_range_mm_far_less_than_near(self):
         with self.assertRaises(ValueError):
             focus_for_range_mm(50, 2.8, 0.028844, 10000, 5000)
+
+    def test_dof_summary_reference_case(self):
+        s = dof_summary(50, 2.8, 3000, 0.028844)
+        self.assertAlmostEqual(s["hyperfocal_mm"], 31004.7, delta=0.1)
+        self.assertAlmostEqual(s["near_mm"], 2739.0, delta=0.1)
+        self.assertAlmostEqual(s["far_mm"], 3316.0, delta=0.1)
+        self.assertAlmostEqual(s["total_mm"], 577.1, delta=0.1)
+
+    def test_dof_summary_focus_at_hyperfocal(self):
+        h = hyperfocal_mm(50, 2.8, 0.028844)
+        s = dof_summary(50, 2.8, h, 0.028844)
+        self.assertEqual(s["far_mm"], math.inf)
+        self.assertEqual(s["total_mm"], math.inf)
+        self.assertAlmostEqual(s["near_mm"], h / 2, delta=h / 2 * 0.005)
+
+    def test_dof_summary_focus_beyond_hyperfocal(self):
+        s = dof_summary(50, 2.8, 40000, 0.028844)
+        self.assertEqual(s["far_mm"], math.inf)
 
 
 if __name__ == "__main__":
