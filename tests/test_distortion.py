@@ -1,6 +1,10 @@
 import unittest
 
-from open_optics.distortion import distort_point
+from open_optics.distortion import (
+    DistortionError,
+    distort_point,
+    undistort_point,
+)
 
 
 class TestDistortPoint(unittest.TestCase):
@@ -35,6 +39,32 @@ class TestDistortPoint(unittest.TestCase):
             distort_point(float("nan"), 0.0)
         with self.assertRaises(ValueError):
             distort_point(0.0, float("inf"))
+
+
+class TestUndistortPoint(unittest.TestCase):
+    def test_round_trip(self):
+        points = [(1.0, 0.0), (0.6, 0.8), (0.3, -0.4), (0.0, 0.0)]
+        for i in range(-6, 7):
+            k1 = i * 0.05
+            for x, y in points:
+                x_u, y_u = undistort_point(*distort_point(x, y, k1=k1), k1=k1)
+                self.assertAlmostEqual(x_u, x, delta=1e-6)
+                self.assertAlmostEqual(y_u, y, delta=1e-6)
+
+    def test_zero_coefficients(self):
+        x, y = undistort_point(0.5, 0.3)
+        self.assertAlmostEqual(x, 0.5, delta=1e-12)
+        self.assertAlmostEqual(y, 0.3, delta=1e-12)
+
+    def test_round_trip_all_coefficients(self):
+        coeffs = dict(k1=-0.1, k2=0.01, p1=0.001, p2=0.001)
+        x_u, y_u = undistort_point(*distort_point(0.5, 0.3, **coeffs), **coeffs)
+        self.assertAlmostEqual(x_u, 0.5, delta=1e-6)
+        self.assertAlmostEqual(y_u, 0.3, delta=1e-6)
+
+    def test_failure_raises(self):
+        with self.assertRaisesRegex(DistortionError, "could not undistort"):
+            undistort_point(0.5, 0.5, k1=-50.0)
 
 
 if __name__ == "__main__":
