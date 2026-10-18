@@ -1,5 +1,7 @@
 """Anamorphic squeeze node: desqueeze or squeeze an image by resizing."""
 
+import math
+
 import torch.nn.functional as F
 
 from open_optics import anamorphic
@@ -34,10 +36,11 @@ class OpenOptics_Anamorphic:
         is below 1 or mode is unknown.
         """
         common.check_image(image)
+        if not math.isfinite(squeeze):
+            raise ValueError(f"squeeze must be finite, got {squeeze}")
         if squeeze < 1.0:
-            raise ValueError("squeeze must be at least 1.0")
-        if mode not in ("desqueeze", "squeeze"):
-            raise ValueError(f"mode must be 'desqueeze' or 'squeeze', got {mode!r}")
+            raise ValueError(f"squeeze must be at least 1.0, got {squeeze}")
+        common.require_choice("mode", mode, ("desqueeze", "squeeze"))
         h, w = image.shape[1], image.shape[2]
         lib_mode = "shorten" if keep_width else "widen"
         size_fn = anamorphic.desqueeze_size if mode == "desqueeze" else anamorphic.squeeze_size

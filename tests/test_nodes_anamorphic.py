@@ -33,6 +33,19 @@ class TestAnamorphicNode(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.node.apply(self.img, 0.9)
 
+    def test_error_messages_name_inputs(self):
+        img = torch.zeros(1, 8, 8, 3, dtype=torch.float32)
+        with self.assertRaises(ValueError) as ctx:
+            self.node.apply(img, 0.5)
+        self.assertIn("squeeze", str(ctx.exception))
+        self.assertIn("0.5", str(ctx.exception))
+        with self.assertRaises(ValueError) as ctx:
+            self.node.apply(img, float("nan"))
+        self.assertIn("squeeze", str(ctx.exception))
+        with self.assertRaises(ValueError) as ctx:
+            self.node.apply(img, 2.0, "bogus")
+        self.assertIn("mode", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
