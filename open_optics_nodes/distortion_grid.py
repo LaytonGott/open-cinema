@@ -4,6 +4,8 @@ import torch
 import torch.nn.functional as F
 
 from open_optics import distortion, pixels
+from open_optics.lens import Lens
+from open_optics.sensor import Sensor
 
 
 def build_source_grid(width_px, height_px, focal_mm, sensor_width_mm,
@@ -36,6 +38,20 @@ def build_source_grid(width_px, height_px, focal_mm, sensor_width_mm,
                 x, y, width_px, height_px, sensor_width_mm, focal_mm)))
         grid.append(row)
     return grid
+
+
+def crop_zoom(width_px, height_px, focal_mm, sensor_width_mm,
+              k1, k2, k3, p1, p2):
+    """Find the zoom that removes empty borders after distortion removal.
+
+    width_px and height_px are in pixels; focal_mm and sensor_width_mm are in
+    millimetres (the sensor height follows the image aspect ratio); k1, k2,
+    k3, p1 and p2 are unitless. Returns the unitless zoom factor as a float.
+    """
+    sensor = Sensor(sensor_width_mm, sensor_width_mm * height_px / width_px)
+    return float(distortion.border_free_zoom(
+        sensor, Lens(focal_mm, 1.0, 1.0), width_px, height_px,
+        k1, k2, k3, p1, p2))
 
 
 def sample_bilinear(image, grid_px):
