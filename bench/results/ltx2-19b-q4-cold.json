@@ -1,0 +1,55 @@
+{
+  "label": "ltx2-19b-q4-cold",
+  "workflow": "ltx2-19b-q4",
+  "seed": 42,
+  "encoder_device": "cpu",
+  "status": "succeeded",
+  "wall_s": 200.7,
+  "comfy_reported_s": [
+    199.45
+  ],
+  "gpu_total_gb": 24.0,
+  "gpu_baseline_gb": 1.28,
+  "gpu_peak_gb": 21.57,
+  "gpu_peak_over_baseline_gb": 20.29,
+  "proc_peak_wset_gb": 12.99,
+  "proc_peak_private_gb": 28.61,
+  "sys_ram_total_gb": 31.75,
+  "sys_used_baseline_gb": 22.1,
+  "sys_used_peak_gb": 31.74,
+  "sys_avail_min_gb": 0.0,
+  "pagefile_baseline_gb": 2.3,
+  "pagefile_peak_gb": 4.35,
+  "log_load_lines": [
+    "\u001b[32m[INFO]\u001b[0m VAE load device: cuda:0, offload device: cpu, dtype: torch.float32",
+    "\u001b[32m[INFO]\u001b[0m Requested to load LTXAVTEModel_",
+    "\u001b[32m[INFO]\u001b[0m loaded completely;  15309.00 MB loaded, full load: True",
+    "\u001b[32m[INFO]\u001b[0m CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16",
+    "\u001b[32m[INFO]\u001b[0m Requested to load LTXAV",
+    "\u001b[32m[INFO]\u001b[0m loaded completely; 21812.80 MB usable, 14945.03 MB loaded, full load: True",
+    "\u001b[32m[INFO]\u001b[0m VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16",
+    "\u001b[32m[INFO]\u001b[0m Requested to load LatentUpsampler",
+    "\u001b[32m[INFO]\u001b[0m Requested to load AudioVAE",
+    "\u001b[32m[INFO]\u001b[0m loaded completely;  415.20 MB loaded, full load: True",
+    "\u001b[32m[INFO]\u001b[0m Requested to load VideoVAE",
+    "\u001b[32m[INFO]\u001b[0m Unloaded partially: 553.25 MB freed, 14406.11 MB remains loaded, 6.77 MB buffer reserved, lowvram patches: 0"
+  ],
+  "log_speed_lines": [
+    "3/8 [00:11<00:18,  3.67s/it]",
+    "4/8 [00:15<00:14,  3.57s/it]",
+    "5/8 [00:19<00:13,  4.38s/it]",
+    "6/8 [00:23<00:08,  4.07s/it]",
+    "7/8 [00:27<00:03,  3.47s/it]",
+    "8/8 [00:30<00:00,  3.41s/it]",
+    "8/8 [00:30<00:00,  3.80s/it]",
+    "0/3 [00:00<?, ?it/s]",
+    "1/3 [00:19<00:20, 10.19s/it]",
+    "2/3 [00:19<00:09,  9.73s/it]",
+    "3/3 [00:29<00:00,  9.77s/it]",
+    "3/3 [00:29<00:00,  9.74s/it]"
+  ],
+  "outputs": [
+    "C:\\Users\\97lay\\Desktop\\Open Cinema\\bench\\out\\ltx2-19b-q4-cold.mp4"
+  ],
+  "samples": 401
+}

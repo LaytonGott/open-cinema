@@ -1,0 +1,46 @@
+{
+  "label": "ltxv098-13b-cold",
+  "workflow": "ltxv-0.9.8-13b",
+  "seed": 42,
+  "encoder_device": null,
+  "status": "succeeded",
+  "wall_s": 80.5,
+  "comfy_reported_s": [
+    77.13
+  ],
+  "gpu_total_gb": 24.0,
+  "gpu_baseline_gb": 1.88,
+  "gpu_peak_gb": 23.57,
+  "gpu_peak_over_baseline_gb": 21.69,
+  "proc_peak_wset_gb": 4.9,
+  "proc_peak_private_gb": 29.16,
+  "sys_ram_total_gb": 31.75,
+  "sys_used_baseline_gb": 21.65,
+  "sys_used_peak_gb": 26.14,
+  "sys_avail_min_gb": 5.61,
+  "pagefile_baseline_gb": 2.37,
+  "pagefile_peak_gb": 2.34,
+  "log_load_lines": [
+    "\u001b[32m[INFO]\u001b[0m VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16",
+    "\u001b[32m[INFO]\u001b[0m CLIP/text encoder model load device: cuda:0, offload device: cpu, current: cpu, dtype: torch.float16",
+    "\u001b[32m[INFO]\u001b[0m Requested to load MochiTEModel_",
+    "\u001b[32m[INFO]\u001b[0m Requested to load LTXV",
+    "\u001b[32m[INFO]\u001b[0m Requested to load VideoVAE"
+  ],
+  "log_speed_lines": [
+    "0/8 [00:00<?, ?it/s]",
+    "1/8 [00:10<01:09,  9.98s/it]",
+    "2/8 [00:10<00:30,  5.16s/it]",
+    "3/8 [00:17<00:34,  6.89s/it]",
+    "4/8 [00:23<00:26,  6.69s/it]",
+    "5/8 [00:30<00:20,  6.79s/it]",
+    "6/8 [00:37<00:13,  6.79s/it]",
+    "7/8 [00:44<00:06,  6.77s/it]",
+    "8/8 [00:51<00:00,  6.82s/it]",
+    "8/8 [00:51<00:00,  6.38s/it]"
+  ],
+  "outputs": [
+    "C:\\Users\\97lay\\Desktop\\Open Cinema\\bench\\out\\ltxv098-13b-cold.mp4"
+  ],
+  "samples": 161
+}

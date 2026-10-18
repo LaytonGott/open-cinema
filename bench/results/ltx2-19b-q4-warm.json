@@ -1,0 +1,47 @@
+{
+  "label": "ltx2-19b-q4-warm",
+  "workflow": "ltx2-19b-q4",
+  "seed": 43,
+  "encoder_device": "cpu",
+  "status": "succeeded",
+  "wall_s": 70.7,
+  "comfy_reported_s": [
+    70.46
+  ],
+  "gpu_total_gb": 24.0,
+  "gpu_baseline_gb": 16.79,
+  "gpu_peak_gb": 20.73,
+  "gpu_peak_over_baseline_gb": 3.94,
+  "proc_peak_wset_gb": 12.99,
+  "proc_peak_private_gb": 28.8,
+  "sys_ram_total_gb": 31.75,
+  "sys_used_baseline_gb": 22.61,
+  "sys_used_peak_gb": 24.07,
+  "sys_avail_min_gb": 7.68,
+  "pagefile_baseline_gb": 3.83,
+  "pagefile_peak_gb": 3.83,
+  "log_load_lines": [
+    "\u001b[32m[INFO]\u001b[0m loaded completely; 20414.45 MB usable, 14945.03 MB loaded, full load: True",
+    "\u001b[32m[INFO]\u001b[0m Requested to load AudioVAE",
+    "\u001b[32m[INFO]\u001b[0m loaded completely;  415.20 MB loaded, full load: True",
+    "\u001b[32m[INFO]\u001b[0m Unloaded partially: 1128.38 MB freed, 13830.98 MB remains loaded, 9.87 MB buffer reserved, lowvram patches: 0"
+  ],
+  "log_speed_lines": [
+    "3/8 [00:11<00:16,  3.38s/it]",
+    "4/8 [00:14<00:14,  3.60s/it]",
+    "5/8 [00:18<00:10,  3.65s/it]",
+    "6/8 [00:21<00:06,  3.46s/it]",
+    "7/8 [00:25<00:03,  3.89s/it]",
+    "8/8 [00:29<00:00,  3.50s/it]",
+    "8/8 [00:29<00:00,  3.65s/it]",
+    "0/3 [00:00<?, ?it/s]",
+    "1/3 [00:19<00:18,  9.45s/it]",
+    "2/3 [00:19<00:09,  9.56s/it]",
+    "3/3 [00:29<00:00, 10.07s/it]",
+    "3/3 [00:29<00:00,  9.73s/it]"
+  ],
+  "outputs": [
+    "C:\\Users\\97lay\\Desktop\\Open Cinema\\bench\\out\\ltx2-19b-q4-warm.mp4"
+  ],
+  "samples": 142
+}
