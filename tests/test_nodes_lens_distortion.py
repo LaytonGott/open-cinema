@@ -97,5 +97,39 @@ class TestLensDistortionAgainstLibrary(unittest.TestCase):
         self.assertLessEqual(float(out.max()), 1.0)
 
 
+class TestLensDistortionPointPosition(unittest.TestCase):
+    def _centroid(self, px, py, **kw):
+        size = 64
+        img = torch.zeros(1, size, size, 3)
+        img[0, py, px, :] = 1.0
+        (out,) = OpenOptics_LensDistortion().apply(
+            img, focal_mm=35, sensor_width_mm=36, direction="apply", **kw)
+        ch = out[0, :, :, 0]
+        idx = torch.arange(size, dtype=torch.float32)
+        total = ch.sum()
+        cx = float((ch.sum(dim=0) * idx).sum() / total)
+        cy = float((ch.sum(dim=1) * idx).sum() / total)
+        x, y = pixels.pixel_to_lens(px, py, size, size, 36.0, 35.0)
+        x, y = distortion.distort_point(x, y, **kw)
+        ex, ey = pixels.lens_to_pixel(x, y, size, size, 36.0, 35.0)
+        return (cx, cy), (ex, ey)
+
+    def test_barrel_k1_centroid(self):
+        (cx, cy), (ex, ey) = self._centroid(45, 20, k1=-0.1)
+        self.assertAlmostEqual(cx, ex, delta=0.5)
+        self.assertAlmostEqual(cy, ey, delta=0.5)
+
+    def test_k1_and_p1_centroid(self):
+        (cx, cy), (ex, ey) = self._centroid(18, 40, k1=0.1, p1=0.01)
+        self.assertAlmostEqual(cx, ex, delta=0.5)
+        self.assertAlmostEqual(cy, ey, delta=0.5)
+
+    def test_zero_coefficients_remove_is_identity(self):
+        img = torch.rand(1, 64, 64, 3, generator=torch.Generator().manual_seed(3))
+        (out,) = OpenOptics_LensDistortion().apply(
+            img, k1=0, k2=0, k3=0, p1=0, p2=0, direction="remove")
+        self.assertTrue(torch.allclose(out, img, atol=1e-5))
+
+
 if __name__ == "__main__":
     unittest.main()
