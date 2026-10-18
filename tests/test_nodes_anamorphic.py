@@ -86,5 +86,15 @@ class TestAnamorphicAcceptanceSizes(unittest.TestCase):
         self.assertLessEqual(out.max().item(), 1.0)
 
 
+class TestAnamorphicNonPositive(unittest.TestCase):
+    def test_nonpositive_squeeze_raises(self):
+        img = torch.zeros(1, 8, 8, 3)
+        node = OpenOptics_Anamorphic()
+        for squeeze in (0.0, -1.0):
+            with self.assertRaises(ValueError) as ctx:
+                node.apply(img, squeeze)
+            self.assertIn("squeeze", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
