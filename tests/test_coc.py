@@ -1,7 +1,8 @@
 import math
 import unittest
 
-from open_optics.coc import coc_for_sensor
+from open_optics.coc import coc_for_sensor, coc_for_sensor_obj
+from open_optics.sensor import Sensor
 
 
 class TestCocForSensor(unittest.TestCase):
@@ -28,6 +29,15 @@ class TestCocForSensor(unittest.TestCase):
         self.assertAlmostEqual(
             coc_for_sensor(18, 24, squeeze=2.0), math.hypot(36, 24) / 1500, places=6
         )
+
+
+class TestCocForSensorObj(unittest.TestCase):
+    def test_computed(self):
+        # hypot(36, 24) / 1500 = 0.028844 mm
+        self.assertAlmostEqual(coc_for_sensor_obj(Sensor(36, 24)), 0.028844, places=5)
+
+    def test_override(self):
+        self.assertEqual(coc_for_sensor_obj(Sensor(36, 24, coc_mm=0.03)), 0.03)
 
 
 if __name__ == "__main__":
