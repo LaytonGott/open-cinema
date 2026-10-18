@@ -19,6 +19,13 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
         self.assertEqual(spec[1]["min"], 0.0)
         self.assertEqual(spec[1]["max"], 1.0)
 
+    def test_strength_zero_returns_input(self):
+        g = torch.Generator().manual_seed(1)
+        depth = (torch.rand(4, 6, 6, generator=g) * 5.0 + 1.0).to(torch.float32)
+        (out,) = OpenOptics_DepthTemporalSmooth().smooth(depth, 0.0)
+        for a, b in zip(out.flatten().tolist(), depth.flatten().tolist()):
+            self.assertAlmostEqual(a, b, places=5)
+
     def test_rejects_non_3d(self):
         with self.assertRaises(ValueError):
             OpenOptics_DepthTemporalSmooth().smooth(torch.ones(4, 4), 0.7)

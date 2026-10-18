@@ -65,6 +65,8 @@ class TestNodesRunOnCpuQuickly(unittest.TestCase):
             kwargs = _defaults(cls)
             if "image" in cls.INPUT_TYPES()["required"]:
                 kwargs["image"] = image
+            if "depth" in cls.INPUT_TYPES()["required"]:
+                kwargs["depth"] = depth
             if "depth_mask" in cls.INPUT_TYPES().get("optional", {}):
                 kwargs["depth_mask"] = depth
             outputs = getattr(cls(), cls.FUNCTION)(**kwargs)

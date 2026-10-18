@@ -13,6 +13,7 @@ NODE_TESTS = [
     ("test_nodes_chromatic_aberration.py", "OpenOptics_ChromaticAberration"),
     ("test_nodes_anamorphic.py", "OpenOptics_Anamorphic"),
     ("test_nodes_depth_to_metric.py", "OpenOptics_DepthToMetric"),
+    ("test_nodes_depth_temporal_smooth.py", "OpenOptics_DepthTemporalSmooth"),
 ]
 
 
