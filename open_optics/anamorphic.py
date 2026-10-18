@@ -22,3 +22,17 @@ def desqueeze_size(width_px, height_px, squeeze, mode="widen"):
     if mode == "shorten":
         return (float(width), float(height / factor))
     raise ValueError(f"mode must be 'widen' or 'shorten', got {mode!r}")
+
+
+def delivered_aspect_ratio(gate_width_mm, gate_height_mm, squeeze):
+    """Aspect ratio of the desqueezed image delivered from a sensor gate.
+
+    gate_width_mm and gate_height_mm are in millimetres; squeeze is the
+    unitless anamorphic squeeze factor. Returns the unitless float
+    gate_width_mm / gate_height_mm * squeeze. Raises ValueError if any input
+    is not positive and finite.
+    """
+    width = require_positive("gate_width_mm", gate_width_mm)
+    height = require_positive("gate_height_mm", gate_height_mm)
+    factor = require_positive("squeeze", squeeze)
+    return float(width / height * factor)

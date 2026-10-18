@@ -1,6 +1,6 @@
 import unittest
 
-from open_optics.anamorphic import desqueeze_size
+from open_optics.anamorphic import delivered_aspect_ratio, desqueeze_size
 
 
 class TestDesqueezeSize(unittest.TestCase):
@@ -30,6 +30,16 @@ class TestDesqueezeSize(unittest.TestCase):
     def test_bad_mode_raises(self):
         with self.assertRaises(ValueError):
             desqueeze_size(1280, 720, 2.0, mode="stretch")
+
+
+class TestDeliveredAspectRatio(unittest.TestCase):
+    def test_133_gate_2x(self):
+        # 1.33 / 1.0 * 2.0 = 2.66
+        self.assertAlmostEqual(delivered_aspect_ratio(1.33, 1.0, 2.0), 2.66, places=6)
+
+    def test_zero_squeeze_raises(self):
+        with self.assertRaises(ValueError):
+            delivered_aspect_ratio(1.33, 1.0, 0)
 
 
 if __name__ == "__main__":
