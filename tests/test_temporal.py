@@ -1,7 +1,9 @@
 import copy
+import math
 import unittest
 
 from open_optics.temporal import smooth_depth_sequence
+from tests.temporal_synth import make_flicker_sequence
 
 
 def _frames():
@@ -135,6 +137,27 @@ class TestMalformedSequences(unittest.TestCase):
 
     def test_zero_columns_accepted(self):
         self.assertEqual(smooth_depth_sequence([[[]], [[]]]), [[[]], [[]]])
+
+
+class TestStrengthZero(unittest.TestCase):
+    def test_flicker_sequence_passthrough(self):
+        noisy, _ = make_flicker_sequence(seed=5)
+        original = copy.deepcopy(noisy)
+        out = smooth_depth_sequence(noisy, 0)
+        self.assertEqual(out, noisy)
+        self.assertIsNot(out, noisy)
+        self.assertEqual(noisy, original)
+
+    def test_special_values_passthrough(self):
+        frames = [[[float("nan"), float("inf")], [0.0, -1.0]],
+                  [[1.0, 2.0], [float("nan"), 3.0]]]
+        out = smooth_depth_sequence(frames, 0)
+        self.assertTrue(math.isnan(out[0][0][0]))
+        self.assertTrue(math.isnan(out[1][1][0]))
+        self.assertEqual(out[0][0][1], float("inf"))
+        self.assertEqual(out[0][1], [0.0, -1.0])
+        self.assertEqual(out[1][0], [1.0, 2.0])
+        self.assertEqual(out[1][1][1], 3.0)
 
 
 if __name__ == "__main__":
