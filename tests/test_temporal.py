@@ -327,6 +327,34 @@ class TestDeterminism(unittest.TestCase):
                 self.assertEqual(first, third)
 
 
+class TestMovingObject(unittest.TestCase):
+    def test_near_object_is_tracked(self):
+        width, count = 24, 30
+
+        def covered(col, t):
+            return t - 4 <= col < t
+
+        frames = [
+            [[1.0 if covered(c, t) else 5.0 for c in range(width)]]
+            for t in range(count)
+        ]
+        out = smooth_depth_sequence(frames, 0.7)
+        entered = 0
+        left = 0
+        for c in range(width):
+            for t in range(1, count):
+                if (covered(c, t) and not covered(c, t - 1)
+                        and t + 2 < count and covered(c, t + 2)):
+                    entered += 1
+                    self.assertAlmostEqual(out[t + 2][0][c], 1.0, delta=0.15)
+                if (covered(c, t - 1) and not covered(c, t) and t + 4 < count
+                        and all(not covered(c, k) for k in range(t, t + 5))):
+                    left += 1
+                    self.assertAlmostEqual(out[t + 4][0][c], 5.0, delta=0.75)
+        self.assertGreater(entered, 0)
+        self.assertGreater(left, 0)
+
+
 class TestDocs(unittest.TestCase):
     def test_docs_mention_key_terms(self):
         module_doc = open_optics.temporal.__doc__
