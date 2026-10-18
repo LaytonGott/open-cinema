@@ -160,5 +160,42 @@ class TestStrengthZero(unittest.TestCase):
         self.assertEqual(out[1][1][1], 3.0)
 
 
+class TestInvalidValues(unittest.TestCase):
+    def _frames(self):
+        nan, inf = float("nan"), float("inf")
+        return [
+            [[2.0, 2.0], [2.0, 2.0]],
+            [[nan, 0.0], [inf, -inf]],
+            [[-1.0, -1.0], [nan, 3.0]],
+            [[inf, 0.0], [-inf, nan]],
+            [[nan, -1.0], [0.0, inf]],
+        ]
+
+    def test_outputs_finite_positive_and_input_untouched(self):
+        frames = self._frames()
+        original = copy.deepcopy(frames)
+        out = smooth_depth_sequence(frames, 0.7)
+        self.assertEqual(len(out), 5)
+        for frame in out:
+            for row in frame:
+                for v in row:
+                    self.assertTrue(math.isfinite(v))
+                    self.assertGreater(v, 0)
+        for fa, fb in zip(frames, original):
+            for ra, rb in zip(fa, fb):
+                for a, b in zip(ra, rb):
+                    self.assertTrue(a == b or (math.isnan(a) and math.isnan(b)))
+
+    def test_nan_after_valid_holds_estimate(self):
+        out = smooth_depth_sequence(self._frames(), 0.7)
+        self.assertEqual(out[0][0][0], 2.0)
+        self.assertEqual(out[1][0][0], 2.0)
+
+    def test_zero_then_negative_stays_put(self):
+        out = smooth_depth_sequence(self._frames(), 0.7)
+        for i in range(5):
+            self.assertEqual(out[i][0][1], 2.0)
+
+
 if __name__ == "__main__":
     unittest.main()
