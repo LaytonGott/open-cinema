@@ -110,7 +110,7 @@ def resolve_depth(image, depth_mask=None, depth_image=None):
     broadcast). Raises ValueError otherwise.
     """
     if (depth_mask is None) == (depth_image is None):
-        raise ValueError("Exactly one of depth_mask or depth_image is needed")
+        raise ValueError("Exactly one of depth_mask or depth_image must be connected")
     if depth_mask is not None:
         depth = depth_mask.to(torch.float32)
         if depth.dim() != 3:

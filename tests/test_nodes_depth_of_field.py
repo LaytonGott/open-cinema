@@ -61,6 +61,26 @@ class TestDepthOfFieldValues(unittest.TestCase):
         with self.assertRaises(ValueError):
             node.apply(img, depth_mask=torch.ones(1, 16, 16))
 
+    def test_depth_input_errors_name_both_inputs(self):
+        img = torch.rand(1, 32, 32, 3)
+        node = OpenOptics_DepthOfField()
+        with self.assertRaisesRegex(ValueError, "depth_mask.*depth_image"):
+            node.apply(img)
+        with self.assertRaisesRegex(ValueError, "depth_mask.*depth_image"):
+            node.apply(img, depth_mask=torch.ones(1, 32, 32),
+                       depth_image=torch.ones(1, 32, 32, 3))
+
+    def test_bad_values_name_their_input(self):
+        img = torch.rand(1, 32, 32, 3)
+        depth = torch.full((1, 32, 32), 3.0)
+        node = OpenOptics_DepthOfField()
+        for name in ("focal_mm", "f_number", "focus_m", "sensor_width_mm", "max_radius_px"):
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, name):
+                    node.apply(img, depth_mask=depth, **{name: 0})
+        with self.assertRaisesRegex(ValueError, "quality"):
+            node.apply(img, depth_mask=depth, quality="bogus")
+
 
 if __name__ == "__main__":
     unittest.main()

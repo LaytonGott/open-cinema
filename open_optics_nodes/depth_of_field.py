@@ -48,8 +48,12 @@ class OpenOptics_DepthOfField:
         Raises ValueError for bad inputs.
         """
         common.check_image(image)
-        if quality not in _LAYERS:
-            raise ValueError(f"quality must be 'draft' or 'normal', got {quality!r}")
+        common.require_positive("focal_mm", focal_mm)
+        common.require_positive("f_number", f_number)
+        common.require_positive("focus_m", focus_m)
+        common.require_positive("sensor_width_mm", sensor_width_mm)
+        common.require_positive("max_radius_px", max_radius_px)
+        common.require_choice("quality", quality, list(_LAYERS))
         depth = common.resolve_depth(image, depth_mask, depth_image)
         linear = common.to_linear(image, colorspace)
         radius = coc_radius_map(depth, focal_mm, f_number, focus_m, sensor_width_mm,
