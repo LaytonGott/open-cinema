@@ -131,5 +131,38 @@ class TestLensDistortionPointPosition(unittest.TestCase):
         self.assertTrue(torch.allclose(out, img, atol=1e-5))
 
 
+def _smooth_image():
+    size = 64
+    u = torch.linspace(0.0, 1.0, size).reshape(1, 1, size).expand(1, size, size)
+    v = torch.linspace(0.0, 1.0, size).reshape(1, size, 1).expand(1, size, size)
+    c2 = 0.5 * (u + v) + 0.1 * torch.sin(2.0 * torch.pi * u) * torch.sin(2.0 * torch.pi * v)
+    return torch.stack([u, v, c2.clamp(0.0, 1.0)], dim=3).contiguous()
+
+
+class TestLensDistortionRoundTrip(unittest.TestCase):
+    # Tolerance 0.03 on the central region [8:56, 8:56] (8-pixel border excluded).
+    TOL = 0.03
+
+    def _check(self, first, second, **kw):
+        img = _smooth_image()
+        node = OpenOptics_LensDistortion()
+        (mid,) = node.apply(img, direction=first, fit="keep", **kw)
+        (back,) = node.apply(mid, direction=second, fit="keep", **kw)
+        diff = (back - img)[:, 8:56, 8:56, :].abs().max()
+        self.assertLess(float(diff), self.TOL)
+
+    def test_positive_k1(self):
+        self._check("apply", "remove", k1=0.1)
+
+    def test_negative_k1(self):
+        self._check("apply", "remove", k1=-0.1)
+
+    def test_tangential(self):
+        self._check("apply", "remove", k1=0.0, p1=0.01, p2=-0.01)
+
+    def test_remove_then_apply_negative_k1(self):
+        self._check("remove", "apply", k1=-0.1)
+
+
 if __name__ == "__main__":
     unittest.main()
