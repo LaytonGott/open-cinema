@@ -42,6 +42,10 @@ class OpenOptics_LensDistortion:
         1-tuple with an IMAGE [B, H, W, C], 0-1.
         """
         common.check_image(image)
+        common.require_positive("focal_mm", focal_mm)
+        common.require_positive("sensor_width_mm", sensor_width_mm)
+        common.require_choice("direction", direction, ("apply", "remove"))
+        common.require_choice("fit", fit, ("keep", "crop"))
         h, w = image.shape[1], image.shape[2]
         zoom = 1.0
         if fit == "crop" and direction == "remove":

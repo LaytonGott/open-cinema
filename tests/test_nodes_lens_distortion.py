@@ -35,6 +35,16 @@ class TestLensDistortionNode(unittest.TestCase):
         self.assertGreaterEqual(float(out.min()), 0.0)
         self.assertLessEqual(float(out.max()), 1.0)
 
+    def test_bad_focal_names_input(self):
+        with self.assertRaises(ValueError) as ctx:
+            OpenOptics_LensDistortion().apply(_image(), focal_mm=0)
+        self.assertIn("focal_mm", str(ctx.exception))
+
+    def test_bad_direction_names_input(self):
+        with self.assertRaises(ValueError) as ctx:
+            OpenOptics_LensDistortion().apply(_image(), direction="bogus")
+        self.assertIn("direction", str(ctx.exception))
+
     def test_registration(self):
         self.assertIs(open_optics_nodes.NODE_CLASS_MAPPINGS["OpenOptics_LensDistortion"],
                       OpenOptics_LensDistortion)
