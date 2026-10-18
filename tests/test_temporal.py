@@ -396,6 +396,23 @@ class TestBlurRadiusStability(unittest.TestCase):
                         mean_abs_diff(radii(noisy)))
 
 
+class TestOutputTypes(unittest.TestCase):
+    def test_all_values_float_positive_finite(self):
+        noisy, _ = make_flicker_sequence(seed=1, frames=40)
+        for strength in (0.3, 0.7, 1.0):
+            with self.subTest(strength=strength):
+                out = smooth_depth_sequence(noisy, strength)
+                self.assertEqual(len(out), len(noisy))
+                for frame_in, frame_out in zip(noisy, out):
+                    self.assertEqual(len(frame_out), len(frame_in))
+                    for row_in, row_out in zip(frame_in, frame_out):
+                        self.assertEqual(len(row_out), len(row_in))
+                        for v in row_out:
+                            self.assertIs(type(v), float)
+                            self.assertTrue(math.isfinite(v))
+                            self.assertGreater(v, 0)
+
+
 class TestDocs(unittest.TestCase):
     def test_docs_mention_key_terms(self):
         module_doc = open_optics.temporal.__doc__
