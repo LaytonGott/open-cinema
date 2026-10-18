@@ -1,7 +1,12 @@
 import math
 import unittest
 
-from open_optics.dof import dof_limits_mm, hyperfocal_focus_mm, hyperfocal_mm
+from open_optics.dof import (
+    dof_limits_mm,
+    focus_for_range_mm,
+    hyperfocal_focus_mm,
+    hyperfocal_mm,
+)
 
 
 class TestDof(unittest.TestCase):
@@ -85,6 +90,21 @@ class TestDof(unittest.TestCase):
                 h = hyperfocal_mm(f, n, c)
                 self.assertLess(abs(h - ref_h) / ref_h, 1e-9)
         self.assertGreaterEqual(inf_count, 3)
+
+    def test_focus_for_range_mm(self):
+        focus = focus_for_range_mm(50, 8, 0.028844, 5000, 10000)
+        near, far = dof_limits_mm(50, 8, focus, 0.028844)
+        self.assertAlmostEqual(far, 10000, delta=1)
+        self.assertLessEqual(near, 5000)
+
+    def test_focus_for_range_mm_unreachable(self):
+        with self.assertRaises(ValueError) as ctx:
+            focus_for_range_mm(50, 2.8, 0.028844, 1000, math.inf)
+        self.assertIn("cannot", str(ctx.exception))
+
+    def test_focus_for_range_mm_far_less_than_near(self):
+        with self.assertRaises(ValueError):
+            focus_for_range_mm(50, 2.8, 0.028844, 10000, 5000)
 
 
 if __name__ == "__main__":
