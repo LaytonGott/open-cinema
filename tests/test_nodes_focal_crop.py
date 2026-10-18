@@ -64,6 +64,30 @@ class FocalCropTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "output_size"):
             OpenOptics_FocalCrop().crop(_image(), 24.0, 50.0, "bogus")
 
+    def test_batch_matches_single_frames(self):
+        img = torch.rand(2, 33, 31, 3, generator=torch.Generator().manual_seed(1))
+        for mode in ("original", "cropped"):
+            (out,) = OpenOptics_FocalCrop().crop(img, 24.0, 48.0, mode)
+            self.assertEqual(out.shape[0], 2)
+            for i in range(2):
+                (single,) = OpenOptics_FocalCrop().crop(img[i:i + 1], 24.0, 48.0, mode)
+                self.assertTrue(torch.allclose(out[i:i + 1], single, atol=1e-6))
+
+    def test_extreme_ratio_never_empty(self):
+        img = torch.rand(1, 64, 64, 3, generator=torch.Generator().manual_seed(2))
+        expected = {"cropped": (1, 1, 1, 3), "original": (1, 64, 64, 3)}
+        for mode, shape in expected.items():
+            (out,) = OpenOptics_FocalCrop().crop(img, 1.0, 1000.0, mode)
+            self.assertEqual(tuple(out.shape), shape)
+            self.assertEqual(out.dtype, torch.float32)
+            self.assertTrue(torch.isfinite(out).all())
+
+    def test_odd_size_keeps_at_least_one_pixel(self):
+        img = torch.rand(1, 5, 7, 3, generator=torch.Generator().manual_seed(3))
+        (out,) = OpenOptics_FocalCrop().crop(img, 24.0, 50.0, "cropped")
+        self.assertTrue(1 <= out.shape[1] <= 5)
+        self.assertTrue(1 <= out.shape[2] <= 7)
+
     def test_registered(self):
         self.assertIs(NODE_CLASS_MAPPINGS["OpenOptics_FocalCrop"], OpenOptics_FocalCrop)
         self.assertEqual(NODE_DISPLAY_NAME_MAPPINGS["OpenOptics_FocalCrop"], "Open Optics: Focal Crop")
