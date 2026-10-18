@@ -212,5 +212,26 @@ class TestSpikeRejection(unittest.TestCase):
         self._check(0.5)
 
 
+class TestPersistentChange(unittest.TestCase):
+    def _step(self, strength):
+        frames = [[[2.0]] if i < 10 else [[4.0]] for i in range(20)]
+        out = smooth_depth_sequence(frames, strength)
+        for i in range(10):
+            self.assertAlmostEqual(out[i][0][0], 2.0, delta=0.04)
+        self.assertAlmostEqual(out[15][0][0], 4.0, delta=0.6)
+
+    def test_step_strength_07(self):
+        self._step(0.7)
+
+    def test_step_strength_09(self):
+        self._step(0.9)
+
+    def test_cut_followed(self):
+        frames = [[[2.0]] if i < 5 else [[6.0]] for i in range(10)]
+        out = smooth_depth_sequence(frames, 0.7)
+        self.assertAlmostEqual(out[5][0][0], 2.0, delta=0.04)
+        self.assertAlmostEqual(out[6][0][0], 6.0, delta=0.9)
+
+
 if __name__ == "__main__":
     unittest.main()
