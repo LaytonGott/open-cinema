@@ -4,7 +4,7 @@ An open rebuild of Higgsfield Cinema Studio for Comfy's "Open Source Higgsfield"
 
 ## Project rules
 
-- Python 3.12, standard library only (`math`, `dataclasses`, `unittest`). No ComfyUI, torch or numpy imports yet.
+- Python 3.12. The lens math core is standard library only (`math`, `dataclasses`, `unittest`). Torch is allowed later for ComfyUI nodes, as described in docs/spec.md.
 - Code goes in `open_optics/`, one module per topic. Tests go in `tests/`, one `test_<module>.py` per module, written with `unittest`.
 - Run the tests with `npm test` (it runs `python -m unittest discover -s tests -t .`). `package.json` exists only for that command. Run it before you finish and fix every failure.
 - Every public function has a docstring that states its units (millimetres, metres, degrees or radians) and what it returns. Tests check known values with a stated tolerance (`assertAlmostEqual` with `places` or `delta`), taken from a formula worked by hand or a published figure, not from the function itself.
