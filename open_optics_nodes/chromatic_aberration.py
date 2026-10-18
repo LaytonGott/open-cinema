@@ -29,8 +29,8 @@ class OpenOptics_ChromaticAberration:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "ca_r": ("FLOAT", {"default": 0.0005, "min": -0.1, "max": 0.1, "step": 0.0001}),
-                "ca_b": ("FLOAT", {"default": -0.0005, "min": -0.1, "max": 0.1, "step": 0.0001}),
+                "ca_r": ("FLOAT", {"default": 0.0, "min": -0.1, "max": 0.1, "step": 0.0001}),
+                "ca_b": ("FLOAT", {"default": 0.0, "min": -0.1, "max": 0.1, "step": 0.0001}),
             }
         }
 
@@ -38,11 +38,12 @@ class OpenOptics_ChromaticAberration:
     FUNCTION = "apply"
     CATEGORY = "Open Optics"
 
-    def apply(self, image, ca_r=0.0005, ca_b=-0.0005):
+    def apply(self, image, ca_r=0.0, ca_b=0.0):
         """Scale red and blue radially about the image centre; green is fixed.
 
         ca_r and ca_b are unitless radial scale offsets (scale = 1 + offset);
         content at radius r (pixels) in the source appears at r * scale.
+        Both default to 0, which is the identity (output equals input).
         Returns a 1-tuple with an IMAGE [B, H, W, C], 0-1. Channels beyond the
         third are untouched.
         """
