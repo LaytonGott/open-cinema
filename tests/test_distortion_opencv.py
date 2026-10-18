@@ -2,6 +2,7 @@ import unittest
 
 from open_optics.distortion import (
     DistortionError,
+    distort_point_opencv,
     opencv_to_library_coeffs,
     undistort_point_opencv,
 )
@@ -23,6 +24,40 @@ class TestOpenCVCoeffs(unittest.TestCase):
     def test_nan_raises_value_error(self):
         with self.assertRaises(ValueError):
             opencv_to_library_coeffs(float("nan"), 0.05, 0.005, -0.003)
+
+
+class TestDistortPointOpenCV(unittest.TestCase):
+    COEFFS = (-0.2, 0.05, 0.005, -0.003, 0.01)
+
+    def check(self, point, expected, coeffs):
+        x, y = distort_point_opencv(*point, *coeffs)
+        self.assertAlmostEqual(x, expected[0], places=9)
+        self.assertAlmostEqual(y, expected[1], places=9)
+
+    def test_small_point(self):
+        self.check((0.05, 0.03),
+                   (0.049955828919652, 0.029996617351791204), self.COEFFS)
+
+    def test_larger_point(self):
+        self.check((0.2, -0.15),
+                   (0.19681205078125005, -0.14743716308593752), self.COEFFS)
+
+    def test_edge_point(self):
+        self.check((0.45, 0.3),
+                   (0.4249701290390625, 0.285360919359375), self.COEFFS)
+
+    def test_k1_only(self):
+        self.check((0.05, 0.03), (0.049966, 0.0299796),
+                   (-0.2, 0.0, 0.0, 0.0))
+
+    def test_k3_default_zero(self):
+        a = distort_point_opencv(0.2, -0.15, -0.2, 0.05, 0.005, -0.003)
+        b = distort_point_opencv(0.2, -0.15, -0.2, 0.05, 0.005, -0.003, 0.0)
+        self.assertEqual(a, b)
+
+    def test_nan_raises_value_error(self):
+        with self.assertRaises(ValueError):
+            distort_point_opencv(float("nan"), 0.0, 0.0, 0.0, 0.0, 0.0)
 
 
 class TestUndistortPointOpenCV(unittest.TestCase):

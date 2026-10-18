@@ -238,6 +238,17 @@ def opencv_to_library_coeffs(k1, k2, p1, p2, k3=0.0):
     return (float(c1), float(c2), float(c3), float(t1), float(t2))
 
 
+def distort_point_opencv(x, y, k1, k2, p1, p2, k3=0.0):
+    """Distort a point using OpenCV-ordered distortion coefficients.
+
+    x and y are unitless normalised image-plane coordinates (x/z, y/z), the
+    same as OpenCV. Coefficients are unitless, in OpenCV order
+    (k1, k2, p1, p2, k3). Returns the distorted (x_d, y_d) tuple of floats.
+    """
+    c1, c2, c3, t1, t2 = opencv_to_library_coeffs(k1, k2, p1, p2, k3)
+    return distort_point(x, y, c1, c2, c3, t1, t2)
+
+
 def undistort_point_opencv(x_d, y_d, k1, k2, p1, p2, k3=0.0):
     """Undistort a point using OpenCV-ordered distortion coefficients.
 
