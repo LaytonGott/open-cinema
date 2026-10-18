@@ -57,6 +57,17 @@ class TestNodeCoverage(unittest.TestCase):
                 self.assertNotIn("depth_mask", types["required"])
                 self.assertNotIn("depth_image", types["required"])
 
+    def test_no_test_skips(self):
+        words = ["skip" + "Test", "skip" + "If", "skip" + "Unless"]
+        for filename in sorted(os.listdir(TESTS_DIR)):
+            if not filename.endswith(".py") or filename == "test_nodes_coverage.py":
+                continue
+            with self.subTest(file=filename):
+                with open(os.path.join(TESTS_DIR, filename), encoding="utf-8") as f:
+                    text = f.read()
+                for word in words:
+                    self.assertNotIn(word, text)
+
 
 if __name__ == "__main__":
     unittest.main()
