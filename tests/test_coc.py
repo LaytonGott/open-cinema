@@ -1,7 +1,13 @@
 import math
 import unittest
 
-from open_optics.coc import blur_diameter_mm, coc_for_sensor, coc_for_sensor_obj
+from open_optics.coc import (
+    blur_diameter_mm,
+    blur_diameter_px,
+    blur_radius_px,
+    coc_for_sensor,
+    coc_for_sensor_obj,
+)
 from open_optics.sensor import Sensor
 
 
@@ -70,6 +76,34 @@ class TestBlurDiameterMm(unittest.TestCase):
     def test_zero_subject_raises(self):
         with self.assertRaises(ValueError):
             blur_diameter_mm(50, 2.8, 3000, 0)
+
+
+class TestBlurRadiusPx(unittest.TestCase):
+    # 0.302663 mm * 1280 px / 36 mm = 10.761 px diameter, 5.380 px radius
+    BLUR_MM = blur_diameter_mm(50, 2.8, 3000, math.inf)
+
+    def test_diameter_px(self):
+        self.assertAlmostEqual(blur_diameter_px(self.BLUR_MM, 1280, 36), 10.76, places=2)
+
+    def test_radius_px(self):
+        self.assertAlmostEqual(blur_radius_px(self.BLUR_MM, 1280, 36), 5.38, places=2)
+
+    def test_cap_applies(self):
+        self.assertEqual(blur_radius_px(self.BLUR_MM, 1280, 36, max_px=4), 4)
+
+    def test_cap_not_reached(self):
+        self.assertAlmostEqual(
+            blur_radius_px(self.BLUR_MM, 1280, 36, max_px=100), 5.38, places=2
+        )
+
+    def test_negative_blur_same_radius(self):
+        self.assertAlmostEqual(
+            blur_radius_px(-self.BLUR_MM, 1280, 36), 5.38, places=2
+        )
+
+    def test_zero_width_raises(self):
+        with self.assertRaises(ValueError):
+            blur_radius_px(self.BLUR_MM, 0, 36)
 
 
 if __name__ == "__main__":
