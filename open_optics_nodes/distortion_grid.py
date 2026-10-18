@@ -1,5 +1,8 @@
 """Source-pixel grids for lens distortion remapping."""
 
+import torch
+import torch.nn.functional as F
+
 from open_optics import distortion, pixels
 
 
@@ -33,3 +36,23 @@ def build_source_grid(width_px, height_px, focal_mm, sensor_width_mm,
                 x, y, width_px, height_px, sensor_width_mm, focal_mm)))
         grid.append(row)
     return grid
+
+
+def sample_bilinear(image, grid_px):
+    """Sample an image at source pixel positions with bilinear filtering.
+
+    image is a float32 tensor [B, H, W, C]; grid_px is a float tensor
+    [H, W, 2] of (sx, sy) source positions in pixels (0-based, sx the column,
+    sy the row), shared by every batch item. Positions outside the image take
+    the nearest border pixel. Returns a float32 tensor [B, H, W, C].
+    """
+    b, h, w, _ = image.shape
+    sx = grid_px[..., 0].to(torch.float32)
+    sy = grid_px[..., 1].to(torch.float32)
+    gx = 2.0 * sx / (w - 1) - 1.0 if w > 1 else torch.zeros_like(sx)
+    gy = 2.0 * sy / (h - 1) - 1.0 if h > 1 else torch.zeros_like(sy)
+    grid = torch.stack([gx, gy], dim=-1).unsqueeze(0).expand(b, -1, -1, -1)
+    out = F.grid_sample(image.to(torch.float32).permute(0, 3, 1, 2), grid,
+                        mode="bilinear", padding_mode="border",
+                        align_corners=True)
+    return out.permute(0, 2, 3, 1).contiguous()

@@ -1,9 +1,11 @@
 import unittest
 
+import torch
+
 from open_optics import distortion
 from open_optics.lens import Lens
 from open_optics.sensor import Sensor
-from open_optics_nodes.distortion_grid import build_source_grid
+from open_optics_nodes.distortion_grid import build_source_grid, sample_bilinear
 
 
 class TestBuildSourceGrid(unittest.TestCase):
@@ -34,6 +36,32 @@ class TestBuildSourceGrid(unittest.TestCase):
     def test_bad_direction(self):
         with self.assertRaises(ValueError):
             build_source_grid(5, 4, 35.0, 36.0, 0, 0, 0, 0, 0, "bad")
+
+
+class TestSampleBilinear(unittest.TestCase):
+    def setUp(self):
+        gen = torch.Generator().manual_seed(0)
+        self.image = torch.rand(1, 6, 7, 3, generator=gen)
+        v, u = torch.meshgrid(torch.arange(6.0), torch.arange(7.0), indexing="ij")
+        self.u, self.v = u, v
+
+    def test_identity(self):
+        grid = torch.stack([self.u, self.v], dim=-1)
+        out = sample_bilinear(self.image, grid)
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertTrue(torch.allclose(out, self.image, atol=1e-5))
+
+    def test_half_pixel_shift(self):
+        grid = torch.stack([self.u + 0.5, self.v], dim=-1)
+        out = sample_bilinear(self.image, grid)
+        expected = (self.image[0, :, 2] + self.image[0, :, 3]) / 2
+        self.assertTrue(torch.allclose(out[0, :, 2], expected, atol=1e-5))
+
+    def test_border_clamp(self):
+        grid = torch.stack([torch.full_like(self.u, -5.0), self.v], dim=-1)
+        out = sample_bilinear(self.image, grid)
+        expected = self.image[:, :, 0:1, :].expand(-1, -1, 7, -1)
+        self.assertTrue(torch.allclose(out, expected, atol=1e-5))
 
 
 if __name__ == "__main__":
