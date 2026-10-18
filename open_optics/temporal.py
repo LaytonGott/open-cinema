@@ -27,6 +27,15 @@ def _is_valid(value):
     return math.isfinite(value) and value > 0
 
 
+def _is_outlier(value, est):
+    """Return True if a depth value is a spike relative to the estimate.
+
+    Both value and est are in metres, est > 0. A spike is value > 2.5 * est or
+    value < 0.4 * est.
+    """
+    return value > 2.5 * est or value < 0.4 * est
+
+
 def _validate_frames(frames):
     """Check that frames is a list of equally sized depth maps of numbers (metres).
 
@@ -81,6 +90,10 @@ def smooth_depth_sequence(frames, strength=0.7):
     Missing values (nan, inf, zero, negative) never change the running estimate; the
     output for that frame is the current estimate, or the value itself if none yet.
 
+    Spike rejection: a valid value more than 2.5 times or less than 0.4 times the
+    current estimate is not blended in; that frame outputs the current estimate.
+    The first valid value always initialises the estimate.
+
     Raises:
         ValueError: if strength is invalid, or frames is not a list of equally sized
             lists of rows of int/float entries (bool and str are rejected; nan, inf,
@@ -102,6 +115,9 @@ def smooth_depth_sequence(frames, strength=0.7):
             for t, frame in enumerate(frames):
                 v = frame[r][c]
                 if _is_valid(v):
-                    est = float(v) if est is None else est + gain * (v - est)
+                    if est is None:
+                        est = float(v)
+                    elif not _is_outlier(v, est):
+                        est = est + gain * (v - est)
                 out[t][r][c] = float(v) if est is None else est
     return out
