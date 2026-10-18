@@ -96,5 +96,20 @@ class TestAnamorphicNonPositive(unittest.TestCase):
             self.assertIn("squeeze", str(ctx.exception))
 
 
+class TestAnamorphicRoundTrip(unittest.TestCase):
+    def test_round_trip_smooth_image(self):
+        ys, xs = torch.meshgrid(torch.arange(32), torch.arange(32), indexing="ij")
+        ramp = ((xs + ys).to(torch.float32) / 62.0)
+        img = ramp.reshape(1, 32, 32, 1).expand(1, 32, 32, 3).contiguous()
+        node = OpenOptics_Anamorphic()
+        wide = node.apply(img, 2.0, "desqueeze")[0]
+        out = node.apply(wide, 2.0, "squeeze")[0]
+        self.assertEqual(tuple(out.shape), (1, 32, 32, 3))
+        # bilinear resizing a linear ramp is exact except in the edge columns,
+        # where clamping to the border causes an error of 0.125 ramp pixels
+        # = 0.125/62 = 0.002; 0.003 allows float error.
+        self.assertLessEqual(float((out - img).abs().max()), 0.003)
+
+
 if __name__ == "__main__":
     unittest.main()
