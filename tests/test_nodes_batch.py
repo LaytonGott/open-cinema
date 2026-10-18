@@ -55,6 +55,17 @@ class DepthOfFieldBatchTest(unittest.TestCase):
             self.assertTrue(torch.allclose(coc[i], single_coc[0], atol=1e-5))
 
 
+class DepthBatchMismatchTest(unittest.TestCase):
+    def test_depth_batch_mismatch_raises(self):
+        img = torch.rand(3, 16, 20, 3)
+        node = OpenOptics_DepthOfField()
+        for batch in (1, 2):
+            with self.subTest(depth_batch=batch):
+                with self.assertRaises(ValueError) as ctx:
+                    node.apply(img, depth_mask=torch.ones(batch, 16, 20) * 3)
+                self.assertIn("batch", str(ctx.exception))
+
+
 class DepthToMetricBatchTest(unittest.TestCase):
     def test_depth_to_metric_fits_whole_batch(self):
         from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric
