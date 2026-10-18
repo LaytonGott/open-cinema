@@ -73,3 +73,33 @@ def finish(image):
     """
     out = torch.nan_to_num(image, nan=0.0, posinf=1.0, neginf=0.0)
     return out.clamp(0.0, 1.0).to(torch.float32).contiguous()
+
+
+def resolve_depth(image, depth_mask=None, depth_image=None):
+    """Return metric depth as a float32 tensor [B, H, W], in metres.
+
+    Exactly one of depth_mask (MASK [B, H, W]) or depth_image (IMAGE
+    [B, H, W, C], averaged over the last dim) must be given; values are used
+    as they are, with no clamping, so they may exceed 1. If image is not None,
+    the depth batch and H, W must equal the image's (a batch of 1 is not
+    broadcast). Raises ValueError otherwise.
+    """
+    if (depth_mask is None) == (depth_image is None):
+        raise ValueError("Exactly one of depth_mask or depth_image is needed")
+    if depth_mask is not None:
+        depth = depth_mask.to(torch.float32)
+        if depth.dim() != 3:
+            raise ValueError(f"depth_mask must have 3 dims [B,H,W], got {depth.dim()}")
+    else:
+        if depth_image.dim() != 4:
+            raise ValueError(f"depth_image must have 4 dims [B,H,W,C], got {depth_image.dim()}")
+        depth = depth_image.to(torch.float32).mean(dim=-1)
+    if image is not None:
+        if depth.shape[0] != image.shape[0]:
+            raise ValueError(
+                f"depth batch {depth.shape[0]} does not match image batch {image.shape[0]}")
+        if depth.shape[1:] != image.shape[1:3]:
+            raise ValueError(
+                f"depth size {tuple(depth.shape[1:])} does not match image size "
+                f"{tuple(image.shape[1:3])}")
+    return depth.contiguous()

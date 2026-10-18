@@ -36,6 +36,29 @@ class NodesCommonTest(unittest.TestCase):
         self.assertAlmostEqual(out[1].item(), 0.0, places=6)
         self.assertAlmostEqual(out[2].item(), 0.0, places=6)
 
+    def test_resolve_depth_needs_exactly_one(self):
+        img = torch.zeros(1, 4, 4, 3)
+        with self.assertRaisesRegex(ValueError, "Exactly one of depth_mask or depth_image"):
+            common.resolve_depth(img)
+        with self.assertRaisesRegex(ValueError, "Exactly one of depth_mask or depth_image"):
+            common.resolve_depth(img, torch.ones(1, 4, 4), torch.ones(1, 4, 4, 3))
+
+    def test_resolve_depth_size_and_batch_mismatch(self):
+        img = torch.zeros(2, 4, 4, 3)
+        with self.assertRaises(ValueError):
+            common.resolve_depth(img, depth_mask=torch.ones(2, 4, 5))
+        with self.assertRaises(ValueError):
+            common.resolve_depth(img, depth_mask=torch.ones(1, 4, 4))
+
+    def test_resolve_depth_grey_image_equals_mask(self):
+        img = torch.zeros(1, 4, 4, 3)
+        from_mask = common.resolve_depth(img, depth_mask=torch.full((1, 4, 4), 3.0))
+        from_img = common.resolve_depth(img, depth_image=torch.full((1, 4, 4, 3), 3.0))
+        self.assertTrue(torch.equal(from_mask, from_img))
+        self.assertEqual(from_img.dtype, torch.float32)
+        self.assertEqual(from_img[0, 0, 0].item(), 3.0)
+        self.assertEqual(common.resolve_depth(None, depth_mask=torch.ones(1, 2, 2)).shape, (1, 2, 2))
+
 
 if __name__ == "__main__":
     unittest.main()
