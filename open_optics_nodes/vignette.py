@@ -34,8 +34,10 @@ class OpenOptics_Vignette:
         outside 0..1 or the inputs are invalid.
         """
         common.check_image(image)
+        focal_mm = common.require_positive("focal_mm", focal_mm)
+        sensor_width_mm = common.require_positive("sensor_width_mm", sensor_width_mm)
         if not 0.0 <= strength <= 1.0:
-            raise ValueError("strength must be between 0 and 1")
+            raise ValueError(f"strength must be between 0 and 1, got {strength}")
         h, w = image.shape[1], image.shape[2]
         rows = []
         for y in range(h):
