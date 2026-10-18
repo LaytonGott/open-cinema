@@ -78,3 +78,43 @@ def aperture_vignette(radius, f_number, widest_f_number, strength, fade_stops=2.
     fade = max(0.0, 1 - stops_down / fade_range)
     edge = min(1.0, max(0.0, (r - 0.55) / 0.45)) ** 2
     return float(1 - strength * fade * edge)
+
+
+def combined_vignette(
+    focal_mm,
+    x_mm,
+    y_mm,
+    half_diagonal_mm,
+    f_number,
+    widest_f_number,
+    natural=True,
+    aperture=True,
+    strength=1.0,
+    aperture_strength=1.0,
+):
+    """Combined natural and aperture vignetting at a sensor position.
+
+    focal_mm, x_mm, y_mm and half_diagonal_mm are in millimetres (x_mm and
+    y_mm are the offset from the sensor centre); f_number and
+    widest_f_number are unitless; strength is unitless, >= 0; aperture_strength
+    is unitless, 0-1. The aperture term uses the normalised radius
+    hypot(x_mm, y_mm) / half_diagonal_mm. The enabled terms are multiplied
+    (a disabled term counts as 1.0) and the product is raised to the power
+    strength. Returns the brightness as a float in [0, 1]: 1.0 with both terms
+    off or strength 0, and strength 2 gives the strength-1 value squared.
+    """
+    s = require_finite("strength", strength)
+    if s < 0:
+        raise ValueError(f"strength must be >= 0, got {strength!r}")
+    half = require_positive("half_diagonal_mm", half_diagonal_mm)
+    x = require_finite("x_mm", x_mm)
+    y = require_finite("y_mm", y_mm)
+    value = 1.0
+    if natural:
+        value *= natural_vignette(focal_mm, x, y)
+    if aperture:
+        radius = math.hypot(x, y) / half
+        value *= aperture_vignette(
+            radius, f_number, widest_f_number, aperture_strength
+        )
+    return float(value**s)
