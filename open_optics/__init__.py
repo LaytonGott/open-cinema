@@ -24,6 +24,7 @@ Where to find things:
     dolly        dolly and dolly-zoom camera moves
     exposure     exposure maths (f-number, shutter, ISO)
     presets      named sensor and lens presets
+    temporal     smoothing of depth maps over a frame sequence
     summary      one-call shot summary combining the other modules
     sensor       the Sensor dataclass
     lens         the Lens dataclass
@@ -92,6 +93,7 @@ from .exposure import (
 )
 from .presets import sensor_names, get_sensor, squeeze_names, get_squeeze
 from .summary import shot_summary
+from .temporal import smooth_depth_sequence
 
 __all__ = [
     "deg_to_rad", "rad_to_deg",
@@ -120,4 +122,5 @@ __all__ = [
     "f_from_t_stop",
     "sensor_names", "get_sensor", "squeeze_names", "get_squeeze",
     "shot_summary",
+    "smooth_depth_sequence",
 ]
