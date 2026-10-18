@@ -6,6 +6,7 @@ from open_optics.coc import coc_for_sensor_obj
 from open_optics.dof import dof_limits_mm, hyperfocal_mm
 from open_optics.fov import field_of_view
 from open_optics.validation import require_positive
+from open_optics.vignetting import brightness_to_stops, combined_vignette
 
 
 def _fmt(value):
@@ -28,7 +29,8 @@ def shot_summary(sensor, lens, f_number, focus_m):
     focal length (mm), f-number, focus (m), horizontal, vertical and diagonal
     FOV (deg), crop factor and full-frame equivalent focal length (mm), then
     the near limit, far limit ('inf' when focus is at or beyond hyperfocal)
-    and hyperfocal distance of the depth of field, all in metres.
+    and hyperfocal distance of the depth of field, all in metres, then the
+    corner brightness as a fraction (1.0 is full) and in stops.
     Raises ValueError if focus_m or f_number is not positive and finite.
     """
     focus = require_positive("focus_m", focus_m)
@@ -37,6 +39,14 @@ def shot_summary(sensor, lens, f_number, focus_m):
     coc_mm = coc_for_sensor_obj(sensor, standard=1500, squeeze=lens.squeeze)
     near_mm, far_mm = dof_limits_mm(lens.focal_mm, f_stop, focus * 1000, coc_mm)
     hyper_mm = hyperfocal_mm(lens.focal_mm, f_stop, coc_mm)
+    corner = combined_vignette(
+        lens.focal_mm,
+        sensor.width_mm / 2,
+        sensor.height_mm / 2,
+        math.hypot(sensor.width_mm, sensor.height_mm) / 2,
+        f_stop,
+        lens.f_number_min,
+    )
     lines = [
         f"Focal length: {_fmt(lens.focal_mm)} mm",
         f"F-number: {_fmt(f_stop)}",
@@ -49,5 +59,6 @@ def shot_summary(sensor, lens, f_number, focus_m):
         f"Near limit: {_fmt(near_mm / 1000)} m",
         f"Far limit: {_fmt(far_mm / 1000)} m",
         f"Hyperfocal: {_fmt(hyper_mm / 1000)} m",
+        f"Corner brightness: {_fmt(corner)} ({_fmt(brightness_to_stops(corner))} stops)",
     ]
     return "\n".join(lines)

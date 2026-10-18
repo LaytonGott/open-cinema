@@ -5,6 +5,7 @@ from open_optics.coc import coc_for_sensor_obj
 from open_optics.lens import Lens
 from open_optics.sensor import Sensor
 from open_optics.summary import _fmt, shot_summary
+from open_optics.vignetting import combined_vignette
 
 
 class TestFmt(unittest.TestCase):
@@ -60,6 +61,23 @@ class TestShotSummaryDof(unittest.TestCase):
         self.assertTrue(lines[8].startswith("Near limit:"))
         self.assertTrue(lines[9].startswith("Far limit:"))
         self.assertTrue(lines[10].startswith("Hyperfocal:"))
+
+
+class TestShotSummaryCorner(unittest.TestCase):
+    def setUp(self):
+        self.sensor = Sensor(36, 24)
+        self.lens = Lens(50, 2, 22)
+
+    def test_corner_line(self):
+        text = shot_summary(self.sensor, self.lens, 2.8, 3)
+        line = [x for x in text.split("\n") if x.startswith("Corner brightness:")]
+        self.assertEqual(len(line), 1)
+        fraction = float(line[0].split()[2])
+        expected = combined_vignette(
+            50, 18, 12, math.hypot(36, 24) / 2, 2.8, self.lens.f_number_min
+        )
+        self.assertAlmostEqual(fraction, expected, delta=0.01)
+        self.assertLessEqual(fraction, 1.0)
 
 
 if __name__ == "__main__":
