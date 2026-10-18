@@ -118,3 +118,58 @@ def undistort_pixel(px, py, sensor, lens, width_px, height_px,
     ox, oy = lens_to_pixel(x, y, width_px, height_px,
                            sensor.width_mm, lens.focal_mm, cx, cy)
     return (float(ox), float(oy))
+
+
+def border_free_zoom(sensor, lens, width_px, height_px,
+                     k1=0.0, k2=0.0, k3=0.0, p1=0.0, p2=0.0, cx=None, cy=None,
+                     samples=64, max_zoom=10.0):
+    """Find the zoom that removes empty borders from an undistorted image.
+
+    An undistorted output pixel at u samples the source at distort(u / z),
+    where the division scales lens-relative coordinates about the principal
+    point. Returns the smallest z >= 1 (a unitless scale factor, float) such
+    that every border pixel centre of the output image, with `samples` points
+    along each of the four edges from pixel 0 to width_px - 1 / height_px - 1
+    (pixels), lands inside the source pixel-centre range [0, width_px - 1] x
+    [0, height_px - 1] (tolerance 1e-9 pixels). z is found by bisection
+    between 1.0 and max_zoom (unitless); 1.0 is returned at once if z = 1
+    already works, so zero coefficients give exactly 1.0. sensor.width_mm and
+    lens.focal_mm are in millimetres; k1..k3 and p1, p2 are unitless; cx and
+    cy default to the image centre. Raises DistortionError (message contains
+    'no border-free zoom') if max_zoom does not suffice.
+    """
+    count = max(int(require_finite("samples", samples)), 2)
+    top = require_finite("max_zoom", max_zoom)
+    w1 = width_px - 1
+    h1 = height_px - 1
+    points = []
+    for i in range(count):
+        t = i / (count - 1)
+        points += [(t * w1, 0.0), (t * w1, float(h1)),
+                   (0.0, t * h1), (float(w1), t * h1)]
+    tol = 1e-9
+
+    def works(z):
+        for u, v in points:
+            x, y = pixel_to_lens(u, v, width_px, height_px,
+                                 sensor.width_mm, lens.focal_mm, cx, cy)
+            x, y = distort_point(x / z, y / z, k1, k2, k3, p1, p2)
+            sx, sy = lens_to_pixel(x, y, width_px, height_px,
+                                   sensor.width_mm, lens.focal_mm, cx, cy)
+            if not (-tol <= sx <= w1 + tol and -tol <= sy <= h1 + tol):
+                return False
+        return True
+
+    if works(1.0):
+        return 1.0
+    if not works(top):
+        raise DistortionError(
+            "no border-free zoom found up to max_zoom=%r" % (max_zoom,))
+    lo, hi = 1.0, top
+    for _ in range(50):
+        mid = (lo + hi) / 2
+        if works(mid):
+            hi = mid
+        else:
+            lo = mid
+    return float(hi)
