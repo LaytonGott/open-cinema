@@ -233,5 +233,29 @@ class TestPersistentChange(unittest.TestCase):
         self.assertAlmostEqual(out[6][0][0], 6.0, delta=0.9)
 
 
+def mean_abs_diff(frames):
+    total = 0.0
+    count = 0
+    for t in range(1, len(frames)):
+        for row, prev_row in zip(frames[t], frames[t - 1]):
+            for a, b in zip(row, prev_row):
+                total += abs(a - b)
+                count += 1
+    return total / count
+
+
+class TestNoiseReduction(unittest.TestCase):
+    def test_flicker_reduced(self):
+        noisy, truth = make_flicker_sequence(seed=1, frames=40)
+        out = smooth_depth_sequence(noisy, strength=0.7)
+        self.assertLessEqual(mean_abs_diff(out), 0.4 * mean_abs_diff(noisy))
+
+    def test_higher_strength_smoother(self):
+        noisy, truth = make_flicker_sequence(seed=1, frames=40)
+        low = smooth_depth_sequence(noisy, strength=0.3)
+        high = smooth_depth_sequence(noisy, strength=0.9)
+        self.assertLessEqual(mean_abs_diff(high), mean_abs_diff(low))
+
+
 if __name__ == "__main__":
     unittest.main()
