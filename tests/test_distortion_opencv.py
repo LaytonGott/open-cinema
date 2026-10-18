@@ -169,5 +169,25 @@ class TestLibraryOrderUnchanged(unittest.TestCase):
             distort_point(0.45, 0.3, -0.2, 0.05, k3=0.01, p1=0.005, p2=-0.003))
 
 
+class TestSwappedOrderDetected(unittest.TestCase):
+    K1, K2, P1, P2, K3 = -0.2, 0.05, 0.005, -0.003, 0.01
+
+    def test_unconverted_library_call_differs_from_opencv_value(self):
+        expected = (0.4249701290390625, 0.285360919359375)
+        x, y = distort_point(
+            0.45, 0.3, self.K1, self.K2, self.P1, self.P2, self.K3)
+        self.assertTrue(
+            abs(x - expected[0]) > 1e-4 or abs(y - expected[1]) > 1e-4,
+            "difference must exceed 1e-4 in x or y")
+
+    def test_swapped_k3_and_p1_differs_from_opencv_value(self):
+        expected = (0.19681205078125005, -0.14743716308593752)
+        x, y = distort_point_opencv(
+            0.2, -0.15, self.K1, self.K2, self.K3, self.P2, self.P1)
+        self.assertTrue(
+            abs(x - expected[0]) > 1e-4 or abs(y - expected[1]) > 1e-4,
+            "difference must exceed 1e-4 in x or y")
+
+
 if __name__ == "__main__":
     unittest.main()
