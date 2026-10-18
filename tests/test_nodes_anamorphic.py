@@ -46,6 +46,13 @@ class TestAnamorphicNode(unittest.TestCase):
             self.node.apply(img, 2.0, "bogus")
         self.assertIn("mode", str(ctx.exception))
 
+    def test_desqueeze_values_within_tolerance(self):
+        img = torch.full((1, 20, 30, 3), 0.5, dtype=torch.float32)
+        out = self.node.apply(img, 2.0, "desqueeze")[0]
+        self.assertAlmostEqual(float(out.min()), 0.5, delta=1e-5)
+        self.assertAlmostEqual(float(out.max()), 0.5, delta=1e-5)
+        self.assertEqual(out.shape[2], round(30 * 2.0))
+
 
 class TestAnamorphicAcceptanceSizes(unittest.TestCase):
     def setUp(self):
