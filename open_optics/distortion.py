@@ -25,10 +25,13 @@ def _terms(px, py, c1, c2, c3, t1, t2):
 def distort_point(x, y, k1=0.0, k2=0.0, k3=0.0, p1=0.0, p2=0.0):
     """Apply Brown-Conrady distortion to a point.
 
-    All arguments are unitless: x and y are lens-relative or frame-fraction
-    positions, k1..k3 are radial coefficients and p1, p2 are tangential
-    coefficients. Returns an (x_d, y_d) tuple of floats in the same unitless
-    frame fractions. Zero coefficients return the input unchanged.
+    All arguments are unitless. x and y are
+    normalised image-plane coordinates (x/z, y/z), the same as OpenCV.
+    The coefficients are unitless and are taken in the order
+    (k1, k2, k3, p1, p2); OpenCV uses (k1, k2, p1, p2, k3). For
+    OpenCV-ordered vectors use distort_point_opencv or opencv_to_library_coeffs.
+    Returns an (x_d, y_d) tuple of floats in the same unitless normalised
+    coordinates. Zero coefficients return the input unchanged.
     """
     px = require_finite("x", x)
     py = require_finite("y", y)
