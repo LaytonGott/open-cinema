@@ -90,5 +90,36 @@ class TestVignetteWhiteImage(unittest.TestCase):
             self.assertGreaterEqual(a, b)
 
 
+class TestVignetteStrength(unittest.TestCase):
+    def setUp(self):
+        self.img = torch.full((1, 32, 32, 3), 0.8, dtype=torch.float32)
+        self.node = OpenOptics_Vignette()
+
+    def corner(self, strength):
+        out = self.node.apply(self.img, 35.0, 36.0, strength, "linear")[0]
+        return out[0, 0, 0, 0].item()
+
+    def test_strength_zero_srgb_identity(self):
+        out = self.node.apply(self.img, 35.0, 36.0, 0.0, "srgb")[0]
+        self.assertTrue(torch.allclose(out, self.img, atol=1e-5))
+
+    def test_half_strength_corner(self):
+        g = vignetting.natural_vignette_px(35.0, 0, 0, 36.0, 32, 32)
+        self.assertAlmostEqual(self.corner(0.5), 0.8 * (1 - 0.5 * (1 - g)), delta=1e-5)
+
+    def test_half_strength_between(self):
+        c0, c5, c1 = self.corner(0.0), self.corner(0.5), self.corner(1.0)
+        self.assertLess(c1, c5)
+        self.assertLess(c5, c0)
+
+    def test_output_properties(self):
+        out = self.node.apply(self.img, 35.0, 36.0, 0.5, "linear")[0]
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertEqual(out.shape, self.img.shape)
+        self.assertTrue(torch.isfinite(out).all().item())
+        self.assertGreaterEqual(out.min().item(), 0.0)
+        self.assertLessEqual(out.max().item(), 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
