@@ -197,5 +197,20 @@ class TestInvalidValues(unittest.TestCase):
             self.assertEqual(out[i][0][1], 2.0)
 
 
+class TestSpikeRejection(unittest.TestCase):
+    def _check(self, spike):
+        frames = [[[2.0]] for _ in range(12)]
+        frames[5] = [[spike]]
+        out = smooth_depth_sequence(frames, 0.7)
+        for frame in out:
+            self.assertAlmostEqual(frame[0][0], 2.0, delta=0.06)
+
+    def test_high_spike(self):
+        self._check(6.0)
+
+    def test_low_spike(self):
+        self._check(0.5)
+
+
 if __name__ == "__main__":
     unittest.main()
