@@ -77,5 +77,27 @@ class TestLicenceFile(unittest.TestCase):
             )
 
 
+def _readme_text():
+    path = ROOT / "README.md"
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+class TestReadme(unittest.TestCase):
+    def test_readme_exists(self):
+        self.assertTrue((ROOT / "README.md").is_file(), "README.md is missing at the repo root")
+
+    def test_readme_has_headings(self):
+        headings = [line for line in _readme_text().splitlines() if line.startswith("#")]
+        for name in ("Install", "Nodes", "Example workflow", "Tests", "Licence"):
+            self.assertTrue(
+                any(name.lower() in h.lower() for h in headings),
+                f"README.md has no heading containing '{name}'",
+            )
+
+    def test_readme_intro_mentions_comfyui(self):
+        intro = _readme_text().split("\n## ")[0]
+        self.assertIn("ComfyUI", intro, "README.md intro (before the first '##' heading) does not mention ComfyUI")
+
+
 if __name__ == "__main__":
     unittest.main()
