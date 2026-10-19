@@ -272,5 +272,34 @@ class TestDepthOfFieldLayers(unittest.TestCase):
         self.assertGreater(_LAYERS["normal"], _LAYERS["draft"])
 
 
+class TestDepthOfFieldChunking(unittest.TestCase):
+    def test_input_types(self):
+        spec = OpenOptics_DepthOfField.INPUT_TYPES()["required"]["chunk_frames"]
+        self.assertEqual(spec[0], "INT")
+        self.assertEqual(spec[1]["default"], 8)
+        self.assertEqual(spec[1]["min"], 1)
+
+    def test_zero_raises(self):
+        img = torch.rand(1, 32, 32, 3)
+        with self.assertRaises(ValueError):
+            OpenOptics_DepthOfField().apply(
+                img, depth_mask=torch.ones(1, 32, 32), chunk_frames=0)
+
+    def test_chunks_match_all_frames(self):
+        g = torch.Generator().manual_seed(7)
+        img = torch.rand(4, 32, 32, 3, generator=g)
+        depth = 1.0 + 9.0 * torch.rand(4, 32, 32, generator=g)
+        before = img.clone()
+        node = OpenOptics_DepthOfField()
+        ref, ref_coc = node.apply(img, depth_mask=depth, chunk_frames=4)
+        for n in (1, 3):
+            out, coc_px = node.apply(img, depth_mask=depth, chunk_frames=n)
+            self.assertEqual(out.shape, ref.shape)
+            self.assertEqual(coc_px.shape, ref_coc.shape)
+            self.assertTrue(torch.allclose(out, ref, atol=1e-5))
+            self.assertTrue(torch.allclose(coc_px, ref_coc, atol=1e-5))
+        self.assertTrue(torch.equal(img, before))
+
+
 if __name__ == "__main__":
     unittest.main()
