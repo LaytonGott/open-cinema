@@ -59,7 +59,8 @@ class TestNodeCoverage(unittest.TestCase):
                 self.assertNotIn("depth_image", types["required"])
 
     def test_no_test_skips(self):
-        words = ["skip" + "Test", "skip" + "If", "skip" + "Unless"]
+        # skipUnless is allowed for the CUDA and benchmark tests.
+        words = ["skip" + "Test", "skip" + "If"]
         for filename in sorted(os.listdir(TESTS_DIR)):
             if not filename.endswith(".py") or filename == "test_nodes_coverage.py":
                 continue

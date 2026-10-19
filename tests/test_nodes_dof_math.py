@@ -79,5 +79,24 @@ class CompositeLayersTest(unittest.TestCase):
         self.assertTrue(torch.allclose(out, img, atol=1e-4))
 
 
+class CudaMatchesCpuTest(unittest.TestCase):
+    @unittest.skipUnless(torch.cuda.is_available(), "needs CUDA")
+    def test_coc_and_composite_match_cpu(self):
+        cuda = torch.device("cuda")
+        g = torch.Generator().manual_seed(0)
+        img = torch.rand(2, 24, 24, 3, generator=g)
+        depth = torch.rand(2, 24, 24, generator=g) * 7.5 + 0.5
+        radius_cpu = coc_radius_map(depth, 50, 2.8, 3.0, 36, 8)
+        radius_gpu = coc_radius_map(depth.to(cuda), 50, 2.8, 3.0, 36, 8)
+        self.assertEqual(radius_gpu.device.type, "cuda")
+        self.assertLess((radius_cpu - radius_gpu.cpu()).abs().max().item(), 1e-4)
+        out_cpu = composite_layers(img, depth, radius_cpu, 4, 3.0)
+        out_gpu = composite_layers(img.to(cuda), depth.to(cuda), radius_gpu, 4, 3.0)
+        self.assertEqual(out_gpu.device.type, "cuda")
+        self.assertLess((out_cpu - out_gpu.cpu()).abs().max().item(), 1e-4)
+        del radius_gpu, out_gpu
+        torch.cuda.empty_cache()
+
+
 if __name__ == "__main__":
     unittest.main()

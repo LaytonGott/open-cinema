@@ -1,4 +1,4 @@
-"""Disc (bokeh) blur helpers for Depth of Field (CPU torch tensors)."""
+"""Disc (bokeh) blur helpers for Depth of Field (torch tensors on any device)."""
 
 import math
 
@@ -33,7 +33,7 @@ def blur_layer(premult, radius):
         return premult
     c = premult.shape[1]
     pad = math.ceil(radius)
-    kernel = disc_kernel(radius).to(premult.dtype)
+    kernel = disc_kernel(radius).to(premult.device, premult.dtype)
     weight = kernel[None, None].repeat(c, 1, 1, 1)
     padded = F.pad(premult, (pad, pad, pad, pad), mode="replicate")
     return F.conv2d(padded, weight, groups=c)

@@ -36,6 +36,17 @@ class DofBlurTest(unittest.TestCase):
             self.assertAlmostEqual(out[0, 0, i, j].item(), 0.2, delta=1e-6)
         self.assertAlmostEqual(out[0, 0, 1, 1].item(), 0.0, delta=1e-6)
 
+    @unittest.skipUnless(torch.cuda.is_available(), "needs CUDA")
+    def test_cpu_matches_cuda(self):
+        g = torch.Generator().manual_seed(0)
+        x = torch.rand(1, 3, 24, 24, generator=g, dtype=torch.float32)
+        cpu = dof_blur.blur_layer(x, 3.0)
+        gpu = dof_blur.blur_layer(x.to(torch.device("cuda")), 3.0)
+        self.assertEqual(gpu.device.type, "cuda")
+        self.assertLess((cpu - gpu.cpu()).abs().max().item(), 1e-4)
+        del gpu
+        torch.cuda.empty_cache()
+
 
 if __name__ == "__main__":
     unittest.main()

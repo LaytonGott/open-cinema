@@ -1,4 +1,4 @@
-"""Depth of field helpers for the Open Optics nodes (CPU only)."""
+"""Depth of field helpers for the Open Optics nodes (any torch device)."""
 
 import math
 
@@ -36,7 +36,7 @@ def coc_radius_map(depth_m, focal_mm, f_number, focus_m, sensor_width_mm, max_ra
     for d in uniq.tolist():
         blur_mm = coc.blur_diameter_mm(focal_mm, f_number, focus_m * 1000.0, d * 1000.0)
         radii.append(coc.blur_radius_px(blur_mm, width, sensor_width_mm, max_px=max_radius_px))
-    table = torch.tensor(radii, dtype=torch.float32)
+    table = torch.tensor(radii, dtype=torch.float32).to(depth.device)
     return table[inverse.reshape(-1)].reshape(depth.shape)
 
 
