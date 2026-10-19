@@ -41,6 +41,17 @@ class TestPerFrameChunkIndependence(unittest.TestCase):
     def test_focal_crop(self):
         self._check("OpenOptics_FocalCrop", source_focal_mm=24, target_focal_mm=50)
 
+    def test_depth_of_field(self):
+        depth = 0.5 + 7.5 * torch.rand(7, 24, 32)
+        self._check("OpenOptics_DepthOfField", depth_mask=depth, focus_m=2.0,
+                    quality="normal", max_radius_px=4)
+
+    def test_lens_distortion(self):
+        self._check("OpenOptics_LensDistortion", k1=0.1, k2=0.02)
+
+    def test_vignette(self):
+        self._check("OpenOptics_Vignette", strength=1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
