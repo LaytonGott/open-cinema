@@ -97,5 +97,43 @@ class TestSubjectChunks(unittest.TestCase):
             self.assertLess((single - out[i:i + 1]).abs().max().item(), 1e-5)
 
 
+class TestSubjectDevices(unittest.TestCase):
+    def setUp(self):
+        self._old_device = os.environ.get("OPEN_OPTICS_DEVICE")
+
+    def tearDown(self):
+        if self._old_device is None:
+            os.environ.pop("OPEN_OPTICS_DEVICE", None)
+        else:
+            os.environ["OPEN_OPTICS_DEVICE"] = self._old_device
+        torch.cuda.empty_cache()
+
+    def test_subject_cpu_matches_cuda(self):
+        torch.manual_seed(3)
+        depth = torch.rand(3, 16, 16) + 0.5
+        subject_mask = torch.zeros(1, 16, 16)
+        subject_mask[:, 4:9, 4:9] = 1
+        common = dict(
+            depth_mask=depth, mode="subject", subject_m=2.0,
+            near_m=0.1, far_m=100.0, subject_radius_px=2,
+        )
+        cases = {
+            "batch": dict(common, anchor_scope="batch"),
+            "frame": dict(common, anchor_scope="frame"),
+            "batch_mask": dict(common, anchor_scope="batch", subject_mask=subject_mask),
+        }
+        node = OpenOptics_DepthToMetric()
+        for name, kwargs in cases.items():
+            with self.subTest(case=name):
+                os.environ["OPEN_OPTICS_DEVICE"] = "cpu"
+                cpu = node.convert(**kwargs)[0]
+                os.environ["OPEN_OPTICS_DEVICE"] = "cuda"
+                cuda = node.convert(**kwargs)[0]
+                for out in (cpu, cuda):
+                    self.assertEqual(out.device.type, "cpu")
+                    self.assertEqual(out.dtype, torch.float32)
+                self.assertLess((cpu - cuda).abs().max().item(), 1e-5)
+
+
 if __name__ == "__main__":
     unittest.main()
