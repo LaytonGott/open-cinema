@@ -100,3 +100,13 @@ def depth_to_metric(d, d_lo, d_hi, near_m, far_m, inverse_depth=True):
     else:
         z = a * d + b
     return min(max(z, near_m), far_m)
+
+
+def subject_pixel(x, y, width, height):
+    """Convert a subject position to a pixel index.
+
+    x and y are fractions (0 to 1) of the image width and height; width and
+    height are in pixels. Returns the tuple (col, row) of ints,
+    (round(x*(width-1)), round(y*(height-1))).
+    """
+    return (round(x * (width - 1)), round(y * (height - 1)))

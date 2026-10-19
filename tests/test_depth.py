@@ -7,6 +7,7 @@ from open_optics.depth import (
     fit_depth_mapping,
     metric_depth_coefficients,
     percentile,
+    subject_pixel,
     validate_depth_params,
 )
 
@@ -91,6 +92,20 @@ class TestMetricDepthCoefficients(unittest.TestCase):
 
     def test_constant(self):
         self.assertCoefficients(metric_depth_coefficients(0.5, 0.5, 1, 5, True), (0.0, 3.0, False))
+
+
+class TestSubjectPixel(unittest.TestCase):
+    def test_centre(self):
+        self.assertEqual(subject_pixel(0.5, 0.5, 9, 9), (4, 4))
+
+    def test_origin(self):
+        self.assertEqual(subject_pixel(0, 0, 9, 9), (0, 0))
+
+    def test_far_corner(self):
+        self.assertEqual(subject_pixel(1, 1, 9, 9), (8, 8))
+
+    def test_non_square(self):
+        self.assertEqual(subject_pixel(1, 1, 9, 5), (8, 4))
 
 
 if __name__ == "__main__":
