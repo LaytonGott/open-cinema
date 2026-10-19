@@ -398,5 +398,39 @@ class ValidatorCatchesProblemsTest(unittest.TestCase):
         self.assertTrue(any("inverse_depth" in e for e in errors), errors)
 
 
+class UiValidatorCatchesProblemsTest(unittest.TestCase):
+    def setUp(self):
+        path = os.path.join(ROOT, "workflows", "open_optics_demo.json")
+        with open(path, encoding="utf-8") as f:
+            self.workflow = copy.deepcopy(json.load(f))
+
+    def node(self, node_type):
+        return next(n for n in self.workflow["nodes"] if n["type"] == node_type)
+
+    def test_ui_missing_required_widget_fails(self):
+        self.node("OpenOptics_FocalCrop")["widgets_values"] = [24.0]
+        errors = validate_ui_graph(self.workflow)
+        self.assertTrue(any("Required input is missing" in e and "target_focal_mm" in e
+                            for e in errors), errors)
+
+    def test_ui_out_of_range_fails(self):
+        self.node("OpenOptics_Vignette")["widgets_values"][0] = -1.0
+        errors = validate_ui_graph(self.workflow)
+        self.assertTrue(any("focal_mm" in e for e in errors), errors)
+
+    def test_ui_unknown_choice_fails(self):
+        self.node("OpenOptics_Anamorphic")["widgets_values"][1] = "sideways"
+        errors = validate_ui_graph(self.workflow)
+        self.assertTrue(any("mode" in e and "sideways" in e for e in errors), errors)
+
+    def test_ui_missing_link_fails(self):
+        slot = self.node("OpenOptics_Vignette")["inputs"][0]
+        self.assertEqual(slot["name"], "image")
+        slot["link"] = None
+        errors = validate_ui_graph(self.workflow)
+        self.assertTrue(any("Required input is missing" in e and "image" in e
+                            for e in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main()
