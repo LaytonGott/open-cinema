@@ -201,7 +201,10 @@ class OpenOptics_DepthToMetric:
         around the subject point (all frames) sets the scale so that it maps
         to subject_m, and the percentiles are ignored.
         subject_mask: MASK [B,H,W] or [1,H,W], pixels above 0.5 are the
-        subject, point inputs ignored when connected (not used yet).
+        subject; in subject mode the median depth over those pixels (all
+        frames) replaces the point window, so subject_x, subject_y and
+        subject_radius_px are not used for the region when it is connected.
+        Raises ValueError if its shape does not match or it is empty.
         anchor_scope: 'batch' or 'frame' (not used yet).
 
         near_m and far_m are in metres; percentiles are 0 to 100. Exactly one
@@ -224,8 +227,12 @@ class OpenOptics_DepthToMetric:
         common.check_chunk_frames(chunk_frames)
         depth = common.resolve_depth(None, depth_mask, depth_image)
         if mode == "subject":
-            col, row = subject_pixel(subject_x, subject_y, depth.shape[2], depth.shape[1])
-            values = _subject_region_values(depth, col, row, subject_radius_px)
+            if subject_mask is not None:
+                region = _subject_mask_region(subject_mask, tuple(depth.shape))
+                values = depth.detach()[region].to(torch.float64)
+            else:
+                col, row = subject_pixel(subject_x, subject_y, depth.shape[2], depth.shape[1])
+                values = _subject_region_values(depth, col, row, subject_radius_px)
             d_s = subject_median(values.tolist())
             if not math.isfinite(d_s) or not d_s > 0:
                 raise ValueError(f"subject depth must be finite and > 0, got {d_s}")
