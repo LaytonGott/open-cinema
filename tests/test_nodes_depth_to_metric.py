@@ -1084,5 +1084,22 @@ class TestSubjectNodeErrorsMatchCore(unittest.TestCase):
         self.assertEqual(str(node_ctx.exception), str(core_ctx.exception))
 
 
+class TestNearFarIgnoresSubject(unittest.TestCase):
+    BAD_SUBJECT = dict(subject_m=0.0, subject_x=5.0, subject_y=-2.0, subject_radius_px=-3)
+
+    def test_subject_inputs_do_not_change_output(self):
+        d = torch.linspace(0, 1, 81).reshape(1, 9, 9)
+        node = OpenOptics_DepthToMetric()
+        z1, p1 = node.convert(depth_mask=d, near_m=1.0, far_m=5.0)
+        z2, p2 = node.convert(depth_mask=d, near_m=1.0, far_m=5.0, mode="near_far",
+                              anchor_scope="frame", **self.BAD_SUBJECT)
+        self.assertTrue(torch.equal(z1, z2))
+        self.assertTrue(torch.equal(p1, p2))
+
+    def test_zero_depth_does_not_raise(self):
+        OpenOptics_DepthToMetric().convert(depth_mask=torch.zeros(1, 9, 9), near_m=1.0,
+                                           far_m=5.0, mode="near_far", **self.BAD_SUBJECT)
+
+
 if __name__ == "__main__":
     unittest.main()
