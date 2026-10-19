@@ -79,6 +79,20 @@ class CompositeLayersTest(unittest.TestCase):
         self.assertTrue(torch.allclose(out, img, atol=1e-4))
 
 
+class CompositeLayersFrameIndependenceTest(unittest.TestCase):
+    def test_batch_equals_single_frames(self):
+        g = torch.Generator().manual_seed(5)
+        img = torch.rand(3, 24, 24, 3, generator=g)
+        scale = torch.tensor([2.0, 6.0, 15.0]).reshape(3, 1, 1)
+        depth = torch.rand(3, 24, 24, generator=g) * scale + 0.5
+        radius = coc_radius_map(depth, 50, 2.8, 3.0, 36, 8)
+        batch = composite_layers(img, depth, radius, 4, 3.0)
+        self.assertEqual(batch.shape, (3, 24, 24, 3))
+        for i in range(3):
+            single = composite_layers(img[i:i + 1], depth[i:i + 1], radius[i:i + 1], 4, 3.0)
+            self.assertLess((batch[i:i + 1] - single).abs().max().item(), 1e-6)
+
+
 class CudaMatchesCpuTest(unittest.TestCase):
     @unittest.skipUnless(torch.cuda.is_available(), "needs CUDA")
     def test_coc_and_composite_match_cpu(self):

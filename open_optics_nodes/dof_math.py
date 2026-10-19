@@ -66,6 +66,22 @@ def _side_layers(radius, side, width):
 def composite_layers(image_linear, depth_m, radius_map, n_layers, focus_m):
     """Blur signed CoC layers and composite them back to front; returns float32 [B, H, W, 3].
 
+    Layers are chosen per frame, so the result does not depend on how frames
+    are batched. See _composite_frames for the layer rules; arguments are as
+    there: image_linear float32 [B, H, W, 3], depth_m (metres) and radius_map
+    (pixels) float32 [B, H, W], focus_m in metres.
+    """
+    frames = [
+        _composite_frames(image_linear[i:i + 1], depth_m[i:i + 1], radius_map[i:i + 1],
+                          n_layers, focus_m)
+        for i in range(image_linear.shape[0])
+    ]
+    return torch.cat(frames, dim=0)
+
+
+def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
+    """Composite one batch with bins from the whole batch; returns float32 [B, H, W, 3].
+
     image_linear is float32 [B, H, W, 3] in linear light; depth_m (metres) and
     radius_map (pixels) are float32 [B, H, W]; focus_m is the focus distance in
     metres. Pixels with a radius below 0.5 px form one in-focus layer that is
