@@ -5,8 +5,11 @@ ComfyUI is GPL-3.0, so the only place this repository may import it is the guard
 statement (also inside functions) in the root __init__.py, open_optics/ and open_optics_nodes/.
 """
 import ast
+import json
 import unittest
 from pathlib import Path
+
+from open_optics_nodes import NODE_CLASS_MAPPINGS
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -97,6 +100,43 @@ class TestReadme(unittest.TestCase):
     def test_readme_intro_mentions_comfyui(self):
         intro = _readme_text().split("\n## ")[0]
         self.assertIn("ComfyUI", intro, "README.md intro (before the first '##' heading) does not mention ComfyUI")
+
+
+def _load_workflow():
+    path = ROOT / "workflows" / "open_optics_demo.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class TestWorkflowFile(unittest.TestCase):
+    def test_workflow_valid_json(self):
+        wf = _load_workflow()
+        for key in ("nodes", "links", "version"):
+            self.assertIn(key, wf, f"workflow has no key '{key}'")
+
+    def test_workflow_links_well_formed(self):
+        wf = _load_workflow()
+        node_ids = {n["id"] for n in wf["nodes"]}
+        seen = set()
+        for link in wf["links"]:
+            self.assertIsInstance(link, list, f"link {link} is not a list")
+            self.assertEqual(len(link), 6, f"link {link} does not have 6 items")
+            link_id, from_node, _from_slot, to_node, _to_slot, _type = link
+            self.assertNotIn(link_id, seen, f"link id {link_id} is duplicated: {link}")
+            seen.add(link_id)
+            self.assertIn(from_node, node_ids, f"link {link} starts at missing node {from_node}")
+            self.assertIn(to_node, node_ids, f"link {link} ends at missing node {to_node}")
+
+    def test_workflow_node_types_present(self):
+        wf = _load_workflow()
+        types = [n["type"] for n in wf["nodes"]]
+        self.assertEqual(types.count("LoadImage"), 2, f"LoadImage count is {types.count('LoadImage')}, expected 2")
+        for name in ("DepthToMetric", "FocalCrop", "DepthOfField", "LensDistortion",
+                     "Vignette", "ChromaticAberration", "Anamorphic"):
+            self.assertIn(f"OpenOptics_{name}", types, f"workflow has no OpenOptics_{name} node")
+        self.assertIn("PreviewImage", types, "workflow has no PreviewImage node")
+        allowed = set(NODE_CLASS_MAPPINGS) | {"LoadImage", "PreviewImage", "SaveImage"}
+        for t in types:
+            self.assertIn(t, allowed, f"node type '{t}' is not an Open Optics node, LoadImage, PreviewImage or SaveImage")
 
 
 if __name__ == "__main__":
