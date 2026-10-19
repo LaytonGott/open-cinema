@@ -2,7 +2,9 @@ import unittest
 
 import torch
 
-from open_optics.depth import depth_to_metric, subject_metric_depth
+from open_optics.depth import (
+    depth_to_metric, subject_metric_depth, validate_subject_depth,
+    validate_subject_params)
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
 from open_optics_nodes.depth_to_metric import (
     OpenOptics_DepthToMetric, _subject_frame_depths, _subject_mask_region,
@@ -1050,6 +1052,36 @@ class TestSubjectNodeMatchesCore(unittest.TestCase):
                                 float(depth[i, r, c]), 0.6, 2.0, 0.5, 10.0, inverse)
                             self.assertAlmostEqual(
                                 float(out[i, r, c]), want, places=5)
+
+
+class TestSubjectNodeErrorsMatchCore(unittest.TestCase):
+    GOOD = dict(mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+                subject_x=0.5, subject_y=0.5, subject_radius_px=1)
+
+    def test_param_messages_equal_core(self):
+        for name, value in (("subject_m", 0.0), ("subject_x", 5.0),
+                            ("subject_radius_px", -1), ("mode", "bogus")):
+            with self.subTest(**{name: value}):
+                kw = dict(self.GOOD, **{name: value})
+                with self.assertRaises(ValueError) as node_ctx:
+                    OpenOptics_DepthToMetric().convert(
+                        depth_mask=torch.rand(1, 4, 4) + 0.1,
+                        inverse_depth=True, **kw)
+                with self.assertRaises(ValueError) as core_ctx:
+                    validate_subject_params(
+                        kw["mode"], kw["subject_m"], kw["near_m"],
+                        kw["far_m"], kw["subject_x"], kw["subject_y"],
+                        kw["subject_radius_px"])
+                self.assertEqual(str(node_ctx.exception), str(core_ctx.exception))
+
+    def test_all_zero_depth_message_equals_core(self):
+        with self.assertRaises(ValueError) as node_ctx:
+            OpenOptics_DepthToMetric().convert(
+                depth_mask=torch.zeros(1, 4, 4), inverse_depth=True,
+                **self.GOOD)
+        with self.assertRaises(ValueError) as core_ctx:
+            validate_subject_depth(0.0)
+        self.assertEqual(str(node_ctx.exception), str(core_ctx.exception))
 
 
 if __name__ == "__main__":
