@@ -102,6 +102,33 @@ class TestReadme(unittest.TestCase):
         self.assertIn("ComfyUI", intro, "README.md intro (before the first '##' heading) does not mention ComfyUI")
 
 
+def _readme_section(keyword):
+    """Return the text of the README section whose '#' heading contains keyword (case-insensitive).
+
+    The section runs from the line after the heading to the next heading of the same or higher
+    level, or to the end of the file. Returns "" when no heading matches.
+    """
+    lines = _readme_text().splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("#") and keyword.lower() in line.lower():
+            level = len(line) - len(line.lstrip("#"))
+            body = []
+            for later in lines[i + 1:]:
+                if later.startswith("#") and len(later) - len(later.lstrip("#")) <= level:
+                    break
+                body.append(later)
+            return "\n".join(body)
+    return ""
+
+
+class TestReadmeInstall(unittest.TestCase):
+    def test_install_section_content(self):
+        section = _readme_section("Install")
+        self.assertTrue(section, "README.md has no Install section")
+        for needle in ("ComfyUI\\custom_nodes\\open-optics", "git clone", "restart", "pip", "Open Optics"):
+            self.assertIn(needle.lower(), section.lower(), f"README.md Install section does not mention '{needle}'")
+
+
 def _load_workflow():
     path = ROOT / "workflows" / "open_optics_demo.json"
     return json.loads(path.read_text(encoding="utf-8"))
