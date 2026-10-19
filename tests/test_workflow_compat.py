@@ -727,6 +727,32 @@ def workflow_graph(path):
     return data
 
 
+def legacy_node_problems(nodes):
+    """Return a list of strings, one per workflow node of an OpenOptics_ class missing from `nodes`.
+
+    Checks every file of workflow_files(). No units apply.
+    """
+    problems = []
+    for path in workflow_files():
+        name = os.path.basename(path)
+        for node_id, node in workflow_graph(path).items():
+            class_type = node["class_type"]
+            if class_type.startswith("OpenOptics_") and class_type not in nodes:
+                problems.append(
+                    f"{name}: node {node_id} uses unregistered node {class_type}; "
+                    "restore it in NODE_CLASS_MAPPINGS")
+    return problems
+
+
+class LegacyNodeProblemsTest(unittest.TestCase):
+    def test_legacy_nodes_registered(self):
+        self.assertEqual(legacy_node_problems(NODE_CLASS_MAPPINGS), [])
+
+    def test_unregistered_legacy_node_is_reported(self):
+        problems = legacy_node_problems({})
+        self.assertTrue(any("OpenOptics_" in p for p in problems), problems)
+
+
 class WorkflowRunTest(unittest.TestCase):
     def test_all_workflows_run(self):
         devices = ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
