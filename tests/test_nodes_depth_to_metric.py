@@ -771,5 +771,32 @@ class TestAnchorScopeBatch(unittest.TestCase):
         self.assertTrue(torch.allclose(out, ref, atol=1e-6))
 
 
+class TestAnchorScopeFrameNode(unittest.TestCase):
+    KW = dict(
+        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+        inverse_depth=True, subject_x=0.5, subject_y=0.5,
+        subject_radius_px=1, anchor_scope="frame",
+    )
+
+    def _depth(self):
+        d0 = torch.full((9, 9), 0.4)
+        d0[3:6, 3:6] = 0.8
+        d0[0, 0] = 1.6
+        d0[8, 8] = 0.1
+        return torch.stack([d0, d0 * 0.5])
+
+    def test_each_frame_anchored(self):
+        out = _convert(self._depth(), **self.KW)[0]
+        for i in range(2):
+            self.assertAlmostEqual(out[i, 4, 4].item(), 2.0, places=5)
+            self.assertAlmostEqual(out[i, 0, 1].item(), 4.0, places=5)
+
+    def test_chunk_frames_independent(self):
+        depth = self._depth()
+        a = _convert(depth, chunk_frames=1, **self.KW)[0]
+        b = _convert(depth, chunk_frames=8, **self.KW)[0]
+        self.assertTrue(torch.allclose(a, b, atol=1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()

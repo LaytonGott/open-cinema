@@ -244,7 +244,10 @@ class OpenOptics_DepthToMetric:
         frames) replaces the point window, so subject_x, subject_y and
         subject_radius_px are not used for the region when it is connected.
         Raises ValueError if its shape does not match or it is empty.
-        anchor_scope: 'batch' or 'frame' (not used yet).
+        anchor_scope: 'batch' pools the subject region over all frames into
+        one median depth; 'frame' takes the median of each frame's own subject
+        region, so every frame's subject maps to subject_m. Raises ValueError
+        if any subject depth is not finite and > 0.
 
         near_m and far_m are in metres; percentiles are 0 to 100. Exactly one
         of depth_mask or depth_image must be connected. The percentile fit uses
@@ -268,14 +271,19 @@ class OpenOptics_DepthToMetric:
         if mode == "subject":
             if subject_mask is not None:
                 region = _subject_mask_region(subject_mask, tuple(depth.shape))
-                values = depth.detach()[region].to(torch.float64)
             else:
                 col, row = subject_pixel(subject_x, subject_y, depth.shape[2], depth.shape[1])
                 region = _subject_region_mask(tuple(depth.shape), col, row, subject_radius_px)
+            if anchor_scope == "frame":
+                d_s = _subject_frame_depths(depth, region)
+                for v in d_s.tolist():
+                    if not math.isfinite(v) or not v > 0:
+                        raise ValueError(f"subject depth must be finite and > 0, got {v}")
+            else:
                 values = depth.detach()[region].to(torch.float64)
-            d_s = subject_median(values.tolist())
-            if not math.isfinite(d_s) or not d_s > 0:
-                raise ValueError(f"subject depth must be finite and > 0, got {d_s}")
+                d_s = subject_median(values.tolist())
+                if not math.isfinite(d_s) or not d_s > 0:
+                    raise ValueError(f"subject depth must be finite and > 0, got {d_s}")
         else:
             validate_depth_params(near_m, far_m, low_percentile, high_percentile)
             d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
@@ -285,7 +293,10 @@ class OpenOptics_DepthToMetric:
         for start, stop in common.chunk_ranges(depth.shape[0], chunk_frames):
             chunk = depth[start:stop].to(device)
             if mode == "subject":
-                z = _subject_to_metric(chunk, d_s, subject_m, near_m, far_m, inverse_depth)
+                scale = d_s
+                if anchor_scope == "frame":
+                    scale = d_s[start:stop].to(device).reshape(-1, 1, 1)
+                z = _subject_to_metric(chunk, scale, subject_m, near_m, far_m, inverse_depth)
             else:
                 z = _map_to_metric(chunk, d_lo, d_hi, near_m, far_m, inverse_depth)
             shade = torch.clamp((far_m - z) / (far_m - near_m), 0.0, 1.0)
