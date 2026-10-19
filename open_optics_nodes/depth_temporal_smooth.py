@@ -1,5 +1,7 @@
 """Temporal depth smoothing node for Open Optics (CPU torch tensors)."""
 
+import time
+
 import torch
 
 from open_optics.temporal import smooth_depth_sequence
@@ -53,6 +55,7 @@ class OpenOptics_DepthTemporalSmooth:
         MASK [B, H, W] of smoothed depth in metres. Raises ValueError if depth
         is not a 3-dimensional tensor or chunk_frames is invalid.
         """
+        t0 = time.perf_counter()
         common.check_chunk_frames(chunk_frames)
         if not isinstance(depth, torch.Tensor):
             got = type(depth).__name__
@@ -67,11 +70,19 @@ class OpenOptics_DepthTemporalSmooth:
         frames = depth.detach().cpu().to(torch.float64).tolist()
         out = smooth_depth_sequence(frames, strength)
         if depth.shape[0] == 0:
+            common.log_call("OpenOptics_DepthTemporalSmooth", torch.zeros(0, device=get_device()),
+                            0, chunk_frames, time.perf_counter() - t0)
             return (torch.zeros(depth.shape, dtype=torch.float32),)
         device = get_device()
         chunks = []
+        worked_on = None
         for start, stop in common.chunk_ranges(depth.shape[0], chunk_frames):
             chunk = torch.tensor(out[start:stop], dtype=torch.float32)
             chunk = chunk.reshape((stop - start,) + tuple(depth.shape[1:]))
-            chunks.append(chunk.to(device).cpu().to(torch.float32))
-        return (torch.cat(chunks),)
+            chunk = chunk.to(device)
+            worked_on = chunk
+            chunks.append(chunk.cpu().to(torch.float32))
+        result = torch.cat(chunks)
+        common.log_call("OpenOptics_DepthTemporalSmooth", worked_on, depth.shape[0], chunk_frames,
+                        time.perf_counter() - t0)
+        return (result,)
