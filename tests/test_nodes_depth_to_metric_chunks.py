@@ -6,6 +6,7 @@ import torch
 from open_optics_nodes.depth_to_metric import (
     OpenOptics_DepthToMetric,
     _map_to_metric,
+    _subject_to_metric,
     depth_percentile_range,
     depth_to_metric_tensor,
 )
@@ -95,6 +96,18 @@ class TestSubjectChunks(unittest.TestCase):
         for i in range(20):
             single = node.convert(depth_mask=depth[i:i + 1], chunk_frames=1, **kwargs)[0]
             self.assertLess((single - out[i:i + 1]).abs().max().item(), 1e-5)
+
+    def test_subject_long_batch_global_scale(self):
+        torch.manual_seed(7)
+        depth = (torch.rand(20, 16, 16) * 0.5 + 0.5) * torch.linspace(0.5, 2.0, 20).view(20, 1, 1)
+        d_s = torch.quantile(depth[:, 6:11, 6:11].reshape(-1).double(), 0.5).item()
+        expected = _subject_to_metric(depth, d_s, 2.0, 0.1, 100.0, True)
+        out = OpenOptics_DepthToMetric().convert(
+            depth_mask=depth, mode="subject", subject_m=2.0, near_m=0.1,
+            far_m=100.0, inverse_depth=True, subject_x=0.5, subject_y=0.5,
+            subject_radius_px=2, anchor_scope="batch", chunk_frames=4,
+        )[0]
+        self.assertLess((out - expected).abs().max().item(), 1e-5)
 
 
 class TestSubjectDevices(unittest.TestCase):
