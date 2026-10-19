@@ -1,5 +1,7 @@
 """Lens Distortion node: apply or remove Brown-Conrady lens distortion."""
 
+import time
+
 import torch
 
 from open_optics_nodes import common, distortion_grid
@@ -47,6 +49,7 @@ class OpenOptics_LensDistortion:
         on get_device(); the result does not depend on it. Returns a 1-tuple
         with a CPU float32 IMAGE [B, H, W, C], 0-1.
         """
+        t0 = time.perf_counter()
         common.check_chunk_frames(chunk_frames)
         common.check_image(image)
         device = get_device()
@@ -66,8 +69,13 @@ class OpenOptics_LensDistortion:
             w, h, focal_mm, sensor_width_mm, k1, k2, k3, p1, p2, direction, zoom)
         grid_t = torch.tensor(grid, dtype=torch.float32, device=device).reshape(h, w, 2)
         outs = []
+        worked_on = device
         for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
             out = distortion_grid.sample_bilinear(
                 image[start:stop].to(device), grid_t, outside=outside)
+            worked_on = out
             outs.append(out.cpu().to(torch.float32))
-        return (torch.cat(outs),)
+        result = torch.cat(outs)
+        common.log_call("OpenOptics_LensDistortion", worked_on, image.shape[0], chunk_frames,
+                        time.perf_counter() - t0)
+        return (result,)

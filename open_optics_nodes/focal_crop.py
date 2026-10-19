@@ -1,6 +1,7 @@
 """Focal Crop node: simulate a longer focal length by a centre crop."""
 
 import math
+import time
 
 import torch
 import torch.nn.functional as F
@@ -43,6 +44,7 @@ class OpenOptics_FocalCrop:
         default 8) is how many frames are processed at a time on get_device();
         the result does not depend on it and is returned on the CPU as float32.
         """
+        t0 = time.perf_counter()
         common.check_chunk_frames(chunk_frames)
         common.check_image(image)
         source_focal_mm = common.require_positive("source_focal_mm", source_focal_mm)
@@ -62,11 +64,17 @@ class OpenOptics_FocalCrop:
         top, left = (h - ch) // 2, (w - cw) // 2
         device = get_device()
         outs = []
+        worked_on = device
         for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
             out = image[start:stop, top:top + ch, left:left + cw, :].to(device)
             if output_size == "original" and (ch, cw) != (h, w):
                 nchw = out.permute(0, 3, 1, 2)
                 nchw = F.interpolate(nchw, size=(h, w), mode="bilinear", align_corners=False)
                 out = nchw.permute(0, 2, 3, 1)
-            outs.append(common.finish(out).cpu().to(torch.float32))
-        return (torch.cat(outs),)
+            out = common.finish(out)
+            worked_on = out
+            outs.append(out.cpu().to(torch.float32))
+        result = torch.cat(outs)
+        common.log_call("OpenOptics_FocalCrop", worked_on, image.shape[0], chunk_frames,
+                        time.perf_counter() - t0)
+        return (result,)
