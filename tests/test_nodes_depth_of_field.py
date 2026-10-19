@@ -300,6 +300,17 @@ class TestDepthOfFieldChunking(unittest.TestCase):
             self.assertTrue(torch.allclose(coc_px, ref_coc, atol=1e-5))
         self.assertTrue(torch.equal(img, before))
 
+    def test_outputs_are_cpu_float32(self):
+        g = torch.Generator().manual_seed(11)
+        img = torch.rand(4, 32, 32, 3, generator=g)
+        depth = 1.0 + 9.0 * torch.rand(4, 32, 32, generator=g)
+        before = img.clone()
+        out, coc_px = OpenOptics_DepthOfField().apply(img, depth_mask=depth, chunk_frames=3)
+        for t in (out, coc_px):
+            self.assertEqual(t.device.type, "cpu")
+            self.assertEqual(t.dtype, torch.float32)
+        self.assertTrue(torch.equal(img, before))
+
 
 if __name__ == "__main__":
     unittest.main()

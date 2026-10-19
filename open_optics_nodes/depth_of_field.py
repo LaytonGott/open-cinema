@@ -5,6 +5,7 @@ import math
 import torch
 
 from open_optics_nodes import common
+from open_optics_nodes.device import get_device
 from open_optics_nodes.dof_math import composite_layers, coc_radius_map
 
 _LAYERS = {"draft": 4, "normal": 8}
@@ -67,13 +68,14 @@ class OpenOptics_DepthOfField:
         if max_radius_px == 0:
             return (common.finish(image.clone()),
                     torch.zeros(image.shape[:3], dtype=torch.float32))
+        device = get_device()
         outs, cocs = [], []
         for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
-            linear = common.to_linear(image[start:stop], colorspace)
-            depth_c = depth[start:stop]
+            linear = common.to_linear(image[start:stop].to(device), colorspace)
+            depth_c = depth[start:stop].to(device)
             radius = coc_radius_map(depth_c, focal_mm, f_number, focus_m, sensor_width_mm,
                                     max_radius_px)
             result = composite_layers(linear, depth_c, radius, _LAYERS[quality], focus_m)
-            outs.append(common.finish(common.from_linear(result, colorspace)))
-            cocs.append(common.finish(radius / float(max_radius_px)))
+            outs.append(common.finish(common.from_linear(result, colorspace)).cpu().to(torch.float32))
+            cocs.append(common.finish(radius / float(max_radius_px)).cpu().to(torch.float32))
         return (torch.cat(outs), torch.cat(cocs))
