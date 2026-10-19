@@ -118,6 +118,13 @@ class TestFraming(unittest.TestCase):
         px = subject_height_px(50, 24, 1080, 4.0, 1.7)
         self.assertAlmostEqual(subject_distance_m(50, 24, px, 1080, 1.7), 4.0, places=6)
 
+    def test_round_trip_from_distance_default_real_height(self):
+        for focal_mm, distance_m in ((24, 2.0), (85, 7.5), (135, 30.0)):
+            with self.subTest(focal_mm=focal_mm, distance_m=distance_m):
+                px = subject_height_px(focal_mm, 24, 1080, distance_m)
+                self.assertAlmostEqual(
+                    subject_distance_m(focal_mm, 24, px, 1080), distance_m, places=6)
+
     def test_subject_height_px_rejects_close_distance(self):
         with self.assertRaisesRegex(ValueError, "distance_m"):
             subject_height_px(50, 24, 1080, 0.05)
