@@ -69,25 +69,27 @@ class RecordComparisonTest(unittest.TestCase):
     def test_comparison_appends_section(self):
         original = HEADER + ROW_A + TAIL
         self.write(original)
-        record_comparison(14.14, path=self.path)
+        record_comparison(12.0, 60.0, path=self.path)
         text = self.read()
         self.assertTrue(text.startswith(original))
         self.assertEqual(text.count(self.HEADING), 1)
-        self.assertIn("took 14.1 s", text)
-        self.assertIn("took 70.7 s", text)
-        self.assertIn("costs 20.0%", text)
+        self.assertIn("12.0 s", text)
+        self.assertIn("60.0 s", text)
+        self.assertIn("20.0%", text)
 
     def test_comparison_replaces_section(self):
-        before = HEADER + ROW_A + TAIL + "\n"
-        self.write(before + self.HEADING + "\n\nOLD SENTENCE\nmore old text\n")
-        record_comparison(14.14, path=self.path)
+        original = HEADER + ROW_A + TAIL
+        self.write(original)
+        record_comparison(12.0, 60.0, path=self.path)
+        record_comparison(15.0, 50.0, path=self.path)
         text = self.read()
-        self.assertTrue(text.startswith(before))
-        self.assertNotIn("OLD SENTENCE", text)
-        self.assertNotIn("more old text", text)
+        self.assertTrue(text.startswith(original))
         self.assertEqual(text.count(self.HEADING), 1)
-        self.assertIn("took 14.1 s", text)
-        self.assertIn("costs 20.0%", text)
+        self.assertNotIn("12.0 s", text)
+        self.assertNotIn("20.0%", text)
+        self.assertIn("15.0 s", text)
+        self.assertIn("50.0 s", text)
+        self.assertIn("30.0%", text)
 
 
 if __name__ == "__main__":
