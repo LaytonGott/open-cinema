@@ -860,7 +860,7 @@ def first_release_kwargs(expected, size=32, frames=3):
     kwargs = {}
     for section in ("required", "optional"):
         for name, typ, opts in expected.get(section, []):
-            if "depth" in name:
+            if "depth" in name and typ in ("IMAGE", "MASK"):
                 kwargs[name] = 0.5 + 0.5 * torch.rand(frames, size, size, dtype=torch.float32)
             elif typ == "IMAGE":
                 kwargs[name] = torch.rand(frames, size, size, 3, dtype=torch.float32)
@@ -894,6 +894,41 @@ class FirstReleaseKwargsTest(unittest.TestCase):
                         if typ == "IMAGE" and "depth" not in name:
                             self.assertEqual(list(kwargs[name].shape), [3, 32, 32, 3])
                             self.assertEqual(kwargs[name].dtype, torch.float32)
+
+
+def run_first_release(key, device):
+    """Run node `key` on `device` ('cpu' or 'cuda') with first-release inputs.
+
+    Sets OPEN_OPTICS_DEVICE to `device` for the call and restores it afterwards.
+    Returns (kwargs, outputs): the kwargs dict used and the node's output tuple.
+    """
+    with open(FIXTURE, encoding="utf-8") as f:
+        expected = json.load(f)[key]
+    kwargs = first_release_kwargs(expected)
+    if "depth_mask" in kwargs and "depth_image" in kwargs:
+        del kwargs["depth_image"]  # nodes accept exactly one depth source
+    cls = NODE_CLASS_MAPPINGS[key]
+    previous = os.environ.get("OPEN_OPTICS_DEVICE")
+    os.environ["OPEN_OPTICS_DEVICE"] = device
+    try:
+        outputs = getattr(cls(), cls.FUNCTION)(**kwargs)
+    finally:
+        if previous is None:
+            os.environ.pop("OPEN_OPTICS_DEVICE", None)
+        else:
+            os.environ["OPEN_OPTICS_DEVICE"] = previous
+    return kwargs, outputs
+
+
+class RunFirstReleaseTest(unittest.TestCase):
+    def test_returns_tuple_on_cpu(self):
+        _, outputs = run_first_release("OpenOptics_DepthToMetric", "cpu")
+        self.assertIsInstance(outputs, tuple)
+
+    def test_env_restored(self):
+        before = os.environ.get("OPEN_OPTICS_DEVICE")
+        run_first_release("OpenOptics_DepthToMetric", "cpu")
+        self.assertEqual(os.environ.get("OPEN_OPTICS_DEVICE"), before)
 
 
 class FixturesPresentTest(unittest.TestCase):
