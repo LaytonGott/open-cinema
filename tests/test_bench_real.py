@@ -38,6 +38,67 @@ def parse_layers(message):
     return int(match.group(1))
 
 
+def run_chain(fixture_dir):
+    """Run Depth to Metric, Temporal Smooth and Depth of Field on the real clip in fixture_dir (CUDA).
+
+    Returns a dict: metric_s, smooth_s, dof_s (seconds per node call), layers (count from the last
+    Depth of Field log message), peak_gib (peak GPU memory of the chain, GiB) and output (the Depth of
+    Field image tensor, float32 [B, H, W, C] on the CPU). Only reads the fixture.
+    """
+    import logging
+    import time
+    from unittest import mock
+
+    import numpy as np
+
+    import open_optics_nodes
+
+    frames = torch.from_numpy(np.load(os.path.join(fixture_dir, "frames_u8.npy"))).float().div_(255.0).contiguous()
+    depth = torch.from_numpy(np.load(os.path.join(fixture_dir, "depth_u8.npy"))).float().div_(255.0).contiguous()
+    mask = torch.from_numpy(np.load(os.path.join(fixture_dir, "subject_mask_u8.npy"))).float().div_(255.0).contiguous()
+
+    messages = []
+
+    class Collect(logging.Handler):
+        def emit(self, record):
+            messages.append(record.getMessage())
+
+    def call(key, **kw):
+        cls = open_optics_nodes.NODE_CLASS_MAPPINGS[key]
+        start = time.perf_counter()
+        out = getattr(cls(), cls.FUNCTION)(**kw)
+        torch.cuda.synchronize()
+        return out, time.perf_counter() - start
+
+    settings = dict(focal_mm=50.0, f_number=1.8, focus_m=2.0, sensor_width_mm=36.0,
+                    quality="normal", max_radius_px=24, colorspace="srgb")
+    logger = logging.getLogger("open_optics_nodes")
+    handler = Collect(level=logging.INFO)
+    old_level = logger.level
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    try:
+        with mock.patch.dict(os.environ, {"OPEN_OPTICS_DEVICE": "cuda"}):
+            call("OpenOptics_DepthOfField", image=frames[:2].clone(),
+                 depth_mask=(depth[:2] * 5 + 1).clone(), **settings)
+            torch.cuda.reset_peak_memory_stats()
+            out, metric_s = call("OpenOptics_DepthToMetric", depth_mask=depth, subject_mask=mask,
+                                 mode="subject", subject_m=2.0, anchor_scope="frame",
+                                 inverse_depth=True, near_m=0.3, far_m=500.0)
+            metric = out[0]
+            out, smooth_s = call("OpenOptics_DepthTemporalSmooth", depth=metric, strength=0.7)
+            smooth = out[0]
+            del messages[:]
+            out, dof_s = call("OpenOptics_DepthOfField", image=frames, depth_mask=smooth, **settings)
+            peak_gib = torch.cuda.max_memory_allocated() / 1024 ** 3
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(old_level)
+    dof_messages = [m for m in messages if "node=OpenOptics_DepthOfField" in m]
+    return {"metric_s": metric_s, "smooth_s": smooth_s, "dof_s": dof_s,
+            "layers": parse_layers(dof_messages[-1]), "peak_gib": peak_gib, "output": out[0]}
+
+
 @unittest.skipUnless(os.environ.get("OPEN_OPTICS_BENCH") == "1", "set by npm run test:bench")
 class TestBenchReal(unittest.TestCase):
     @classmethod
