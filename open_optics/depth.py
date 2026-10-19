@@ -110,3 +110,19 @@ def subject_pixel(x, y, width, height):
     (round(x*(width-1)), round(y*(height-1))).
     """
     return (round(x * (width - 1)), round(y * (height - 1)))
+
+
+def subject_median(values):
+    """Median of the unitless depth values in the subject region.
+
+    values is an iterable of unitless relative depths. Returns the median as
+    a float in the same unit as values (the mean of the two middle values for
+    an even count, as torch.quantile(0.5)). Raises ValueError for empty
+    values or any non-finite value.
+    """
+    items = list(values)
+    if not items:
+        raise ValueError("values must not be empty")
+    if not all(math.isfinite(v) for v in items):
+        raise ValueError("values must all be finite")
+    return percentile(items, 50)

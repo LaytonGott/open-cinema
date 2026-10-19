@@ -7,6 +7,7 @@ from open_optics.depth import (
     fit_depth_mapping,
     metric_depth_coefficients,
     percentile,
+    subject_median,
     subject_pixel,
     validate_depth_params,
 )
@@ -106,6 +107,25 @@ class TestSubjectPixel(unittest.TestCase):
 
     def test_non_square(self):
         self.assertEqual(subject_pixel(1, 1, 9, 5), (8, 4))
+
+
+class TestSubjectMedian(unittest.TestCase):
+    def test_even_count(self):
+        self.assertAlmostEqual(subject_median([1, 2, 3, 10]), 2.5, places=9)
+
+    def test_odd_count(self):
+        self.assertAlmostEqual(subject_median([1, 2, 9]), 2.0, places=9)
+
+    def test_outlier_does_not_move_it(self):
+        self.assertAlmostEqual(subject_median([5, 5, 5, 5, 1000]), 5.0, places=9)
+
+    def test_empty_raises(self):
+        with self.assertRaises(ValueError):
+            subject_median([])
+
+    def test_nan_raises(self):
+        with self.assertRaises(ValueError):
+            subject_median([1, float("nan")])
 
 
 if __name__ == "__main__":
