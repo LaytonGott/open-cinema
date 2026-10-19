@@ -88,11 +88,13 @@ def combo_problems(key, spec, expected):
             choices = list(value[0])
             opts = value[1] if len(value) > 1 and isinstance(value[1], dict) else {}
             if "default" not in opts:
-                problems.append(f"{key}: added combo '{name}' has no default")
+                problems.append(f"{key}: added combo '{name}' has no default; "
+                    "add a default equal to the first choice")
             elif choices and opts["default"] != choices[0]:
                 problems.append(
                     f"{key}: added combo '{name}' default '{opts['default']}' "
-                    f"is not its first choice '{choices[0]}'")
+                    f"is not its first choice '{choices[0]}'; "
+                    "set the default to the first choice")
     return problems
 
 
@@ -116,8 +118,12 @@ class AddedComboDefaultTest(unittest.TestCase):
         spec["optional"]["nodef"] = (["a", "b"],)
         spec["optional"]["second"] = (["a", "b"], {"default": "b"})
         problems = combo_problems(key, spec, expected)
-        self.assertTrue(any(key in p and "nodef" in p for p in problems), problems)
-        self.assertTrue(any(key in p and "second" in p for p in problems), problems)
+        self.assertTrue(any(key in p and "nodef" in p
+                            and "add a default equal to the first choice" in p
+                            for p in problems), problems)
+        self.assertTrue(any(key in p and "second" in p
+                            and "set the default to the first choice" in p
+                            for p in problems), problems)
 
 
 def default_problems(key, cls, expected):
