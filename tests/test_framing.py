@@ -120,6 +120,23 @@ class TestFraming(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, name):
                         subject_distance_m(**kwargs)
 
+    def test_error_messages_name_value(self):
+        with self.assertRaises(ValueError) as cm:
+            subject_distance_m(50, 24, -3, 1200)
+        self.assertIn("subject_height_px", str(cm.exception))
+        self.assertIn("-3", str(cm.exception))
+        with self.assertRaises(ValueError) as cm:
+            subject_height_px(50, 24, 1080, 0.05)
+        self.assertIn("distance_m", str(cm.exception))
+        self.assertIn("0.05", str(cm.exception))
+        # Boundary: distance_m * 1000 equals the 50 mm focal length exactly.
+        with self.assertRaises(ValueError):
+            subject_height_px(50, 24, 1080, 50 / 1000)
+        with self.assertRaises(ValueError) as cm:
+            sensor_height_mm(36.0, 0, 704)
+        self.assertIn("image_width_px", str(cm.exception))
+        self.assertIn("0", str(cm.exception))
+
     def test_subject_distance_m_accepts_ints(self):
         self.assertIsInstance(subject_distance_m(50, 24, 600, 1200), float)
 
