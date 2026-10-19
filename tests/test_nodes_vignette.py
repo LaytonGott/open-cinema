@@ -143,5 +143,37 @@ class VignetteAcrossLensesTest(unittest.TestCase):
         self.assertTrue(torch.allclose(out, out.flip(2), atol=1e-6))
 
 
+class VignetteChunkTest(unittest.TestCase):
+    def setUp(self):
+        g = torch.Generator().manual_seed(3)
+        self.img = torch.rand(5, 16, 16, 3, generator=g)
+        self.node = OpenOptics_Vignette()
+
+    def test_input_types_lists_chunk_frames(self):
+        spec = OpenOptics_Vignette.INPUT_TYPES()["required"]["chunk_frames"]
+        self.assertEqual(spec[0], "INT")
+        self.assertEqual(spec[1]["default"], 8)
+        self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_zero_raises(self):
+        with self.assertRaises(ValueError) as cm:
+            self.node.apply(self.img, chunk_frames=0)
+        self.assertIn("chunk_frames", str(cm.exception))
+
+    def test_chunks_equal_full_batch(self):
+        full = self.node.apply(self.img, chunk_frames=5)[0]
+        for n in (1, 3):
+            out = self.node.apply(self.img, chunk_frames=n)[0]
+            self.assertEqual(out.shape, full.shape)
+            self.assertLess((out - full).abs().max().item(), 1e-5)
+
+    def test_output_cpu_and_input_unchanged(self):
+        before = self.img.clone()
+        out = self.node.apply(self.img, chunk_frames=2)[0]
+        self.assertEqual(out.device.type, "cpu")
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertTrue(torch.equal(self.img, before))
+
+
 if __name__ == "__main__":
     unittest.main()
