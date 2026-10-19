@@ -153,3 +153,14 @@ def subject_scale_metric(d, d_s, subject_m, inverse_depth):
             return math.inf
         return subject_m * d_s / d
     return subject_m * d / d_s
+
+
+def subject_metric_depth(d, d_s, subject_m, near_m, far_m, inverse_depth):
+    """Metric distance of a pixel from the subject's distance, clamped.
+
+    Takes the arguments of subject_scale_metric, plus near_m and far_m, the
+    clamp range in metres. Returns metres as a float: the subject_scale_metric
+    value clamped to [near_m, far_m]; infinity gives far_m.
+    """
+    z = subject_scale_metric(d, d_s, subject_m, inverse_depth)
+    return float(min(max(z, near_m), far_m))

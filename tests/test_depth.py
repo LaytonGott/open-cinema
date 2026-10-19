@@ -8,6 +8,7 @@ from open_optics.depth import (
     metric_depth_coefficients,
     percentile,
     subject_median,
+    subject_metric_depth,
     subject_pixel,
     subject_scale_metric,
     validate_depth_params,
@@ -160,6 +161,20 @@ class TestSubjectScaleMetric(unittest.TestCase):
     def test_inverse_non_positive_is_inf(self):
         self.assertEqual(subject_scale_metric(0, 0.8, 2, True), float("inf"))
         self.assertEqual(subject_scale_metric(-1, 0.8, 2, True), float("inf"))
+
+
+class TestSubjectMetricDepth(unittest.TestCase):
+    def test_inverse(self):
+        for d, want in [(0.8, 2.0), (0.4, 4.0), (1.6, 1.0), (0.1, 10.0), (0, 10.0)]:
+            self.assertAlmostEqual(
+                subject_metric_depth(d, 0.8, 2, 0.5, 10, True), want, places=6
+            )
+
+    def test_depth_like(self):
+        for d, want in [(0.8, 2.0), (0.4, 1.0), (1.6, 4.0), (0.1, 0.5)]:
+            self.assertAlmostEqual(
+                subject_metric_depth(d, 0.8, 2, 0.5, 10, False), want, places=6
+            )
 
 
 if __name__ == "__main__":
