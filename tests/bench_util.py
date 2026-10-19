@@ -109,6 +109,74 @@ def record_result(node_key, chunk_frames, seconds, peak_gib, path=None):
 
 
 COMPARISON_HEADING = "## Compared with video generation"
+REAL_CLIP_HEADING = "## Real clip"
+
+
+def record_real_clip(depth_to_metric_s, smooth_s, dof_s, layers, peak_gib,
+                     path=None):
+    """Write the real clip section of the node speed document.
+
+    Rewrites the section of docs/node-speed.md (or path) that starts at the
+    line "## Real clip" and runs up to the next line starting with "## " (or
+    to the end of the file). If the section is missing it is inserted just
+    before the "## Compared with video generation" heading, or appended if
+    that is missing too. depth_to_metric_s, smooth_s and dof_s are in seconds
+    (1 decimal), layers is the largest Depth of Field layer count used and
+    peak_gib is the peak GPU memory in GiB (2 decimals). Other lines stay
+    untouched. Only benchmark tests may call it.
+
+    Returns None.
+    """
+    if path is None:
+        path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "docs", "node-speed.md")
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        lines = f.read().splitlines(keepends=True)
+    section = [
+        f"{REAL_CLIP_HEADING}\n",
+        "\n",
+        f"Measured on the saved real clip ({BENCH_FRAMES} frames at"
+        f" {BENCH_WIDTH}x{BENCH_HEIGHT}).\n",
+        "\n",
+        "| measure | measured | standalone limit | ComfyUI target |\n",
+        "| --- | --- | --- | --- |\n",
+        f"| Depth to Metric (s) | {depth_to_metric_s:.1f} | 10 | |\n",
+        f"| Temporal Smooth (s) | {smooth_s:.1f} | 6 | 10 |\n",
+        f"| Depth of Field (s) | {dof_s:.1f} | 20 | 30 |\n",
+        f"| Depth of Field layers (largest used) | {layers} | | |\n",
+        f"| Peak GPU memory (GiB) | {peak_gib:.2f} | 8 | |\n",
+    ]
+    start = None
+    for i, line in enumerate(lines):
+        if line.rstrip("\r\n") == REAL_CLIP_HEADING:
+            start = i
+            break
+    if start is not None:
+        end = len(lines)
+        for j in range(start + 1, len(lines)):
+            if lines[j].startswith("## "):
+                end = j
+                break
+        if end < len(lines):
+            section.append("\n")
+        lines[start:end] = section
+    else:
+        at = len(lines)
+        for i, line in enumerate(lines):
+            if line.rstrip("\r\n") == COMPARISON_HEADING:
+                at = i
+                break
+        if at == len(lines):
+            if lines and not lines[-1].endswith("\n"):
+                lines[-1] += "\n"
+            if lines:
+                section.insert(0, "\n")
+        else:
+            section.append("\n")
+        lines[at:at] = section
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write("".join(lines))
 
 
 def record_comparison(dof_seconds, generation_seconds=70.7,
