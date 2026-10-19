@@ -92,3 +92,103 @@ folder, then the upload widget's fixed value `"image"`.
 
 A `PreviewImage` node has one `images` input of type `IMAGE`, no outputs, and
 `widgets_values` of `[]`.
+
+## OpenOptics_DepthToMetric
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `near_m` | 0.5 |
+| `far_m` | 10.0 |
+| `inverse_depth` | true |
+| `low_percentile` | 2.0 |
+| `high_percentile` | 98.0 |
+| `chunk_frames` | 8 |
+| `mode` | near_far (`near_far` or `subject`) |
+| `subject_m` | 3.0 |
+| `subject_x` | 0.5 |
+| `subject_y` | 0.5 |
+| `subject_radius_px` | 4 |
+| `anchor_scope` | batch (`batch` or `frame`) |
+
+Linked inputs (all optional):
+
+- `depth_mask` (`MASK`)
+- `depth_image` (`IMAGE`)
+- `subject_mask` (`MASK`)
+
+Outputs (`RETURN_TYPES`):
+
+- `depth_m` (`MASK`)
+- `preview` (`IMAGE`)
+
+## OpenOptics_FocalCrop
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `source_focal_mm` | 24.0 |
+| `target_focal_mm` | 50.0 |
+| `output_size` | original (`original` or `cropped`) |
+| `chunk_frames` | 8 |
+
+Linked inputs:
+
+- `image` (`IMAGE`)
+
+Outputs (`RETURN_TYPES`):
+
+- `IMAGE` (`IMAGE`; the node defines no `RETURN_NAMES`)
+
+## OpenOptics_DepthOfField
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `focal_mm` | 50.0 |
+| `f_number` | 2.8 |
+| `focus_m` | 3.0 |
+| `sensor_width_mm` | 36.0 |
+| `quality` | normal (`draft` or `normal`) |
+| `max_radius_px` | 16 |
+| `colorspace` | srgb (`srgb` or `linear`) |
+| `chunk_frames` | 8 |
+
+Linked inputs:
+
+- `image` (`IMAGE`, required)
+- `depth_mask` (`MASK`, optional)
+- `depth_image` (`IMAGE`, optional)
+
+Outputs (`RETURN_TYPES`):
+
+- `image` (`IMAGE`)
+- `coc_px` (`MASK`)
+
+## OpenOptics_LensDistortion
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `focal_mm` | 35.0 |
+| `sensor_width_mm` | 36.0 |
+| `k1` | 0.0 |
+| `k2` | 0.0 |
+| `k3` | 0.0 |
+| `p1` | 0.0 |
+| `p2` | 0.0 |
+| `direction` | apply (`apply` or `remove`) |
+| `fit` | keep (`keep` or `crop`) |
+| `chunk_frames` | 8 |
+
+Linked inputs:
+
+- `image` (`IMAGE`)
+
+Outputs (`RETURN_TYPES`):
+
+- `IMAGE` (`IMAGE`; the node defines no `RETURN_NAMES`)
