@@ -159,6 +159,26 @@ def _subject_depth(values):
     return d_s
 
 
+def _median_tensor(values):
+    """Return the validated median of a 1-D float64 tensor of depths as a float.
+
+    values is a 1-D float64 tensor of unitless depth values. Returns the median
+    (unitless; the mean of the two middle values for an even count) after
+    validate_subject_depth. An empty tensor or any non-finite value falls back
+    to _subject_depth(values.tolist()), so its errors are unchanged.
+    """
+    n = values.numel()
+    if n == 0 or not bool(torch.isfinite(values).all()):
+        return _subject_depth(values.tolist())
+    s = torch.sort(values).values
+    if n % 2:
+        d_s = float(s[n // 2])
+    else:
+        d_s = float((s[n // 2 - 1] + s[n // 2]) / 2)
+    validate_subject_depth(d_s)
+    return d_s
+
+
 def _subject_frame_depths(depth, region):
     """Return the per-frame subject depth as a float64 tensor [B].
 
@@ -173,7 +193,7 @@ def _subject_frame_depths(depth, region):
         values = depth[b][region[b]].detach().to(torch.float64)
         if values.numel() == 0:
             raise ValueError(f"frame {b} has no subject pixel in region")
-        out.append(_subject_depth(values.tolist()))
+        out.append(_median_tensor(values))
     return torch.tensor(out, dtype=torch.float64)
 
 
@@ -289,7 +309,7 @@ class OpenOptics_DepthToMetric:
                 d_s = _subject_frame_depths(depth, region)
             else:
                 values = depth.detach()[region].to(torch.float64)
-                d_s = _subject_depth(values.tolist())
+                d_s = _median_tensor(values)
         else:
             validate_depth_params(near_m, far_m, low_percentile, high_percentile)
             d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
