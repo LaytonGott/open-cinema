@@ -1,0 +1,57 @@
+{
+  "last_node_id": 4,
+  "last_link_id": 2,
+  "nodes": [
+    {
+      "id": 1, "type": "LoadImage", "pos": [0, 0], "size": [315, 314], "flags": {}, "order": 0, "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [2], "slot_index": 0 },
+        { "name": "MASK", "type": "MASK", "links": null, "slot_index": 1 }
+      ],
+      "properties": { "Node name for S&R": "LoadImage" },
+      "widgets_values": ["photo.png", "image"]
+    },
+    {
+      "id": 2, "type": "LoadImage", "pos": [0, 400], "size": [315, 314], "flags": {}, "order": 1, "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [1], "slot_index": 0 },
+        { "name": "MASK", "type": "MASK", "links": null, "slot_index": 1 }
+      ],
+      "properties": { "Node name for S&R": "LoadImage" },
+      "widgets_values": ["depth.png", "image"]
+    },
+    {
+      "id": 3, "type": "OpenOptics_DepthToMetric", "pos": [400, 400], "size": [315, 330], "flags": {}, "order": 2, "mode": 0,
+      "inputs": [
+        { "name": "depth_image", "type": "IMAGE", "link": 1 }
+      ],
+      "outputs": [
+        { "name": "depth_m", "type": "MASK", "links": null, "slot_index": 0 },
+        { "name": "preview", "type": "IMAGE", "links": null, "slot_index": 1 }
+      ],
+      "properties": { "Node name for S&R": "OpenOptics_DepthToMetric" },
+      "widgets_values": [0.5, 10.0, true, 2.0, 98.0, 8, "near_far", 3.0, 0.5, 0.5, 4, "batch"]
+    },
+    {
+      "id": 4, "type": "OpenOptics_FocalCrop", "pos": [400, 0], "size": [315, 130], "flags": {}, "order": 3, "mode": 0,
+      "inputs": [
+        { "name": "image", "type": "IMAGE", "link": 2 }
+      ],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": null, "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "OpenOptics_FocalCrop" },
+      "widgets_values": [24.0, 50.0, "original", 8]
+    }
+  ],
+  "links": [
+    [1, 2, 0, 3, 0, "IMAGE"],
+    [2, 1, 0, 4, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
