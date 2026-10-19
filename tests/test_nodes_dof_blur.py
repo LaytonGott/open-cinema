@@ -1,8 +1,12 @@
+import os
 import unittest
+from unittest import mock
 
 import torch
+import torch.nn.functional as F
 
 from open_optics_nodes import dof_blur
+from open_optics_nodes.device import get_device
 
 
 class DofBlurTest(unittest.TestCase):
@@ -52,6 +56,40 @@ class DofBlurTest(unittest.TestCase):
         self.assertLess((cpu - gpu.cpu()).abs().max().item(), 1e-4)
         del gpu
         torch.cuda.empty_cache()
+
+    def _devices(self):
+        for name in ("cpu", "cuda"):
+            if name == "cuda" and not torch.cuda.is_available():
+                continue
+            with mock.patch.dict(os.environ, {"OPEN_OPTICS_DEVICE": name}):
+                yield get_device()
+
+    def test_fft_matches_direct_conv(self):
+        g = torch.Generator().manual_seed(1)
+        x0 = torch.rand(1, 4, 40, 48, generator=g, dtype=torch.float32)
+        for device in self._devices():
+            x = x0.to(device)
+            out = dof_blur.blur_layer(x, 6.5)
+            pad = 7
+            kernel = dof_blur.disc_kernel(6.5, device)
+            weight = kernel[None, None].repeat(4, 1, 1, 1)
+            padded = F.pad(x, (pad, pad, pad, pad), mode="replicate")
+            ref = F.conv2d(padded, weight, groups=4)
+            self.assertLess((out - ref).abs().max().item(), 1e-5)
+            del out, ref, x
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+
+    def test_fft_shape_and_dtype(self):
+        x0 = torch.rand(2, 3, 20, 31, dtype=torch.float32)
+        for device in self._devices():
+            out = dof_blur.blur_layer(x0.to(device), 5.0)
+            self.assertEqual(tuple(out.shape), (2, 3, 20, 31))
+            self.assertEqual(out.dtype, torch.float32)
+            self.assertEqual(out.device.type, device.type)
+            del out
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":
