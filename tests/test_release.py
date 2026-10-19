@@ -514,5 +514,36 @@ class TestWidgetValues(unittest.TestCase):
         self.assertIn(f"{short_node['type']} (id {short_node['id']}): widgets_values has", text)
 
 
+class TestFailureMessages(unittest.TestCase):
+    def test_readme_message_names_heading_and_file(self):
+        text = "\n".join(l for l in _readme_text().splitlines() if "licence" not in l.lower() or not l.startswith("#"))
+        message = "\n".join(readme_problems(text, []))
+        self.assertIn("Licence", message)
+        self.assertIn("README.md", message)
+
+    def test_link_message_names_link_id(self):
+        wf = copy.deepcopy(_load_workflow())
+        link = wf["links"][0]
+        link[5] = "MASK" if link[5] == "IMAGE" else "IMAGE"
+        self.assertIn(f"link {link[0]}", "\n".join(link_type_problems(wf)))
+
+    def test_widget_message_names_node_type_and_widget(self):
+        wf = copy.deepcopy(_load_workflow())
+        for node in wf["nodes"]:
+            if not node["type"].startswith("OpenOptics_"):
+                continue
+            pairs = widget_inputs(NODE_CLASS_MAPPINGS[node["type"]])
+            values = node.get("widgets_values", [])
+            for i, (name, spec) in enumerate(pairs[:len(values)]):
+                opts = spec[1] if len(spec) > 1 and isinstance(spec[1], dict) else {}
+                if spec[0] in ("INT", "FLOAT") and "max" in opts:
+                    values[i] = opts["max"] * 1000 + 1000
+                    message = "\n".join(widget_value_problems(wf))
+                    self.assertIn(node["type"], message)
+                    self.assertIn(name, message)
+                    return
+        self.fail("no OpenOptics node with a numeric widget that has a max")
+
+
 if __name__ == "__main__":
     unittest.main()
