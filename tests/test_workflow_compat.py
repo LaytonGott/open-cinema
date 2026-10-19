@@ -1232,6 +1232,28 @@ class FirstReleaseCallTest(unittest.TestCase):
                 self.assertEqual([], problems, "; ".join(problems))
 
 
+class LegacyOldResultsTest(unittest.TestCase):
+    def test_legacy_workflow_nodes_keep_old_results(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        types = {node["class_type"]
+                 for path in workflow_files()
+                 for node in workflow_graph(path).values()}
+        keys = sorted(t for t in types if t in fixture and t in NODE_CLASS_MAPPINGS)
+        self.assertTrue(keys)
+        for key in keys:
+            with self.subTest(key=key):
+                expected = fixture[key]
+                _, before = run_first_release(key, "cpu")
+                _, after = run_first_release(key, "cpu", added_defaults(key, expected))
+                for i in range(min(len(before), len(after))):
+                    if torch.is_tensor(before[i]):
+                        self.assertTrue(torch.allclose(before[i], after[i], atol=OLD_RESULT_ATOL),
+                                        f"output {i} changed with explicit defaults")
+                    else:
+                        self.assertEqual(before[i], after[i])
+
+
 class FixturesPresentTest(unittest.TestCase):
     def test_legacy_files_and_input_keys(self):
         legacy = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
