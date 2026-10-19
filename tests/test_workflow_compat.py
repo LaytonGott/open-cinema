@@ -272,5 +272,66 @@ class ApiValidatorTest(unittest.TestCase):
         self.assertEqual(validate_api_graph(graph), [])
 
 
+def _is_widget(decl):
+    """Return True if a declared input takes a widget slot in the UI. No units apply."""
+    typ = decl[0]
+    return typ in ("FLOAT", "INT", "BOOLEAN", "STRING") or isinstance(typ, (list, tuple))
+
+
+def ui_to_api(workflow, nodes=None):
+    """Convert a UI-format graph (keys 'nodes' and 'links') to an API-format dict.
+
+    Only Open Optics nodes (those in `nodes`, default NODE_CLASS_MAPPINGS) get inputs;
+    other nodes are kept as bare entries so links to them resolve. Widget values map by
+    position to the widget inputs (required first, then optional, in declared order).
+    No units apply.
+    """
+    nodes = NODE_CLASS_MAPPINGS if nodes is None else nodes
+    links = {link[0]: link for link in workflow.get("links", [])}
+    graph = {}
+    for node in workflow.get("nodes", []):
+        cls_name = node.get("type")
+        entry = {"class_type": cls_name, "inputs": {}}
+        graph[str(node["id"])] = entry
+        if cls_name not in nodes:
+            continue
+        spec = nodes[cls_name].INPUT_TYPES()
+        declared = {**spec.get("required", {}), **spec.get("optional", {})}
+        widgets = [name for name, decl in declared.items() if _is_widget(decl)]
+        for name, value in zip(widgets, node.get("widgets_values", [])):
+            entry["inputs"][name] = value
+        for slot in node.get("inputs", []):
+            link = links.get(slot.get("link"))
+            if slot.get("link") is not None and link is not None:
+                entry["inputs"][slot["name"]] = [str(link[1]), link[2]]
+    return graph
+
+
+def validate_ui_graph(workflow):
+    """Return a list of error strings for a UI-format graph. No units apply."""
+    return validate_api_graph(ui_to_api(workflow))
+
+
+class UiConverterTest(unittest.TestCase):
+    def test_widget_values_map_by_position(self):
+        workflow = {
+            "nodes": [
+                {"id": 1, "type": "LoadImage", "inputs": [], "widgets_values": ["a.png"]},
+                {"id": 2, "type": "OpenOptics_Vignette",
+                 "inputs": [{"name": "image", "type": "IMAGE", "link": 7}],
+                 "widgets_values": [35.0, 36.0, 1.0, "srgb", 8]},
+            ],
+            "links": [[7, 1, 0, 2, 0, "IMAGE"]],
+        }
+        inputs = ui_to_api(workflow)["2"]["inputs"]
+        self.assertEqual(inputs["focal_mm"], 35.0)
+        self.assertEqual(inputs["sensor_width_mm"], 36.0)
+        self.assertEqual(inputs["strength"], 1.0)
+        self.assertEqual(inputs["colorspace"], "srgb")
+        self.assertEqual(inputs["chunk_frames"], 8)
+        self.assertEqual(inputs["image"], ["1", 0])
+        self.assertEqual(validate_ui_graph(workflow), [])
+
+
 if __name__ == "__main__":
     unittest.main()
