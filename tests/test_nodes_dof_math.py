@@ -233,5 +233,29 @@ class MaxLayersTest(unittest.TestCase):
         self.assertEqual(torch.equal(out, ref), True)
 
 
+class CocRadiusMapManyDepthsTest(unittest.TestCase):
+    @staticmethod
+    def _expected(d):
+        return min(abs(2500 / (1.8 * 1950) * (d - 2.0) / d) * 32 / 36 / 2, 24)
+
+    def test_many_distinct_depths_match_hand_formula(self):
+        values = torch.linspace(0.6, 9.0, 512)
+        depth = values.reshape(1, 16, 32)
+        out = coc_radius_map(depth, 50.0, 1.8, 2.0, 36.0, 24)
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertEqual(out.shape, depth.shape)
+        self.assertTrue(bool(torch.isfinite(out).all()))
+        self.assertLessEqual(float(out.max()), 24)
+        for index in (0, 100, 255, 300, 400, 511):
+            d = float(values[index])
+            self.assertAlmostEqual(float(out.reshape(-1)[index]), self._expected(d), delta=1e-3)
+
+    def test_depth_exactly_at_focus_gives_zero_radius(self):
+        depth = torch.linspace(0.6, 9.0, 512).reshape(1, 16, 32)
+        depth[0, 3, 5] = 2.0
+        out = coc_radius_map(depth, 50.0, 1.8, 2.0, 36.0, 24)
+        self.assertAlmostEqual(float(out[0, 3, 5]), 0.0, delta=1e-6)
+
+
 if __name__ == "__main__":
     unittest.main()
