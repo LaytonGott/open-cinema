@@ -117,6 +117,26 @@ def _subject_region_values(depth, col, row, radius):
     return depth.detach()[:, r0:r1, c0:c1].reshape(-1).to(torch.float64)
 
 
+def _subject_mask_region(subject_mask, depth_shape):
+    """Return the subject region of a mask as a bool tensor [B, H, W].
+
+    subject_mask is a unitless tensor [B, H, W] or [1, H, W]; depth_shape is
+    (B, H, W) in pixels. A [1, H, W] mask is expanded to all B frames. Raises
+    ValueError if the mask shape does not match or no pixel is above 0.5.
+    Returns a bool tensor [B, H, W], True where subject_mask > 0.5.
+    """
+    b, h, w = depth_shape
+    shape = tuple(subject_mask.shape)
+    if len(shape) != 3 or shape[1:] != (h, w) or shape[0] not in (b, 1):
+        raise ValueError(
+            f"subject_mask has shape {shape}, expected ({b}, {h}, {w}) "
+            f"or (1, {h}, {w})")
+    region = (subject_mask > 0.5).expand(b, h, w)
+    if not bool(region.any()):
+        raise ValueError("subject_mask is empty: no pixel above 0.5")
+    return region
+
+
 def _subject_to_metric(depth, d_s, subject_m, near_m, far_m, inverse_depth):
     """Map a depth tensor to metres by scale from the subject depth.
 

@@ -5,8 +5,8 @@ import torch
 from open_optics.depth import depth_to_metric
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
 from open_optics_nodes.depth_to_metric import (
-    OpenOptics_DepthToMetric, _subject_region_values, _subject_to_metric,
-    _validate_subject_params)
+    OpenOptics_DepthToMetric, _subject_mask_region, _subject_region_values,
+    _subject_to_metric, _validate_subject_params)
 
 
 def _convert(depth, **kw):
@@ -591,6 +591,36 @@ class TestSubjectLimitsOnly(unittest.TestCase):
             self.assertTrue(bool(((out >= 1.5) & (out <= 3.0)).all()))
             for v in out[0, 3:6, 3:6].flatten().tolist():
                 self.assertAlmostEqual(v, 2.0, places=4)
+
+
+class TestSubjectMaskRegion(unittest.TestCase):
+    def test_single_mask_expanded_to_batch(self):
+        mask = torch.zeros(1, 9, 9)
+        mask[:, 3:6, 3:6] = 1.0
+        region = _subject_mask_region(mask, (2, 9, 9))
+        self.assertEqual(region.dtype, torch.bool)
+        self.assertEqual(tuple(region.shape), (2, 9, 9))
+        self.assertEqual(int(region.sum()), 18)
+
+    def test_exactly_half_is_not_subject(self):
+        mask = torch.zeros(1, 4, 4)
+        mask[0, 1, 1] = 0.5
+        mask[0, 2, 2] = 0.75
+        region = _subject_mask_region(mask, (1, 4, 4))
+        self.assertFalse(bool(region[0, 1, 1]))
+        self.assertEqual(int(region.sum()), 1)
+
+    def test_empty_mask_raises(self):
+        with self.assertRaises(ValueError):
+            _subject_mask_region(torch.zeros(1, 4, 4), (1, 4, 4))
+
+    def test_wrong_height_width_raises(self):
+        with self.assertRaises(ValueError):
+            _subject_mask_region(torch.ones(1, 4, 5), (1, 4, 4))
+
+    def test_wrong_batch_raises(self):
+        with self.assertRaises(ValueError):
+            _subject_mask_region(torch.ones(3, 4, 4), (2, 4, 4))
 
 
 if __name__ == "__main__":
