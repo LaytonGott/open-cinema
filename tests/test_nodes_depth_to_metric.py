@@ -565,6 +565,20 @@ class TestSubjectLimitsOnly(unittest.TestCase):
             self.assertTrue(torch.equal(outs[0], outs[1]))
             self.assertTrue(torch.equal(outs[0], outs[2]))
 
+    def test_clamped_exactly_at_limits(self):
+        near = float(torch.tensor(1.5, dtype=torch.float32))
+        far = float(torch.tensor(3.0, dtype=torch.float32))
+        for inverse_depth, base_want, corner_want in [(True, far, near), (False, near, far)]:
+            out, _ = OpenOptics_DepthToMetric().convert(
+                near_m=1.5, far_m=3.0, inverse_depth=inverse_depth,
+                depth_mask=self._depth(), mode="subject", subject_m=2.0,
+                subject_x=0.5, subject_y=0.5, subject_radius_px=1)
+            self.assertEqual(out[0, 1, 7].item(), base_want)
+            self.assertEqual(out[0, 0, 0].item(), corner_want)
+            self.assertTrue(bool(((out >= 1.5) & (out <= 3.0)).all()))
+            for v in out[0, 3:6, 3:6].flatten().tolist():
+                self.assertAlmostEqual(v, 2.0, places=4)
+
 
 if __name__ == "__main__":
     unittest.main()
