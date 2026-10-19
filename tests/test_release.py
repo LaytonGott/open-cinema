@@ -86,12 +86,33 @@ class TestLicenceFile(unittest.TestCase):
         self.assertIn("Version 3, 29 June 2007", text)
 
     def test_gpl_when_comfy_imported(self):
-        hits = scan_comfy_imports()
-        if hits:
-            self.assertTrue(
-                _is_gpl3(_licence_text()),
-                f"ComfyUI is imported ({hits}) so LICENSE must be GPL-3.0, but LICENSE is not",
-            )
+        problem = licence_problem(scan_comfy_imports(), _licence_text())
+        self.assertIsNone(problem, problem)
+
+
+def licence_problem(hits, licence_text):
+    """Return a message when hits is non-empty and licence_text is not GPL-3.0, else None."""
+    if hits and not _is_gpl3(licence_text):
+        return f"ComfyUI is imported ({hits}) so LICENSE must be GPL-3.0, but LICENSE is not"
+    return None
+
+
+class TestLicenceRule(unittest.TestCase):
+    MIT = "MIT License\n\nPermission is hereby granted, free of charge, to any person..."
+
+    def test_mit_with_comfy_import_is_a_problem(self):
+        self.assertIsNotNone(licence_problem([("x.py", "comfy")], self.MIT))
+
+    def test_gpl_with_comfy_import_is_fine(self):
+        self.assertIsNone(licence_problem([("x.py", "comfy")], _licence_text()))
+
+    def test_mit_without_comfy_import_is_fine(self):
+        self.assertIsNone(licence_problem([], self.MIT))
+
+    def test_real_license_is_gpl3(self):
+        text = _licence_text()
+        self.assertTrue(text.strip())
+        self.assertTrue(_is_gpl3(text))
 
 
 def _readme_text():
