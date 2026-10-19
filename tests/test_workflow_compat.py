@@ -7,6 +7,7 @@ import re
 import shutil
 import tempfile
 import unittest
+import unittest.mock
 
 import torch
 
@@ -1056,7 +1057,13 @@ def run_first_release(key, device, extra=None):
     previous = os.environ.get("OPEN_OPTICS_DEVICE")
     os.environ["OPEN_OPTICS_DEVICE"] = device
     try:
-        outputs = getattr(cls(), cls.FUNCTION)(**kwargs)
+        try:
+            outputs = getattr(cls(), cls.FUNCTION)(**kwargs)
+        except TypeError as exc:
+            problems = missing_default_run_problems(key, cls, kwargs)
+            if problems:
+                raise AssertionError("; ".join(problems)) from exc
+            raise
     finally:
         if previous is None:
             os.environ.pop("OPEN_OPTICS_DEVICE", None)
@@ -1118,6 +1125,23 @@ class MissingDefaultRunTest(unittest.TestCase):
                 return (image,)
 
         self.assertEqual(missing_default_run_problems("Fake_Node", Fake, {"image": 1}), [])
+
+
+class RunFirstReleaseMissingDefaultTest(unittest.TestCase):
+    def test_missing_default_fails_naming_node_and_input(self):
+        from open_optics_nodes.vignette import OpenOptics_Vignette
+
+        class _NoDefault(OpenOptics_Vignette):
+            FUNCTION = "run"
+
+            def run(self, image, focal_mm, sensor_width_mm, strength, colorspace, chunk_frames):
+                return self.apply(image, focal_mm, sensor_width_mm, strength, colorspace, chunk_frames)
+
+        with unittest.mock.patch.dict(NODE_CLASS_MAPPINGS, {"OpenOptics_Vignette": _NoDefault}):
+            with self.assertRaises(AssertionError) as cm:
+                run_first_release("OpenOptics_Vignette", "cpu")
+        self.assertIn("OpenOptics_Vignette", str(cm.exception))
+        self.assertIn("chunk_frames", str(cm.exception))
 
 
 class FirstReleaseCallTest(unittest.TestCase):
