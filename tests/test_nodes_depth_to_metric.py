@@ -881,5 +881,26 @@ class TestSubjectDepthInputs(unittest.TestCase):
             OpenOptics_DepthToMetric().convert(**self.KW)
 
 
+class TestSubjectMValidationMessages(unittest.TestCase):
+    def _run(self, subject_m):
+        depth = torch.rand(1, 4, 4) + 0.1
+        return _convert(depth, mode="subject", near_m=0.5, far_m=10.0,
+                        subject_m=subject_m)
+
+    def test_non_positive_raises(self):
+        for value in (0, -1):
+            with self.subTest(subject_m=value):
+                with self.assertRaisesRegex(ValueError, "subject_m"):
+                    self._run(value)
+
+    def test_out_of_range_message_names_range(self):
+        for value in (0.2, 20):
+            with self.subTest(subject_m=value):
+                with self.assertRaisesRegex(ValueError, "subject_m") as cm:
+                    self._run(value)
+                self.assertIn("0.5", str(cm.exception))
+                self.assertIn("10", str(cm.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
