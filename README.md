@@ -38,3 +38,5 @@ TODO
 The pack is released under GPL-3.0 (see LICENSE).
 
 What was checked: a scan of the root `__init__.py`, `open_optics/` and `open_optics_nodes/` for ComfyUI imports found one, the guarded, optional `import comfy.model_management` in `open_optics_nodes/device.py` (the scan is recorded in `docs/licence-scan.md` and checked by `tests/test_release.py`). ComfyUI's own LICENSE is GPL-3.0. Because the pack imports ComfyUI code, it is used as a combined work with ComfyUI, so GPL-3.0 applies. If no such import existed, MIT would have been chosen.
+
+Copied code: no code was copied from other node packs, in particular none from the packs that `docs/research.md` lists as having no LICENSE file (for example ComfyUI-Darkroom). The lens maths is original and written from published formulas. Dependencies: torch and numpy are provided by ComfyUI and are not bundled with this pack.
