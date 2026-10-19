@@ -4,7 +4,13 @@ Open Optics is a ComfyUI node pack of physically based lens effects. It covers d
 
 ## Install
 
-TODO
+Clone or copy this folder into ComfyUI's custom nodes folder as `ComfyUI\custom_nodes\open-optics`. For example, run this inside `custom_nodes`:
+
+```
+git clone <repo-url> open-optics
+```
+
+No extra pip installs are needed, because torch and numpy come with ComfyUI. Then restart ComfyUI. The nodes appear under the category "Open Optics".
 
 ## Nodes
 
