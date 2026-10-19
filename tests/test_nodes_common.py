@@ -98,6 +98,19 @@ class NodesCommonTest(unittest.TestCase):
         self.assertIn("'zzz'", msg)
         self.assertIn("['a', 'b']", msg)
 
+    def test_chunk_ranges(self):
+        self.assertEqual(common.chunk_ranges(10, 3), [(0, 3), (3, 6), (6, 9), (9, 10)])
+        self.assertEqual(common.chunk_ranges(5, 100), [(0, 5)])
+        self.assertEqual(common.chunk_ranges(0, 4), [])
+
+    def test_check_chunk_frames(self):
+        self.assertEqual(common.check_chunk_frames(8), 8)
+        for bad in (0, -1, 1.5, True):
+            with self.assertRaises(ValueError) as ctx:
+                common.check_chunk_frames(bad)
+            self.assertIn("chunk_frames", str(ctx.exception))
+            self.assertIn(str(bad), str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

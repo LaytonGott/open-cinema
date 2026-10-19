@@ -44,6 +44,34 @@ def require_choice(name, value, allowed):
     return value
 
 
+CHUNK_FRAMES_INPUT = ('INT', {'default': 8, 'min': 1, 'max': 4096, 'step': 1})
+
+
+def check_chunk_frames(value):
+    """Check that value is a whole number of frames (a unitless count) >= 1.
+
+    Returns int(value). Raises ValueError naming 'chunk_frames' and the bad
+    value if it is a bool, a non-integral number, not a number, or < 1.
+    """
+    ok = not isinstance(value, bool) and isinstance(value, (int, float))
+    if ok and isinstance(value, float):
+        ok = math.isfinite(value) and value == int(value)
+    if not ok or int(value) < 1:
+        raise ValueError(f"chunk_frames must be an integer >= 1, got {value!r}")
+    return int(value)
+
+
+def chunk_ranges(total, chunk_frames):
+    """Split total frames into (start, stop) frame index pairs.
+
+    total and chunk_frames are counts of frames. The pairs cover range(total)
+    in steps of chunk_frames; the last may be shorter. Returns a list of
+    (start, stop) tuples, empty when total is 0.
+    """
+    step = check_chunk_frames(chunk_frames)
+    return [(s, min(s + step, total)) for s in range(0, total, step)]
+
+
 def srgb_to_linear_t(t):
     """Decode sRGB-encoded values (unitless, 0-1) to linear light.
 
