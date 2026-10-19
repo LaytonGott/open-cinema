@@ -1,6 +1,6 @@
 # Node speed
 
-These numbers come from `npm run test:bench` on the RTX 3090 (NVIDIA GeForce RTX 3090, 24 GB). The benchmark tests rewrite this table.
+These numbers come from `npm run test:bench` on the RTX 3090 (NVIDIA GeForce RTX 3090, 24 GB). The benchmark tests rewrite this table. The `## Real clip` table is rewritten by `tests/test_bench_real.py` when run with `npm run test:bench`.
 
 | node | frames | size | device | chunk_frames | seconds | peak GPU memory (GiB) |
 | --- | --- | --- | --- | --- | --- | --- |
