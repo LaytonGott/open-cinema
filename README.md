@@ -12,6 +12,10 @@ git clone <repo-url> open-optics
 
 No extra pip installs are needed, because torch and numpy come with ComfyUI. Then restart ComfyUI. The nodes appear under the category "Open Optics".
 
+### Device
+
+The nodes run on ComfyUI's device when it has a GPU and fall back to the CPU otherwise. Set the environment variable `OPEN_OPTICS_DEVICE` to `cpu`, `cuda` or `auto` to override this. For long videos, set the `chunk_frames` input to limit memory use.
+
 ## Nodes
 
 | Key | Display name | Description |
