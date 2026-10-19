@@ -264,5 +264,24 @@ class TestWorkflowFile(unittest.TestCase):
                         "the same LoadImage feeds both DepthToMetric and FocalCrop")
 
 
+class TestWorkflowLinks(unittest.TestCase):
+    def test_link_types_match(self):
+        wf = _load_workflow()
+        nodes = {n["id"]: n for n in wf["nodes"]}
+        for link in wf["links"]:
+            _lid, from_node, from_slot, to_node, to_slot, link_type = link
+            out_type = nodes[from_node]["outputs"][from_slot]["type"]
+            in_type = nodes[to_node]["inputs"][to_slot]["type"]
+            self.assertEqual(out_type, link_type,
+                             f"link {link}: source output type is {out_type}, link type is {link_type}")
+            self.assertEqual(in_type, link_type,
+                             f"link {link}: target input type is {in_type}, link type is {link_type}")
+
+    def test_node_ids_unique(self):
+        wf = _load_workflow()
+        ids = [n["id"] for n in wf["nodes"]]
+        self.assertEqual(len(ids), len(set(ids)), f"node ids are not unique: {ids}")
+
+
 if __name__ == "__main__":
     unittest.main()
