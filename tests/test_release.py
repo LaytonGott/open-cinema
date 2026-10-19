@@ -309,5 +309,32 @@ class TestWorkflowLinks(unittest.TestCase):
                                      f"node {node['id']} output {slot} references link {link} with another source")
 
 
+def widget_inputs(cls):
+    """Return the (name, spec) pairs of a node class's widget inputs, required first, in order.
+
+    A widget is a list/combo spec, or a spec of type INT, FLOAT, STRING or BOOLEAN.
+    """
+    spec = cls.INPUT_TYPES()
+    pairs = []
+    for section in ("required", "optional"):
+        for name, value in (spec.get(section) or {}).items():
+            kind = value[0]
+            if isinstance(kind, (list, tuple)) or kind in ("INT", "FLOAT", "STRING", "BOOLEAN"):
+                pairs.append((name, value))
+    return pairs
+
+
+class TestWorkflowWidgets(unittest.TestCase):
+    def test_widget_count(self):
+        wf = _load_workflow()
+        for node in wf["nodes"]:
+            if not node["type"].startswith("OpenOptics_"):
+                continue
+            expected = len(widget_inputs(NODE_CLASS_MAPPINGS[node["type"]]))
+            actual = len(node.get("widgets_values", []))
+            self.assertEqual(actual, expected,
+                             f"{node['type']}: widgets_values has {actual} values, node has {expected} widget inputs")
+
+
 if __name__ == "__main__":
     unittest.main()
