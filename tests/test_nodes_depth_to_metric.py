@@ -922,5 +922,20 @@ class TestSubjectPointValidationMessages(unittest.TestCase):
                 self._run(**{name: value})
 
 
+class TestUnknownModeMessage(unittest.TestCase):
+    def test_message_lists_valid_modes(self):
+        depth = torch.rand(1, 4, 4) + 0.1
+        with self.assertRaises(ValueError) as cm:
+            _convert(depth, mode="foo")
+        self.assertIn("near_far", str(cm.exception))
+        self.assertIn("subject", str(cm.exception))
+
+    def test_raises_with_other_params_given(self):
+        depth = torch.rand(1, 4, 4) + 0.1
+        with self.assertRaises(ValueError) as cm:
+            _convert(depth, mode="foo", near_m=0.5, far_m=10.0, subject_m=2.0)
+        self.assertIn("foo", str(cm.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
