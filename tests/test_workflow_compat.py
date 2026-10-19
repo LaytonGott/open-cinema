@@ -821,6 +821,55 @@ class DemoWorkflowRunTest(unittest.TestCase):
                     errors)
 
 
+def first_release_kwargs(expected, size=32, frames=3):
+    """Return a kwargs dict for one node from fixture entry `expected` (size in pixels).
+
+    Covers every first-release required and optional input: opts['default'] when present,
+    else the first choice for combos. IMAGE is a seeded float32 random [frames, size, size, 3]
+    in 0..1, MASK a float32 ramp [frames, size, size], and any input named '*depth*' a
+    float32 [frames, size, size] tensor in 0.5..1. Other types without a default get
+    False, the minimum or 0.
+    """
+    torch.manual_seed(0)
+    kwargs = {}
+    for section in ("required", "optional"):
+        for name, typ, opts in expected.get(section, []):
+            if "depth" in name:
+                kwargs[name] = 0.5 + 0.5 * torch.rand(frames, size, size, dtype=torch.float32)
+            elif typ == "IMAGE":
+                kwargs[name] = torch.rand(frames, size, size, 3, dtype=torch.float32)
+            elif typ == "MASK":
+                ramp = torch.linspace(0.0, 1.0, size, dtype=torch.float32)
+                kwargs[name] = ramp.view(1, size, 1).expand(frames, size, size).contiguous()
+            elif "default" in opts:
+                kwargs[name] = opts["default"]
+            elif isinstance(typ, list):
+                kwargs[name] = typ[0]
+            elif typ == "BOOLEAN":
+                kwargs[name] = False
+            elif typ == "STRING":
+                kwargs[name] = ""
+            else:
+                kwargs[name] = opts.get("min", 0)
+    return kwargs
+
+
+class FirstReleaseKwargsTest(unittest.TestCase):
+    def test_kwargs_keys_and_shapes(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        for key, expected in fixture.items():
+            with self.subTest(key=key):
+                kwargs = first_release_kwargs(expected)
+                names = [e[0] for s in ("required", "optional") for e in expected.get(s, [])]
+                self.assertEqual(set(kwargs), set(names))
+                for s in ("required", "optional"):
+                    for name, typ, _ in expected.get(s, []):
+                        if typ == "IMAGE" and "depth" not in name:
+                            self.assertEqual(list(kwargs[name].shape), [3, 32, 32, 3])
+                            self.assertEqual(kwargs[name].dtype, torch.float32)
+
+
 class FixturesPresentTest(unittest.TestCase):
     def test_legacy_files_and_input_keys(self):
         legacy = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
