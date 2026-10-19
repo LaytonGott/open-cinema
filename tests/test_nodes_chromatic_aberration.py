@@ -97,6 +97,29 @@ class ChromaticAberrationNodeTest(unittest.TestCase):
         out = OpenOptics_ChromaticAberration().apply(img, 0.05, -0.05)[0]
         self.assertTrue(torch.equal(out, img))
 
+    def test_chunk_frames_input(self):
+        spec = OpenOptics_ChromaticAberration.INPUT_TYPES()["required"]["chunk_frames"]
+        self.assertEqual(spec[0], "INT")
+        self.assertEqual(spec[1]["default"], 8)
+        self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_zero_raises(self):
+        img = torch.rand(2, 12, 10, 3)
+        with self.assertRaises(ValueError):
+            OpenOptics_ChromaticAberration().apply(img, 0.05, 0.05, 0)
+
+    def test_chunks_match_full(self):
+        img = torch.rand(5, 12, 10, 3)
+        before = img.clone()
+        node = OpenOptics_ChromaticAberration()
+        full = node.apply(img, 0.05, -0.03, 5)[0]
+        for n in (1, 3):
+            out = node.apply(img, 0.05, -0.03, n)[0]
+            self.assertEqual(out.device.type, "cpu")
+            self.assertEqual(out.dtype, torch.float32)
+            self.assertLessEqual((out - full).abs().max().item(), 1e-5)
+        self.assertTrue(torch.equal(img, before))
+
 
 if __name__ == "__main__":
     unittest.main()
