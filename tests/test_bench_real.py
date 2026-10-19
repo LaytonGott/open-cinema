@@ -1,10 +1,15 @@
 """Real-clip benchmark skeleton: skipped unless the benchmark fixture and CUDA are present."""
+import ast
+import inspect
 import os
 import re
+import sys
 import tempfile
 import unittest
 
 import torch
+
+from tests.bench_util import record_real_clip
 
 DEFAULT_FIXTURE_DIR = r"D:\OpenCinema\fixtures\real_clip"
 FIXTURE_FILES = ("frames_u8.npy", "depth_u8.npy", "subject_mask_u8.npy")
@@ -131,6 +136,22 @@ class TestBenchReal(unittest.TestCase):
         self.assertEqual(out.dtype, torch.float32)
         self.assertEqual(out.device.type, "cpu")
         self.assertEqual(tuple(out.shape), in_shape)
+        record_real_clip(result["metric_s"], result["smooth_s"], result["dof_s"],
+                         result["layers"], result["peak_gib"])
+
+
+class TestRealClipRecording(unittest.TestCase):
+    def test_benchmark_records_real_clip(self):
+        tree = ast.parse(inspect.getsource(sys.modules[__name__]))
+        names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    names.add(node.func.id)
+                elif isinstance(node.func, ast.Attribute):
+                    names.add(node.func.attr)
+        self.assertIn("record_real_clip", names)
+        self.assertNotIn("record_result", names)
 
 
 class TestMissingReason(unittest.TestCase):
