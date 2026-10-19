@@ -220,6 +220,16 @@ class TestWorkflowFile(unittest.TestCase):
         for t in types:
             self.assertIn(t, allowed, f"node type '{t}' is not an Open Optics node, LoadImage, PreviewImage or SaveImage")
 
+    def test_workflow_node_set_exact(self):
+        wf = _load_workflow()
+        actual = sorted(n["type"] for n in wf["nodes"])
+        expected = sorted([
+            "LoadImage", "LoadImage", "OpenOptics_DepthToMetric", "OpenOptics_FocalCrop",
+            "OpenOptics_DepthOfField", "OpenOptics_LensDistortion", "OpenOptics_Vignette",
+            "OpenOptics_ChromaticAberration", "OpenOptics_Anamorphic", "PreviewImage",
+        ])
+        self.assertEqual(actual, expected, f"workflow node types are {actual}, expected {expected}")
+
 
 if __name__ == "__main__":
     unittest.main()
