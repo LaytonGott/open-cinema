@@ -126,3 +126,18 @@ def subject_median(values):
     if not all(math.isfinite(v) for v in items):
         raise ValueError("values must all be finite")
     return percentile(items, 50)
+
+
+def subject_scale_metric(d, d_s, subject_m, inverse_depth):
+    """Metric distance of a pixel from the subject's distance, by scale only.
+
+    d is the unitless depth of the pixel, d_s the unitless subject median
+    (> 0), subject_m the subject distance in metres. Returns metres:
+    subject_m*d_s/d if inverse_depth else subject_m*d/d_s, with no offset and
+    no clamping; math.inf for inverse_depth with d <= 0.
+    """
+    if inverse_depth:
+        if d <= 0:
+            return math.inf
+        return subject_m * d_s / d
+    return subject_m * d / d_s
