@@ -343,6 +343,19 @@ class TestDepthToMetricSubjectInputs(unittest.TestCase):
         self.assertAlmostEqual(req["subject_y"][1]["default"], 0.5, places=6)
         self.assertEqual(req["subject_radius_px"][1]["default"], 4)
 
+    def test_anchor_scope_choices_and_default(self):
+        spec = self._required()["anchor_scope"]
+        self.assertEqual(list(spec[0]), ["batch", "frame"])
+        self.assertEqual(spec[1]["default"], "batch")
+
+    def test_subject_mask_optional_mask(self):
+        optional = OpenOptics_DepthToMetric.INPUT_TYPES()["optional"]
+        self.assertEqual(optional["subject_mask"][0], "MASK")
+
+    def test_unknown_anchor_scope_in_subject_mode(self):
+        with self.assertRaises(ValueError):
+            _convert(torch.tensor([[[0.0, 0.5, 1.0]]]), mode="subject", anchor_scope="bogus")
+
     def test_near_far_default_mode_values(self):
         d = torch.tensor([[[0.0, 0.5, 1.0]]])
         z, _ = _convert(d)

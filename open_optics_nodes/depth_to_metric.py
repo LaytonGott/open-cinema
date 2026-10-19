@@ -155,10 +155,12 @@ class OpenOptics_DepthToMetric:
                 "subject_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "subject_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "subject_radius_px": ("INT", {"default": 4, "min": 0, "max": 10000}),
+                "anchor_scope": (["batch", "frame"], {"default": "batch"}),
             },
             "optional": {
                 "depth_mask": ("MASK",),
                 "depth_image": ("IMAGE",),
+                "subject_mask": ("MASK",),
             },
         }
 
@@ -170,7 +172,7 @@ class OpenOptics_DepthToMetric:
     def convert(self, near_m=0.5, far_m=10.0, inverse_depth=True, low_percentile=2.0,
                 high_percentile=98.0, depth_mask=None, depth_image=None, chunk_frames=8,
                 mode="near_far", subject_m=3.0, subject_x=0.5, subject_y=0.5,
-                subject_radius_px=4):
+                subject_radius_px=4, anchor_scope="batch", subject_mask=None):
         """Convert relative depth to metres.
 
         mode ("near_far" or "subject"), subject_m (metres), subject_x and
@@ -178,6 +180,9 @@ class OpenOptics_DepthToMetric:
         the subject inputs. In subject mode the median depth in the window
         around the subject point (all frames) sets the scale so that it maps
         to subject_m, and the percentiles are ignored.
+        subject_mask: MASK [B,H,W] or [1,H,W], pixels above 0.5 are the
+        subject, point inputs ignored when connected (not used yet).
+        anchor_scope: 'batch' or 'frame' (not used yet).
 
         near_m and far_m are in metres; percentiles are 0 to 100. Exactly one
         of depth_mask or depth_image must be connected. The percentile fit uses
@@ -191,6 +196,9 @@ class OpenOptics_DepthToMetric:
         if mode == "subject":
             _validate_subject_params(mode, subject_m, near_m, far_m, subject_x,
                                      subject_y, subject_radius_px)
+            if anchor_scope not in ("batch", "frame"):
+                raise ValueError(
+                    f"unknown anchor_scope {anchor_scope!r}, expected 'batch' or 'frame'")
         elif mode != "near_far":
             raise ValueError(f"unknown mode {mode!r}, expected 'near_far' or 'subject'")
         common.check_chunk_frames(chunk_frames)
