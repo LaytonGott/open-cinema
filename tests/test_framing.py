@@ -53,6 +53,15 @@ class TestFraming(unittest.TestCase):
         self.assertAlmostEqual(subject_distance_m(100, 24, 300, 1200),
                                2 * subject_distance_m(50, 24, 300, 1200), places=6)
 
+    def test_distance_scales_with_lens_and_framing(self):
+        # hand-worked: 50 * (1 + 1700/6) / 1000 = 14.216667 m
+        self.assertAlmostEqual(subject_distance_m(50, 24, 300, 1200), 14.216667, places=6)
+        self.assertAlmostEqual(subject_distance_m(100, 24, 300, 1200), 28.433333, places=6)
+        self.assertGreater(subject_distance_m(50, 24, 150, 1200),
+                           subject_distance_m(50, 24, 300, 1200))
+        self.assertGreater(subject_distance_m(100, 24, 300, 1200),
+                           subject_distance_m(50, 24, 300, 1200))
+
     def test_distance_minus_focal_scales_with_real_height(self):
         # 2.55 m and 1.3 m by hand; minus the 0.05 m focal length: 2.5 = 2 * 1.25
         self.assertAlmostEqual(subject_distance_m(50, 24, 600, 1200, 0.6) - 0.05,
