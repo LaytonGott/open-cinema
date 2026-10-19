@@ -27,7 +27,22 @@ No extra pip installs are needed, because torch and numpy come with ComfyUI. The
 
 ## Example workflow
 
-TODO
+In ComfyUI, load `workflows/open_optics_demo.json` (menu Workflow > Open, or drag the file onto the canvas).
+
+Place two images in ComfyUI's input folder (`ComfyUI\input`): a photo, and a depth map such as Depth Anything produces (white = near, or grey-scale depth). Then set each of the two LoadImage nodes to the right file: the photo node feeds the chain, and the depth-map node feeds Depth to Metric.
+
+The stages, in order:
+
+1. Open Optics: Depth to Metric converts the depth map to metres.
+2. Open Optics: Focal Crop crops the photo to the field of view of a different focal length.
+3. Open Optics: Depth of Field blurs by distance, using the metric depth as `depth_mask`.
+4. Open Optics: Lens Distortion applies barrel or pincushion distortion.
+5. Open Optics: Vignette darkens the corners.
+6. Open Optics: Chromatic Aberration shifts the red and blue channels.
+7. Open Optics: Anamorphic Squeeze squeezes or desqueezes the width.
+8. Preview Image shows the result.
+
+Queue/Run produces a preview image.
 
 ## Tests
 
