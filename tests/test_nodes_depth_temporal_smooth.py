@@ -106,6 +106,27 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
         self.assertTrue(torch.isfinite(out).all())
         self.assertTrue((out > 0).all())
 
+    def test_chunk_frames_input_spec(self):
+        spec = OpenOptics_DepthTemporalSmooth.INPUT_TYPES()["required"]["chunk_frames"]
+        self.assertEqual(spec[0], "INT")
+        self.assertEqual(spec[1]["default"], 8)
+        self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_zero_raises(self):
+        with self.assertRaisesRegex(ValueError, "chunk_frames"):
+            OpenOptics_DepthTemporalSmooth().smooth(torch.ones(3, 4, 4), 0.7, 0)
+
+    def test_chunk_sizes_match_full(self):
+        depth = self._invalid_depth()
+        node = OpenOptics_DepthTemporalSmooth()
+        (full,) = node.smooth(depth, 0.7, 8)
+        for size in (1, 3):
+            (out,) = node.smooth(depth, 0.7, size)
+            self.assertEqual(out.device.type, "cpu")
+            self.assertEqual(out.dtype, torch.float32)
+            self.assertEqual(tuple(out.shape), (6, 8, 8))
+            torch.testing.assert_close(out, full, rtol=0, atol=1e-5)
+
     def test_input_tensor_unchanged(self):
         depth = self._invalid_depth()
         clone = depth.clone()
