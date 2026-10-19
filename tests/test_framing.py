@@ -131,6 +131,14 @@ class TestFraming(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "distance_m"):
             subject_height_px(50, 24, 1080, 0)
 
+    def test_subject_height_px_distance_beyond_focal(self):
+        with self.assertRaisesRegex(ValueError, "distance_m"):
+            subject_height_px(50, 24, 1200, 0.03)
+        with self.assertRaisesRegex(ValueError, "distance_m"):
+            subject_height_px(50, 24, 1200, 0.05)
+        # h = 50 * 1.7 * 1000 / (51 - 50) = 85000 mm; 85000 * 1200 / 24 = 4250000 px
+        self.assertAlmostEqual(subject_height_px(50, 24, 1200, 0.051), 4250000.0, places=6)
+
     def test_sensor_height_mm_rejects_bad_arguments(self):
         good = dict(sensor_width_mm=36.0, image_width_px=1280,
                     image_height_px=704)
