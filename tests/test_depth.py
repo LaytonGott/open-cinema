@@ -13,6 +13,7 @@ from open_optics.depth import (
     subject_scale_metric,
     validate_depth_params,
     validate_subject_depth,
+    validate_subject_params,
 )
 
 
@@ -175,6 +176,40 @@ class TestSubjectMetricDepth(unittest.TestCase):
             self.assertAlmostEqual(
                 subject_metric_depth(d, 0.8, 2, 0.5, 10, False), want, places=6
             )
+
+
+class TestValidateSubjectParams(unittest.TestCase):
+    def check(self, name, **changes):
+        args = dict(mode="subject", subject_m=3.0, near_m=1.0, far_m=5.0,
+                    subject_x=0.5, subject_y=0.5, subject_radius_px=4)
+        args.update(changes)
+        with self.assertRaises(ValueError) as cm:
+            validate_subject_params(**args)
+        self.assertIn(name, str(cm.exception))
+
+    def test_unknown_mode(self):
+        self.check("mode", mode="bogus")
+
+    def test_subject_m_zero(self):
+        self.check("subject_m", subject_m=0)
+
+    def test_subject_m_below_near(self):
+        self.check("subject_m", subject_m=0.5)
+
+    def test_subject_m_above_far(self):
+        self.check("subject_m", subject_m=6.0)
+
+    def test_subject_x_out_of_range(self):
+        self.check("subject_x", subject_x=1.5)
+
+    def test_subject_y_out_of_range(self):
+        self.check("subject_y", subject_y=-0.1)
+
+    def test_radius_negative(self):
+        self.check("subject_radius_px", subject_radius_px=-1)
+
+    def test_valid_does_not_raise(self):
+        self.assertIsNone(validate_subject_params("subject", 3.0, 1.0, 5.0, 0.5, 0.5, 4))
 
 
 if __name__ == "__main__":
