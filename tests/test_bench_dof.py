@@ -1,3 +1,4 @@
+import gc
 import os
 import unittest
 
@@ -14,6 +15,8 @@ class TestBenchDepthOfField(unittest.TestCase):
         torch.cuda.empty_cache()
 
     def test_bench_depth_of_field(self):
+        torch.cuda.synchronize()
+        start_memory = torch.cuda.memory_allocated()
         image = make_frames(121, 704, 1280)
         depth = make_depth(121, 704, 1280)
         kwargs = node_kwargs(OpenOptics_DepthOfField, image, depth)
@@ -33,6 +36,11 @@ class TestBenchDepthOfField(unittest.TestCase):
         self.assertGreaterEqual(float(out.min()), 0.0)
         self.assertLessEqual(float(out.max()), 1.0)
         self.assertGreater(float((out - image).abs().mean()), 0.003)
+        del outputs, out, image, depth, kwargs
+        gc.collect()
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        self.assertLessEqual(torch.cuda.memory_allocated(), start_memory)
 
 
 if __name__ == "__main__":
