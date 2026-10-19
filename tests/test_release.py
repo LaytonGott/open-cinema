@@ -5,6 +5,7 @@ ComfyUI is GPL-3.0, so the only place this repository may import it is the guard
 statement (also inside functions) in the root __init__.py, open_optics/ and open_optics_nodes/.
 """
 import ast
+import copy
 import json
 import unittest
 from pathlib import Path
@@ -339,18 +340,33 @@ class TestWorkflowFile(unittest.TestCase):
                         "the same LoadImage feeds both DepthToMetric and FocalCrop")
 
 
+def link_type_problems(wf):
+    """Return a list of messages, one per link whose type differs from its source output or target input type."""
+    problems = []
+    nodes = {n["id"]: n for n in wf["nodes"]}
+    for link in wf["links"]:
+        _lid, from_node, from_slot, to_node, to_slot, link_type = link
+        out_type = nodes[from_node]["outputs"][from_slot]["type"]
+        in_type = nodes[to_node]["inputs"][to_slot]["type"]
+        if out_type != link_type:
+            problems.append(f"link {link[0]}: source output type is {out_type}, link type is {link_type}")
+        if in_type != link_type:
+            problems.append(f"link {link[0]}: target input type is {in_type}, link type is {link_type}")
+    return problems
+
+
 class TestWorkflowLinks(unittest.TestCase):
     def test_link_types_match(self):
-        wf = _load_workflow()
-        nodes = {n["id"]: n for n in wf["nodes"]}
-        for link in wf["links"]:
-            _lid, from_node, from_slot, to_node, to_slot, link_type = link
-            out_type = nodes[from_node]["outputs"][from_slot]["type"]
-            in_type = nodes[to_node]["inputs"][to_slot]["type"]
-            self.assertEqual(out_type, link_type,
-                             f"link {link}: source output type is {out_type}, link type is {link_type}")
-            self.assertEqual(in_type, link_type,
-                             f"link {link}: target input type is {in_type}, link type is {link_type}")
+        problems = link_type_problems(_load_workflow())
+        self.assertEqual(problems, [], f"link type problems: {problems}")
+
+    def test_link_type_problems_detect_breakage(self):
+        wf = copy.deepcopy(_load_workflow())
+        link = wf["links"][0]
+        link[5] = "MASK" if link[5] == "IMAGE" else "IMAGE"
+        problems = link_type_problems(wf)
+        self.assertTrue(problems, "link_type_problems found nothing in a workflow with a wrong link type")
+        self.assertIn(str(link[0]), " ".join(problems))
 
     def test_node_ids_unique(self):
         wf = _load_workflow()
