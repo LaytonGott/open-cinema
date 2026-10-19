@@ -1126,6 +1126,11 @@ class MissingDefaultRunTest(unittest.TestCase):
 
         self.assertEqual(missing_default_run_problems("Fake_Node", Fake, {"image": 1}), [])
 
+    def test_unexpected_keyword_stays_type_error(self):
+        with self.assertRaises(TypeError) as cm:
+            run_first_release("OpenOptics_Vignette", "cpu", extra={"not_an_input": 1})
+        self.assertNotIsInstance(cm.exception, AssertionError)
+
 
 class RunFirstReleaseMissingDefaultTest(unittest.TestCase):
     def test_missing_default_fails_naming_node_and_input(self):
