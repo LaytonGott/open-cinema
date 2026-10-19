@@ -192,3 +192,79 @@ Linked inputs:
 Outputs (`RETURN_TYPES`):
 
 - `IMAGE` (`IMAGE`; the node defines no `RETURN_NAMES`)
+
+## OpenOptics_Vignette
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `focal_mm` | 35.0 |
+| `sensor_width_mm` | 36.0 |
+| `strength` | 1.0 |
+| `colorspace` | srgb (`srgb` or `linear`) |
+| `chunk_frames` | 8 |
+
+Linked inputs:
+
+- `image` (`IMAGE`)
+
+Outputs (`RETURN_TYPES`):
+
+- `IMAGE` (`IMAGE`; the node defines no `RETURN_NAMES`)
+
+## OpenOptics_ChromaticAberration
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `ca_r` | 0.0 |
+| `ca_b` | 0.0 |
+| `chunk_frames` | 8 |
+
+Linked inputs:
+
+- `image` (`IMAGE`)
+
+Outputs (`RETURN_TYPES`):
+
+- `IMAGE` (`IMAGE`; the node defines no `RETURN_NAMES`)
+
+## OpenOptics_Anamorphic
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `squeeze` | 1.33 |
+| `mode` | desqueeze (`desqueeze` or `squeeze`) |
+| `keep_width` | false |
+| `chunk_frames` | 8 |
+
+Linked inputs:
+
+- `image` (`IMAGE`)
+
+Outputs (`RETURN_TYPES`):
+
+- `IMAGE` (`IMAGE`; the node defines no `RETURN_NAMES`)
+
+## OpenOptics_DepthTemporalSmooth
+
+This node is not used in the demo workflow.
+
+Widget inputs, in `INPUT_TYPES` order:
+
+| Input | Default |
+| --- | --- |
+| `strength` | 0.7 |
+| `chunk_frames` | 8 |
+
+Linked inputs:
+
+- `depth` (`MASK`)
+
+Outputs (`RETURN_TYPES`):
+
+- `depth_m` (`MASK`)
