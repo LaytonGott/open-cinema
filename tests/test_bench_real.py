@@ -107,8 +107,30 @@ class TestBenchReal(unittest.TestCase):
         if reason is not None:
             raise unittest.SkipTest(reason)
 
+    last_result = None
+
+    def tearDown(self):
+        torch.cuda.empty_cache()
+
     def test_bench_real_clip(self):
-        pass
+        import numpy as np
+
+        fixture_dir = os.environ.get("OPEN_OPTICS_FIXTURE_DIR", DEFAULT_FIXTURE_DIR)
+        in_shape = tuple(np.load(os.path.join(fixture_dir, "frames_u8.npy"), mmap_mode="r").shape)
+        result = run_chain(fixture_dir)
+        type(self).last_result = result
+        print(f"metric_s={result['metric_s']:.3f} smooth_s={result['smooth_s']:.3f} "
+              f"dof_s={result['dof_s']:.3f} layers={result['layers']} peak_gib={result['peak_gib']:.3f}")
+        out = result["output"]
+        self.assertLess(result["dof_s"], 20)
+        self.assertLess(result["smooth_s"], 6)
+        self.assertLess(result["metric_s"], 10)
+        self.assertLess(result["peak_gib"], 8)
+        self.assertLessEqual(result["layers"], 12)
+        self.assertTrue(torch.isfinite(out).all().item())
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertEqual(out.device.type, "cpu")
+        self.assertEqual(tuple(out.shape), in_shape)
 
 
 class TestMissingReason(unittest.TestCase):
