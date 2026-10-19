@@ -149,7 +149,7 @@ def _subject_mask_region(subject_mask, depth_shape):
             f"or (1, {h}, {w})")
     region = (subject_mask > 0.5).expand(b, h, w)
     if not bool(region.any()):
-        raise ValueError("subject_mask is empty: no pixel above 0.5")
+        raise ValueError("subject mask is empty: subject_mask has no pixel above 0.5")
     return region
 
 
@@ -275,6 +275,10 @@ class OpenOptics_DepthToMetric:
                 col, row = subject_pixel(subject_x, subject_y, depth.shape[2], depth.shape[1])
                 region = _subject_region_mask(tuple(depth.shape), col, row, subject_radius_px)
             if anchor_scope == "frame":
+                if subject_mask is not None:
+                    for b in range(region.shape[0]):
+                        if not bool(region[b].any()):
+                            raise ValueError(f"subject mask is empty in frame {b}")
                 d_s = _subject_frame_depths(depth, region)
                 for v in d_s.tolist():
                     if not math.isfinite(v) or not v > 0:
