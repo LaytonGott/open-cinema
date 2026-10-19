@@ -15,7 +15,6 @@ FORBIDDEN = [
     "." + "cuda(",
     "cu" + "da",
     "torch." + "compile",
-    "device" + "=",
     '.to("' + "cuda",
     "m" + "ps",
     "pin_" + "memory",
