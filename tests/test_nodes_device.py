@@ -92,6 +92,27 @@ class AutoModeTests(unittest.TestCase):
         self.assertIs(result, device)
         self.assertEqual(len(calls), 1)
 
+    def _auto_without_comfy(self, cuda, env):
+        absent = {"comfy": None, "comfy.model_management": None}
+        with mock.patch.dict(os.environ, env):
+            if not env:
+                os.environ.pop("OPEN_OPTICS_DEVICE", None)
+            with mock.patch.dict(sys.modules, absent):
+                with mock.patch("torch.cuda.is_available", return_value=cuda):
+                    return get_device()
+
+    def test_auto_no_comfy_no_cuda_is_cpu(self):
+        result = self._auto_without_comfy(False, {"OPEN_OPTICS_DEVICE": "auto"})
+        self.assertEqual(result.type, "cpu")
+
+    def test_auto_no_comfy_with_cuda_is_cuda(self):
+        result = self._auto_without_comfy(True, {"OPEN_OPTICS_DEVICE": "auto"})
+        self.assertEqual(result.type, "cuda")
+
+    def test_auto_default_without_comfy(self):
+        self.assertEqual(self._auto_without_comfy(False, {}).type, "cpu")
+        self.assertEqual(self._auto_without_comfy(True, {}).type, "cuda")
+
 
 if __name__ == "__main__":
     unittest.main()
