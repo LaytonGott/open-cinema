@@ -196,6 +196,24 @@ class TestFraming(unittest.TestCase):
         self.assertIn("image_width_px", str(cm.exception))
         self.assertIn("0", str(cm.exception))
 
+    def test_error_messages_state_problem(self):
+        with self.assertRaises(ValueError) as cm:
+            subject_distance_m(50, 24, -3, 1200)
+        self.assertIn("subject_height_px", str(cm.exception))
+        self.assertIn("greater than 0", str(cm.exception))
+        with self.assertRaises(ValueError) as cm:
+            subject_distance_m(50, 24, float("nan"), 1200)
+        self.assertIn("subject_height_px", str(cm.exception))
+        self.assertIn("finite", str(cm.exception))
+        with self.assertRaises(ValueError) as cm:
+            subject_distance_m(50, 24, "5", 1200)
+        self.assertIn("subject_height_px", str(cm.exception))
+        self.assertIn("number", str(cm.exception))
+        with self.assertRaises(ValueError) as cm:
+            subject_height_px(50, 24, 1080, 0.05)
+        self.assertIn("distance_m", str(cm.exception))
+        self.assertIn("focal length", str(cm.exception))
+
     def test_subject_distance_m_accepts_ints(self):
         self.assertIsInstance(subject_distance_m(50, 24, 600, 1200), float)
 
