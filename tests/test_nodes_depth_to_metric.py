@@ -711,5 +711,34 @@ class TestSubjectMaskNode(unittest.TestCase):
             self.assertTrue(torch.allclose(out[i:i + 1], ref, atol=1e-6))
 
 
+class TestAnchorScopeBatch(unittest.TestCase):
+    KW = dict(
+        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+        inverse_depth=True, low_percentile=0.0, high_percentile=100.0,
+        subject_x=0.5, subject_y=0.5, subject_radius_px=1,
+    )
+
+    def _depth(self):
+        d0 = torch.full((9, 9), 0.4)
+        d0[3:6, 3:6] = 0.8
+        d0[0, 0] = 1.6
+        d0[8, 8] = 0.1
+        return torch.stack([d0, d0 * 0.5])
+
+    def test_batch_one_scale(self):
+        out = _convert(self._depth(), anchor_scope="batch", **self.KW)[0]
+        self.assertEqual(tuple(out.shape), (2, 9, 9))
+        self.assertAlmostEqual(out[0, 4, 4].item(), 1.5, places=5)
+        self.assertAlmostEqual(out[1, 4, 4].item(), 3.0, places=5)
+        self.assertAlmostEqual(out[0, 0, 1].item(), 3.0, places=5)
+        self.assertAlmostEqual(out[1, 0, 1].item(), 6.0, places=5)
+
+    def test_default_scope_is_batch(self):
+        depth = self._depth()
+        out = _convert(depth, **self.KW)[0]
+        ref = _convert(depth, anchor_scope="batch", **self.KW)[0]
+        self.assertTrue(torch.allclose(out, ref, atol=1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()
