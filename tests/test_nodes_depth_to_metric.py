@@ -6,7 +6,7 @@ from open_optics.depth import depth_to_metric
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
 from open_optics_nodes.depth_to_metric import (
     OpenOptics_DepthToMetric, _subject_frame_depths, _subject_mask_region,
-    _subject_region_values,
+    _subject_region_mask, _subject_region_values,
     _subject_to_metric, _validate_subject_params)
 
 
@@ -442,6 +442,26 @@ class TestSubjectToMetric(unittest.TestCase):
         self.assertEqual(out.dtype, torch.float32)
         for got, want in zip(out.tolist(), [2.0, 1.0, 4.0, 0.5, 0.5]):
             self.assertAlmostEqual(got, want, places=4)
+
+
+class TestSubjectRegionMask(unittest.TestCase):
+    def test_centre_window(self):
+        mask = _subject_region_mask((1, 9, 9), 4, 4, 1)
+        self.assertEqual(mask.dtype, torch.bool)
+        self.assertEqual(int(mask.sum()), 9)
+        self.assertTrue(bool(mask[0, 3:6, 3:6].all()))
+
+    def test_corner_clipped(self):
+        mask = _subject_region_mask((1, 9, 9), 0, 0, 1)
+        self.assertEqual(int(mask.sum()), 4)
+
+    def test_matches_region_values(self):
+        torch.manual_seed(0)
+        depth = torch.rand(2, 9, 9)
+        mask = _subject_region_mask(tuple(depth.shape), 3, 5, 2)
+        got = torch.sort(depth[mask].to(torch.float64)).values
+        want = torch.sort(_subject_region_values(depth, 3, 5, 2)).values
+        self.assertTrue(torch.equal(got, want))
 
 
 class TestSubjectToMetricTensorScale(unittest.TestCase):

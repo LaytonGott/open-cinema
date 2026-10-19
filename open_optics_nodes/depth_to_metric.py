@@ -117,6 +117,22 @@ def _subject_region_values(depth, col, row, radius):
     return depth.detach()[:, r0:r1, c0:c1].reshape(-1).to(torch.float64)
 
 
+def _subject_region_mask(shape, col, row, radius):
+    """Return the square window around the subject pixel as a bool tensor.
+
+    shape is (B, H, W) in pixels; col and row are the 0-based integer subject
+    pixel; radius is a pixel count >= 0. The window covers rows
+    row-radius..row+radius and columns col-radius..col+radius, clipped to the
+    image, in every frame. Returns a bool tensor [B, H, W], True in the window.
+    """
+    b, h, w = shape
+    r0, r1 = max(row - radius, 0), min(row + radius + 1, h)
+    c0, c1 = max(col - radius, 0), min(col + radius + 1, w)
+    mask = torch.zeros((b, h, w), dtype=torch.bool)
+    mask[:, r0:r1, c0:c1] = True
+    return mask
+
+
 def _subject_mask_region(subject_mask, depth_shape):
     """Return the subject region of a mask as a bool tensor [B, H, W].
 
@@ -255,7 +271,8 @@ class OpenOptics_DepthToMetric:
                 values = depth.detach()[region].to(torch.float64)
             else:
                 col, row = subject_pixel(subject_x, subject_y, depth.shape[2], depth.shape[1])
-                values = _subject_region_values(depth, col, row, subject_radius_px)
+                region = _subject_region_mask(tuple(depth.shape), col, row, subject_radius_px)
+                values = depth.detach()[region].to(torch.float64)
             d_s = subject_median(values.tolist())
             if not math.isfinite(d_s) or not d_s > 0:
                 raise ValueError(f"subject depth must be finite and > 0, got {d_s}")
