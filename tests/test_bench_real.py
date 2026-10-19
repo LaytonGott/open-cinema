@@ -1,5 +1,6 @@
 """Real-clip benchmark skeleton: skipped unless the benchmark fixture and CUDA are present."""
 import os
+import re
 import tempfile
 import unittest
 
@@ -24,6 +25,17 @@ def missing_reason(fixture_dir=None):
     if not torch.cuda.is_available():
         return "CUDA is not available"
     return None
+
+
+def parse_layers(message):
+    """Return the integer after ' layers=' in an open_optics_nodes log message (a count, unitless).
+
+    Raises ValueError if the message has no ' layers=<n>' field.
+    """
+    match = re.search(r" layers=(\d+)", message)
+    if match is None:
+        raise ValueError(f"no layers= field in log message: {message!r}")
+    return int(match.group(1))
 
 
 @unittest.skipUnless(os.environ.get("OPEN_OPTICS_BENCH") == "1", "set by npm run test:bench")
@@ -52,6 +64,18 @@ class TestMissingReason(unittest.TestCase):
                 open(os.path.join(d, n), "wb").close()
             reason = missing_reason(d)
         self.assertTrue(reason is None or "CUDA" in reason)
+
+
+class TestParseLayers(unittest.TestCase):
+    def test_parse_layers_known_line(self):
+        line = ("node=OpenOptics_DepthOfField device=cuda:0 frames=2 chunk_frames=2 "
+                "seconds=1.234 layers=7")
+        self.assertEqual(parse_layers(line), 7)
+
+    def test_parse_layers_missing(self):
+        line = "node=OpenOptics_DepthOfField device=cuda:0 frames=2 chunk_frames=2 seconds=1.234"
+        with self.assertRaises(ValueError):
+            parse_layers(line)
 
 
 if __name__ == "__main__":
