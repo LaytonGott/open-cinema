@@ -1101,5 +1101,39 @@ class TestNearFarIgnoresSubject(unittest.TestCase):
                                            far_m=5.0, mode="near_far", **self.BAD_SUBJECT)
 
 
+class TestSubjectOutputShapeType(unittest.TestCase):
+    def _depth(self):
+        f0 = torch.full((9, 9), 0.4)
+        f0[3:6, 3:6] = 0.8
+        f0[0, 0] = 0.0
+        f0[8, 8] = 50.0
+        return torch.stack([f0, f0 * 0.5])
+
+    def _check(self, **inputs):
+        for scope in ("batch", "frame"):
+            for inverse in (True, False):
+                with self.subTest(scope=scope, inverse_depth=inverse):
+                    z, p = OpenOptics_DepthToMetric().convert(
+                        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+                        subject_radius_px=1, subject_x=0.5, subject_y=0.5,
+                        anchor_scope=scope, inverse_depth=inverse, **inputs)
+                    self.assertEqual(tuple(z.shape), (2, 9, 9))
+                    self.assertEqual(z.dtype, torch.float32)
+                    self.assertEqual(z.device.type, "cpu")
+                    self.assertTrue(bool(torch.isfinite(z).all()))
+                    self.assertGreaterEqual(float(z.min()), 0.5)
+                    self.assertLessEqual(float(z.max()), 10.0)
+                    self.assertEqual(tuple(p.shape), (2, 9, 9, 3))
+                    self.assertEqual(p.dtype, torch.float32)
+                    self.assertEqual(p.device.type, "cpu")
+
+    def test_depth_mask(self):
+        self._check(depth_mask=self._depth())
+
+    def test_depth_image(self):
+        d = self._depth()
+        self._check(depth_image=d.unsqueeze(-1).repeat(1, 1, 1, 3))
+
+
 if __name__ == "__main__":
     unittest.main()
