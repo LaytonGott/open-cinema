@@ -752,5 +752,17 @@ class DemoWorkflowRunTest(unittest.TestCase):
                     errors)
 
 
+class FixturesPresentTest(unittest.TestCase):
+    def test_legacy_files_and_input_keys(self):
+        legacy = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
+        expected = {n + ".json" for n in (
+            "pipeline_depth_api", "pipeline_dof_api", "pipeline_full_api",
+            "open_optics_demo_release_ui")}
+        self.assertEqual(expected, set(os.listdir(legacy)))
+        with open(FIXTURE, encoding="utf-8") as f:
+            recorded = json.load(f)
+        self.assertEqual(set(NODE_CLASS_MAPPINGS), set(recorded))
+
+
 if __name__ == "__main__":
     unittest.main()
