@@ -73,23 +73,27 @@ def _side_layers(level, side, width):
     return [m for m in masks if m.any()]
 
 
-def composite_layers(image_linear, depth_m, radius_map, n_layers, focus_m):
+def composite_layers(image_linear, depth_m, radius_map, n_layers, focus_m,
+                     max_layers=None, stats=None):
     """Blur signed CoC layers and composite them back to front; returns float32 [B, H, W, 3].
 
     Layers are chosen per frame, so the result does not depend on how frames
     are batched. See _composite_frames for the layer rules; arguments are as
     there: image_linear float32 [B, H, W, 3], depth_m (metres) and radius_map
-    (pixels) float32 [B, H, W], focus_m in metres.
+    (pixels) float32 [B, H, W], focus_m in metres, max_layers an optional cap
+    on blurred layers per frame (None for no cap) and stats an optional dict
+    that receives the largest layer count used as stats['layers'].
     """
     frames = [
         _composite_frames(image_linear[i:i + 1], depth_m[i:i + 1], radius_map[i:i + 1],
-                          n_layers, focus_m)
+                          n_layers, focus_m, max_layers, stats)
         for i in range(image_linear.shape[0])
     ]
     return torch.cat(frames, dim=0)
 
 
-def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
+def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m,
+                      max_layers=None, stats=None):
     """Composite one batch with bins from the whole batch; returns float32 [B, H, W, 3].
 
     image_linear is float32 [B, H, W, 3] in linear light; depth_m (metres) and
@@ -106,7 +110,13 @@ def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
     blurred with its mean radius in pixels, then composited with "over" from
     back to front: far layers from largest radius to smallest, the in-focus
     layer, then near layers from smallest radius to largest. The result is
-    clamped to 0..1.
+    clamped to 0..1. If max_layers is given, at most that many layers are
+    blurred (the in-focus layer counts as one): the log-radius bin width is
+    multiplied by 1.5 until the non-sharp layers fit max_layers - 1; if even
+    one layer per side is too many, all non-sharp pixels form one layer, and
+    max_layers == 1 puts every pixel in one layer blurred with the mean radius
+    (pixels) of radius_map. If stats is a dict, stats['layers'] becomes the
+    larger of its value and the number of layers used here.
     """
     image = image_linear.to(torch.float32)
     depth = sanitize_depth(depth_m)
@@ -117,14 +127,30 @@ def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
     level = _radius_level(radius)
     extents = [level[s].max().item() for s in (near, far) if s.any()]
     width = sum(extents) / max(n_layers, 1)
-    layers = (list(reversed(_side_layers(level, far, width))) + [sharp]
-              + _side_layers(level, near, width))
+
+    def build(w):
+        return (list(reversed(_side_layers(level, far, w))) + [sharp]
+                + _side_layers(level, near, w))
+
+    layers = build(width)
+    if max_layers is not None:
+        budget = max(max_layers - 1, 0)
+        if max_layers <= 1:
+            layers = [torch.ones_like(sharp)]
+        else:
+            while width > 0.0 and len(layers) - 1 > budget and width < 1e6:
+                width *= 1.5
+                layers = build(width)
+            if len(layers) - 1 > budget:
+                layers = [~sharp, sharp]
     chw = image.permute(0, 3, 1, 2)
     out = torch.zeros_like(chw)
     cov = torch.zeros_like(chw[:, :1])
+    used = 0
     for mask in layers:
         if not mask.any():
             continue
+        used += 1
         alpha = mask.to(torch.float32)[:, None]
         layer_radius = 0.0 if mask is sharp else radius[mask].mean().item()
         res = blur_layer(torch.cat([chw * alpha, alpha], dim=1), layer_radius)
@@ -132,5 +158,7 @@ def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
         alpha_b = res[:, 3:]
         out = colour_b + out * (1.0 - alpha_b)
         cov = alpha_b + cov * (1.0 - alpha_b)
+    if stats is not None:
+        stats['layers'] = max(stats.get('layers', 0), used)
     out = out / cov.clamp_min(1e-8)
     return out.permute(0, 2, 3, 1).clamp(0.0, 1.0).contiguous()

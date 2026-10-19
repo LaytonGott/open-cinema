@@ -187,5 +187,51 @@ class CudaMatchesCpuTest(unittest.TestCase):
         torch.cuda.empty_cache()
 
 
+class MaxLayersTest(unittest.TestCase):
+    def _scene(self):
+        depth = torch.linspace(1.0, 20.0, 16 * 16).reshape(1, 16, 16)
+        radius = coc_radius_map(depth, 200, 1.4, 3.0, 8, 12)
+        img = torch.rand(1, 16, 16, 3, generator=torch.Generator().manual_seed(5))
+        return img, depth, radius
+
+    def _check_range(self, out):
+        self.assertTrue(torch.isfinite(out).all().item())
+        self.assertGreaterEqual(out.min().item(), 0.0)
+        self.assertLessEqual(out.max().item(), 1.0)
+
+    def test_uncapped_uses_many_layers(self):
+        img, depth, radius = self._scene()
+        stats = {}
+        composite_layers(img, depth, radius, 8, 3.0, stats=stats)
+        self.assertGreater(stats["layers"], 3)
+
+    def test_cap_three(self):
+        img, depth, radius = self._scene()
+        stats = {}
+        out = composite_layers(img, depth, radius, 8, 3.0, max_layers=3, stats=stats)
+        self.assertLessEqual(stats["layers"], 3)
+        self._check_range(out)
+
+    def test_cap_two(self):
+        img, depth, radius = self._scene()
+        stats = {}
+        out = composite_layers(img, depth, radius, 8, 3.0, max_layers=2, stats=stats)
+        self.assertLessEqual(stats["layers"], 2)
+        self._check_range(out)
+
+    def test_cap_one(self):
+        img, depth, radius = self._scene()
+        stats = {}
+        out = composite_layers(img, depth, radius, 8, 3.0, max_layers=1, stats=stats)
+        self.assertEqual(stats["layers"], 1)
+        self._check_range(out)
+
+    def test_large_cap_matches_uncapped(self):
+        img, depth, radius = self._scene()
+        ref = composite_layers(img, depth, radius, 8, 3.0)
+        out = composite_layers(img, depth, radius, 8, 3.0, max_layers=1000)
+        self.assertEqual(torch.equal(out, ref), True)
+
+
 if __name__ == "__main__":
     unittest.main()
