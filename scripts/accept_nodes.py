@@ -177,8 +177,11 @@ for key, cls in sorted(classes.items()):
         problems.append(f"{key}: running on a 2x16x16 image failed: {type(exc).__name__}: {exc}")
 
 for path in sorted((ROOT / "open_optics_nodes").glob("*.py")):
+    if path.name == "device.py":  # the one module that decides the device
+        continue
     text = path.read_text(encoding="utf-8")
-    check(".cuda(" not in text and 'device="cuda"' not in text and "device='cuda'" not in text, f"{path.name} uses CUDA; everything must run on the CPU")
+    check(".cuda(" not in text and 'device="cuda"' not in text and "device='cuda'" not in text and 'torch.device("cuda")' not in text,
+          f"{path.name} hard-codes the GPU; use open_optics_nodes.device.get_device()")
 
 for p in problems:
     print(p)

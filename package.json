@@ -1,8 +1,9 @@
 {
   "name": "open-cinema",
   "private": true,
-  "description": "Open Cinema is a Python project. This file exists only so the loop's test command, npm test, runs the Python unit tests with the project's Python (see scripts/run-tests.js).",
+  "description": "Open Cinema is a Python project. This file exists only so the loop's test commands run the Python unit tests with the project's Python (see scripts/run-tests.js).",
   "scripts": {
-    "test": "node scripts/run-tests.js"
+    "test": "node scripts/run-tests.js",
+    "test:bench": "node scripts/run-tests.js --bench"
   }
 }
