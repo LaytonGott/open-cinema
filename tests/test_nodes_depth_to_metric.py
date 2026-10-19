@@ -902,5 +902,25 @@ class TestSubjectMValidationMessages(unittest.TestCase):
                 self.assertIn("10", str(cm.exception))
 
 
+class TestSubjectPointValidationMessages(unittest.TestCase):
+    def _run(self, **kw):
+        depth = torch.rand(1, 4, 4) + 0.1
+        return _convert(depth, mode="subject", subject_m=2.0, **kw)
+
+    def test_out_of_range_raises(self):
+        for name, value in (("subject_x", 1.1), ("subject_y", -0.1),
+                            ("subject_radius_px", -1)):
+            with self.subTest(**{name: value}):
+                with self.assertRaisesRegex(ValueError, name):
+                    self._run(**{name: value})
+
+    def test_boundary_values_do_not_raise(self):
+        for name, value in (("subject_x", 0.0), ("subject_x", 1.0),
+                            ("subject_y", 0.0), ("subject_y", 1.0),
+                            ("subject_radius_px", 0)):
+            with self.subTest(**{name: value}):
+                self._run(**{name: value})
+
+
 if __name__ == "__main__":
     unittest.main()
