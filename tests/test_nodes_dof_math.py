@@ -109,6 +109,51 @@ class CompositeLayersTest(unittest.TestCase):
         self.assertTrue(torch.allclose(out, img, atol=1e-4))
 
 
+class SharpEdgeOutlineTest(unittest.TestCase):
+    """No dark outline where a sharp subject meets a blurred far background.
+
+    Mid-grey subject (0.3) at focus (2 m) in columns 0..31, bright background
+    (0.9) at 20 m from column 32 with a 12 px CoC radius, 8 layers.
+    """
+
+    SUBJECT, BACKGROUND, FOCUS_M = 0.3, 0.9, 2.0
+
+    def _frame(self):
+        img = torch.full((1, 64, 64, 3), self.BACKGROUND)
+        img[:, :, :32] = self.SUBJECT
+        depth = torch.full((1, 64, 64), 20.0)
+        depth[:, :, :32] = self.FOCUS_M
+        radius = torch.full((1, 64, 64), 12.0)
+        radius[:, :, :32] = 0.0
+        return img, depth, radius
+
+    def _check(self, img, out):
+        self.assertLessEqual((out[:, :, :32] - img[:, :, :32]).abs().max().item(), 1e-4)
+        band = out[:, :, 32:35]
+        floor = min(self.SUBJECT, self.BACKGROUND) - 0.01
+        self.assertGreaterEqual(band.min().item(), floor)
+        self.assertGreaterEqual(band.min().item(), self.BACKGROUND - 0.02)
+
+    def test_crisp_depth_edge(self):
+        img, depth, radius = self._frame()
+        self._check(img, composite_layers(img, depth, radius, 8, self.FOCUS_M))
+
+    def test_soft_depth_edge(self):
+        # Like the DA3 depth in the street test: the subject's last columns
+        # read slightly behind focus (0.6 px CoC) and the background next to
+        # them is soft (1.8 px). A 0.6 px disc reaches no neighbour, so those
+        # columns must stay as they are, and the background must not pick up
+        # the subject's grey. Equal-width bins (11.5 px / 8 = 1.44 px) put
+        # 0.6 px and 1.8 px in one layer blurred at their mean radius, which
+        # brightened the subject's edge and darkened the background beside it.
+        img, depth, radius = self._frame()
+        depth[:, :, 29:32] = 2.05
+        radius[:, :, 29:32] = 0.6
+        depth[:, :, 32:34] = 2.5
+        radius[:, :, 32:34] = 1.8
+        self._check(img, composite_layers(img, depth, radius, 8, self.FOCUS_M))
+
+
 class CompositeLayersFrameIndependenceTest(unittest.TestCase):
     def test_batch_equals_single_frames(self):
         g = torch.Generator().manual_seed(5)

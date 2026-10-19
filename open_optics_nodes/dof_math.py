@@ -43,22 +43,32 @@ def coc_radius_map(depth_m, focal_mm, f_number, focus_m, sensor_width_mm, max_ra
 SHARP_RADIUS_PX = 0.5
 
 
-def _side_layers(radius, side, width):
+def _radius_level(radius):
+    """Return log(radius / SHARP_RADIUS_PX) for a blur radius map in pixels.
+
+    radius is a float32 tensor in pixels, clamped below at SHARP_RADIUS_PX, so
+    the result is >= 0 (unitless). Equal steps in level are equal ratios of
+    radius, which is how layers are binned.
+    """
+    return torch.log(radius.clamp_min(SHARP_RADIUS_PX) / SHARP_RADIUS_PX)
+
+
+def _side_layers(level, side, width):
     """Split one side (near or far) of the frame into masks by blur radius.
 
-    radius is the float32 [B, H, W] blur radius in pixels and side a bool mask
-    of the pixels on this side, all with radius >= SHARP_RADIUS_PX. The side's
-    radius range [SHARP_RADIUS_PX, max] is split into equal bins about width
-    pixels wide (at least one). Returns the non-empty bin masks, smallest
-    radius first.
+    level is _radius_level of the float32 [B, H, W] blur radius in pixels and
+    side a bool mask of the pixels on this side, all with radius >=
+    SHARP_RADIUS_PX. The side's level range [0, max] is split into equal bins
+    about width wide (at least one), so every bin spans the same ratio of
+    radii. Returns the non-empty bin masks, smallest radius first.
     """
     if not side.any():
         return []
-    extent = radius[side].max().item() - SHARP_RADIUS_PX
+    extent = level[side].max().item()
     if extent <= 0.0 or width <= 0.0:
         return [side]
     count = max(1, math.ceil(extent / width - 1e-6))
-    idx = ((radius - SHARP_RADIUS_PX) / extent * count).floor().long().clamp(0, count - 1)
+    idx = (level / extent * count).floor().long().clamp(0, count - 1)
     masks = [side & (idx == b) for b in range(count)]
     return [m for m in masks if m.any()]
 
@@ -87,8 +97,12 @@ def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
     metres. Pixels with a radius below 0.5 px form one in-focus layer that is
     never blurred. The rest are split by sign, far (depth >= focus_m) or near,
     and quantised by radius: the near and far radius ranges share n_layers bins
-    of equal width in pixels, each non-empty side getting at least one, and
-    empty bins are skipped. Each layer's premultiplied colour and alpha are
+    of equal ratio (equal width in log radius), each non-empty side getting at
+    least one, and empty bins are skipped. Equal ratios keep a layer's radius
+    close to each member's own: with equal widths in pixels, a sub-pixel CoC
+    at a subject's edge shared a layer with soft background a few pixels
+    wide, and the background bled into the subject, leaving a dark outline.
+    Each layer's premultiplied colour and alpha are
     blurred with its mean radius in pixels, then composited with "over" from
     back to front: far layers from largest radius to smallest, the in-focus
     layer, then near layers from smallest radius to largest. The result is
@@ -100,10 +114,11 @@ def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
     sharp = radius < SHARP_RADIUS_PX
     far = ~sharp & (depth >= focus_m)
     near = ~sharp & ~far
-    extents = [radius[s].max().item() - SHARP_RADIUS_PX for s in (near, far) if s.any()]
+    level = _radius_level(radius)
+    extents = [level[s].max().item() for s in (near, far) if s.any()]
     width = sum(extents) / max(n_layers, 1)
-    layers = (list(reversed(_side_layers(radius, far, width))) + [sharp]
-              + _side_layers(radius, near, width))
+    layers = (list(reversed(_side_layers(level, far, width))) + [sharp]
+              + _side_layers(level, near, width))
     chw = image.permute(0, 3, 1, 2)
     out = torch.zeros_like(chw)
     cov = torch.zeros_like(chw[:, :1])
