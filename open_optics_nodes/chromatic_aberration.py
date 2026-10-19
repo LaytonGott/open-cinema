@@ -1,5 +1,7 @@
 """Chromatic Aberration node: radial scale fringing of red and blue."""
 
+import time
+
 import torch
 import torch.nn.functional as F
 
@@ -55,7 +57,9 @@ class OpenOptics_ChromaticAberration:
         common.check_chunk_frames(chunk_frames)
         common.check_image(image)
         sr, sb = chromatic.channel_scales(ca_r, ca_b)
+        t0 = time.perf_counter()
         device = get_device()
+        worked_on = device
         outs = []
         for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
             piece = image[start:stop].to(device)
@@ -65,5 +69,13 @@ class OpenOptics_ChromaticAberration:
                     out[..., 0] = _scaled_channel(piece[..., 0], sr)
                 if sb != 1.0:
                     out[..., 2] = _scaled_channel(piece[..., 2], sb)
-            outs.append(common.finish(out).cpu().to(torch.float32))
-        return (torch.cat(outs),)
+            done = common.finish(out)
+            worked_on = done
+            outs.append(done.cpu().to(torch.float32))
+        if outs:
+            result = torch.cat(outs)
+        else:
+            result = torch.zeros(tuple(image.shape), dtype=torch.float32)
+        common.log_call("OpenOptics_ChromaticAberration", worked_on, image.shape[0],
+                        chunk_frames, time.perf_counter() - t0)
+        return (result,)

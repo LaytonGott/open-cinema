@@ -1,6 +1,7 @@
 """Anamorphic squeeze node: desqueeze or squeeze an image by resizing."""
 
 import math
+import time
 
 import torch
 import torch.nn.functional as F
@@ -53,11 +54,20 @@ class OpenOptics_Anamorphic:
         size_fn = anamorphic.desqueeze_size if mode == "desqueeze" else anamorphic.squeeze_size
         new_w, new_h = size_fn(w, h, squeeze, lib_mode)
         new_w, new_h = max(1, round(new_w)), max(1, round(new_h))
+        t0 = time.perf_counter()
         device = get_device()
+        worked_on = device
         outs = []
         for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
             x = image[start:stop].to(device).permute(0, 3, 1, 2)
             x = F.interpolate(x, size=(new_h, new_w), mode="bilinear", align_corners=False)
             out = common.finish(x.permute(0, 2, 3, 1))
+            worked_on = out
             outs.append(out.cpu().to(torch.float32))
-        return (torch.cat(outs),)
+        if outs:
+            result = torch.cat(outs)
+        else:
+            result = torch.zeros((0, new_h, new_w, image.shape[3]), dtype=torch.float32)
+        common.log_call("OpenOptics_Anamorphic", worked_on, image.shape[0], chunk_frames,
+                        time.perf_counter() - t0)
+        return (result,)
