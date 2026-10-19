@@ -76,6 +76,31 @@ def _map_to_metric(depth, d_lo, d_hi, near_m, far_m, inverse_depth):
     return z.to(torch.float32)
 
 
+def _validate_subject_params(mode, subject_m, near_m, far_m, subject_x, subject_y,
+                             subject_radius_px):
+    """Validate the DepthToMetric mode and subject inputs.
+
+    subject_m, near_m and far_m are in metres; subject_x and subject_y are
+    0 to 1 fractions of the image width and height; subject_radius_px is in
+    pixels. Returns None. Raises ValueError for a mode other than 'near_far'
+    or 'subject', subject_m <= 0, subject_m outside [near_m, far_m],
+    subject_x or subject_y outside 0 to 1, or subject_radius_px < 0.
+    """
+    if mode not in ("near_far", "subject"):
+        raise ValueError(f"unknown mode {mode!r}, expected 'near_far' or 'subject'")
+    if not subject_m > 0:
+        raise ValueError(f"subject_m must be > 0 m, got {subject_m}")
+    if not near_m <= subject_m <= far_m:
+        raise ValueError(
+            f"subject_m must be within [near_m, far_m] = [{near_m}, {far_m}] m, got {subject_m}")
+    if not 0.0 <= subject_x <= 1.0:
+        raise ValueError(f"subject_x must be 0 to 1, got {subject_x}")
+    if not 0.0 <= subject_y <= 1.0:
+        raise ValueError(f"subject_y must be 0 to 1, got {subject_y}")
+    if subject_radius_px < 0:
+        raise ValueError(f"subject_radius_px must be >= 0 px, got {subject_radius_px}")
+
+
 class OpenOptics_DepthToMetric:
     """Convert a relative depth map to metric depth in metres."""
 
@@ -126,6 +151,11 @@ class OpenOptics_DepthToMetric:
         IMAGE [B, H, W, 3] with (far_m - Z) / (far_m - near_m) clamped to 0..1.
         Raises ValueError for bad inputs.
         """
+        if mode == "subject":
+            _validate_subject_params(mode, subject_m, near_m, far_m, subject_x,
+                                     subject_y, subject_radius_px)
+        elif mode != "near_far":
+            raise ValueError(f"unknown mode {mode!r}, expected 'near_far' or 'subject'")
         common.check_chunk_frames(chunk_frames)
         depth = common.resolve_depth(None, depth_mask, depth_image)
         validate_depth_params(near_m, far_m, low_percentile, high_percentile)

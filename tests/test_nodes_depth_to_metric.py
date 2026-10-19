@@ -4,7 +4,7 @@ import torch
 
 from open_optics.depth import depth_to_metric
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
-from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric
+from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric, _validate_subject_params
 
 
 def _convert(depth, **kw):
@@ -346,6 +346,41 @@ class TestDepthToMetricSubjectInputs(unittest.TestCase):
         z, _ = _convert(d)
         for got, want in zip(z[0, 0].tolist(), [5.0, 1.666667, 1.0]):
             self.assertAlmostEqual(got, want, places=5)
+
+
+class TestDepthToMetricSubjectValidation(unittest.TestCase):
+    D = torch.tensor([[[0.0, 0.5, 1.0]]])
+
+    def test_unknown_mode(self):
+        with self.assertRaises(ValueError):
+            _convert(self.D, mode="bogus")
+
+    def test_subject_m_zero(self):
+        with self.assertRaises(ValueError):
+            _convert(self.D, mode="subject", subject_m=0.0)
+
+    def test_subject_m_below_near(self):
+        with self.assertRaises(ValueError):
+            _convert(self.D, mode="subject", subject_m=0.5)
+
+    def test_subject_m_above_far(self):
+        with self.assertRaises(ValueError):
+            _convert(self.D, mode="subject", subject_m=6.0)
+
+    def test_subject_x_out_of_range(self):
+        with self.assertRaises(ValueError):
+            _convert(self.D, mode="subject", subject_x=1.5)
+
+    def test_subject_y_out_of_range(self):
+        with self.assertRaises(ValueError):
+            _convert(self.D, mode="subject", subject_y=-0.1)
+
+    def test_subject_radius_negative(self):
+        with self.assertRaises(ValueError):
+            _convert(self.D, mode="subject", subject_radius_px=-1)
+
+    def test_valid_values_do_not_raise(self):
+        _validate_subject_params("subject", 3.0, 1.0, 5.0, 0.5, 0.5, 4)
 
 
 if __name__ == "__main__":
