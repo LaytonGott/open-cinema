@@ -430,5 +430,36 @@ class TestSubjectToMetric(unittest.TestCase):
             self.assertAlmostEqual(got, want, places=4)
 
 
+class TestDepthToMetricSubjectMode(unittest.TestCase):
+    def _depth(self):
+        d = torch.full((1, 9, 9), 0.4)
+        d[0, 3:6, 3:6] = 0.8
+        d[0, 0, 0] = 1.6
+        d[0, 8, 8] = 0.1
+        return d
+
+    def _run(self, inverse_depth):
+        out, _ = OpenOptics_DepthToMetric().convert(
+            near_m=0.5, far_m=10.0, inverse_depth=inverse_depth, depth_mask=self._depth(),
+            mode="subject", subject_m=2.0, subject_x=0.5, subject_y=0.5,
+            subject_radius_px=1)
+        return out
+
+    def test_inverse(self):
+        out = self._run(True)
+        for (r, c), want in [((4, 4), 2.0), ((1, 7), 4.0), ((0, 0), 1.0), ((8, 8), 10.0)]:
+            self.assertAlmostEqual(float(out[0, r, c]), want, places=4)
+
+    def test_depth_like(self):
+        out = self._run(False)
+        for (r, c), want in [((4, 4), 2.0), ((1, 7), 1.0), ((0, 0), 4.0), ((8, 8), 0.5)]:
+            self.assertAlmostEqual(float(out[0, r, c]), want, places=4)
+
+    def test_all_zero_raises(self):
+        with self.assertRaises(ValueError):
+            OpenOptics_DepthToMetric().convert(
+                depth_mask=torch.zeros(1, 9, 9), mode="subject", subject_m=2.0)
+
+
 if __name__ == "__main__":
     unittest.main()

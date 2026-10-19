@@ -4,7 +4,8 @@ import math
 
 import torch
 
-from open_optics.depth import metric_depth_coefficients, validate_depth_params
+from open_optics.depth import (metric_depth_coefficients, subject_median, subject_pixel,
+                               validate_depth_params)
 from open_optics_nodes import common
 from open_optics_nodes.device import get_device
 
@@ -174,8 +175,9 @@ class OpenOptics_DepthToMetric:
 
         mode ("near_far" or "subject"), subject_m (metres), subject_x and
         subject_y (0 to 1 image position) and subject_radius_px (pixels) are
-        the subject inputs; they are accepted but not used yet, and only
-        near_far behaviour is implemented.
+        the subject inputs. In subject mode the median depth in the window
+        around the subject point (all frames) sets the scale so that it maps
+        to subject_m, and the percentiles are ignored.
 
         near_m and far_m are in metres; percentiles are 0 to 100. Exactly one
         of depth_mask or depth_image must be connected. The percentile fit uses
@@ -193,14 +195,24 @@ class OpenOptics_DepthToMetric:
             raise ValueError(f"unknown mode {mode!r}, expected 'near_far' or 'subject'")
         common.check_chunk_frames(chunk_frames)
         depth = common.resolve_depth(None, depth_mask, depth_image)
-        validate_depth_params(near_m, far_m, low_percentile, high_percentile)
-        d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
+        if mode == "subject":
+            col, row = subject_pixel(subject_x, subject_y, depth.shape[2], depth.shape[1])
+            values = _subject_region_values(depth, col, row, subject_radius_px)
+            d_s = subject_median(values.tolist())
+            if not math.isfinite(d_s) or not d_s > 0:
+                raise ValueError(f"subject depth must be finite and > 0, got {d_s}")
+        else:
+            validate_depth_params(near_m, far_m, low_percentile, high_percentile)
+            d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
         device = get_device()
         zs = []
         previews = []
         for start, stop in common.chunk_ranges(depth.shape[0], chunk_frames):
-            z = _map_to_metric(depth[start:stop].to(device), d_lo, d_hi,
-                               near_m, far_m, inverse_depth)
+            chunk = depth[start:stop].to(device)
+            if mode == "subject":
+                z = _subject_to_metric(chunk, d_s, subject_m, near_m, far_m, inverse_depth)
+            else:
+                z = _map_to_metric(chunk, d_lo, d_hi, near_m, far_m, inverse_depth)
             shade = torch.clamp((far_m - z) / (far_m - near_m), 0.0, 1.0)
             preview = shade.unsqueeze(-1).repeat(1, 1, 1, 3)
             zs.append(z.cpu().to(torch.float32))
