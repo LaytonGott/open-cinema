@@ -3,6 +3,8 @@ import copy
 import inspect
 import json
 import os
+import shutil
+import tempfile
 import unittest
 
 import torch
@@ -616,6 +618,44 @@ class WorkflowFilesValidTest(unittest.TestCase):
             with self.subTest(file=os.path.basename(path)):
                 errors = load_errors(path)
                 self.assertEqual([], errors, "; ".join(map(str, errors)))
+
+
+class BrokenWorkflowFileTest(unittest.TestCase):
+    def _errors_with_bad_file(self, name, text):
+        legacy = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
+        with tempfile.TemporaryDirectory() as tmp:
+            for n in os.listdir(legacy):
+                if n.endswith(".json"):
+                    shutil.copy(os.path.join(legacy, n), tmp)
+            with open(os.path.join(tmp, name), "w", encoding="utf-8") as f:
+                f.write(text)
+            result = {}
+            for path in workflow_files(legacy_dir=tmp):
+                errors = load_errors(path)
+                if errors:
+                    result[os.path.basename(path)] = errors
+        return result
+
+    def test_broken_file_is_named(self):
+        result = self._errors_with_bad_file("broken_x.json", "{not json")
+        self.assertEqual(["broken_x.json"], list(result))
+        self.assertIn("broken_x.json", "; ".join(map(str, result["broken_x.json"])))
+
+    def test_truncated_ui_file_is_named(self):
+        result = self._errors_with_bad_file("cut_ui.json", '{"nodes": [')
+        self.assertEqual(["cut_ui.json"], list(result))
+        self.assertIn("cut_ui.json", "; ".join(map(str, result["cut_ui.json"])))
+
+    def test_shipped_set_has_one_file_per_workflow(self):
+        names = [os.path.basename(p) for p in workflow_files()]
+        for expected in (
+            "open_optics_demo.json",
+            "open_optics_demo_release_ui.json",
+            "pipeline_depth_api.json",
+            "pipeline_dof_api.json",
+            "pipeline_full_api.json",
+        ):
+            self.assertIn(expected, names)
 
 
 class ValidatorCatchesProblemsTest(unittest.TestCase):
