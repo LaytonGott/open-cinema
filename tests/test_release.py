@@ -417,14 +417,8 @@ def widget_inputs(cls):
 
 class TestWorkflowWidgets(unittest.TestCase):
     def test_widget_count(self):
-        wf = _load_workflow()
-        for node in wf["nodes"]:
-            if not node["type"].startswith("OpenOptics_"):
-                continue
-            expected = len(widget_inputs(NODE_CLASS_MAPPINGS[node["type"]]))
-            actual = len(node.get("widgets_values", []))
-            self.assertEqual(actual, expected,
-                             f"{node['type']}: widgets_values has {actual} values, node has {expected} widget inputs")
+        problems = widget_value_problems(_load_workflow())
+        self.assertEqual(problems, [], f"widget value problems: {problems}")
 
     def test_inputs_match_registered(self):
         wf = _load_workflow()
@@ -463,31 +457,61 @@ class TestWorkflowWidgets(unittest.TestCase):
                                      f"{node['type']} (id {node['id']}) output {i} name")
 
 
+def widget_value_problems(wf):
+    """Return a list of messages, one per widget value or widget count that does not fit its node's INPUT_TYPES."""
+    problems = []
+    for node in wf["nodes"]:
+        if not node["type"].startswith("OpenOptics_"):
+            continue
+        pairs = widget_inputs(NODE_CLASS_MAPPINGS[node["type"]])
+        values = node.get("widgets_values", [])
+        if len(values) != len(pairs):
+            problems.append(f"{node['type']} (id {node['id']}): widgets_values has {len(values)} values, "
+                            f"node has {len(pairs)} widget inputs")
+        for (name, spec), value in zip(pairs, values):
+            kind = spec[0]
+            where = f"{node['type']} (id {node['id']}) input {name} value {value!r}"
+            opts = spec[1] if len(spec) > 1 and isinstance(spec[1], dict) else {}
+            if isinstance(kind, (list, tuple)):
+                if value not in list(kind):
+                    problems.append(f"{where} is not in choices {list(kind)}")
+                continue
+            if kind == "BOOLEAN":
+                if not isinstance(value, bool):
+                    problems.append(f"{where} is not a bool")
+            elif kind == "STRING":
+                if not isinstance(value, str):
+                    problems.append(f"{where} is not a str")
+            else:
+                ok = isinstance(value, int) if kind == "INT" else isinstance(value, (int, float))
+                if not ok or isinstance(value, bool):
+                    problems.append(f"{where} is not a valid {kind}")
+                    continue
+                if "min" in opts and value < opts["min"]:
+                    problems.append(f"{where} is below min {opts['min']}")
+                if "max" in opts and value > opts["max"]:
+                    problems.append(f"{where} is above max {opts['max']}")
+    return problems
+
+
 class TestWidgetValues(unittest.TestCase):
     def test_widget_values_valid(self):
-        wf = _load_workflow()
-        for node in wf["nodes"]:
-            if not node["type"].startswith("OpenOptics_"):
-                continue
-            pairs = widget_inputs(NODE_CLASS_MAPPINGS[node["type"]])
-            for (name, spec), value in zip(pairs, node.get("widgets_values", [])):
-                kind = spec[0]
-                where = f"{node['type']} input {name} value {value!r}"
-                opts = spec[1] if len(spec) > 1 and isinstance(spec[1], dict) else {}
-                if isinstance(kind, (list, tuple)):
-                    self.assertIn(value, list(kind), f"{where} is not in choices {list(kind)}")
-                    continue
-                if kind == "BOOLEAN":
-                    self.assertIsInstance(value, bool, f"{where} is not a bool")
-                elif kind == "STRING":
-                    self.assertIsInstance(value, str, f"{where} is not a str")
-                else:
-                    ok = isinstance(value, int) if kind == "INT" else isinstance(value, (int, float))
-                    self.assertTrue(ok and not isinstance(value, bool), f"{where} is not a valid {kind}")
-                    if "min" in opts:
-                        self.assertGreaterEqual(value, opts["min"], f"{where} is below min {opts['min']}")
-                    if "max" in opts:
-                        self.assertLessEqual(value, opts["max"], f"{where} is above max {opts['max']}")
+        problems = widget_value_problems(_load_workflow())
+        self.assertEqual(problems, [], f"widget value problems: {problems}")
+
+    def test_widget_problems_detect_breakage(self):
+        wf = copy.deepcopy(_load_workflow())
+        nodes = [n for n in wf["nodes"]
+                 if n["type"].startswith("OpenOptics_") and n.get("widgets_values")
+                 and widget_inputs(NODE_CLASS_MAPPINGS[n["type"]])[0][1][0] != "STRING"]
+        self.assertGreaterEqual(len(nodes), 2, "need two OpenOptics nodes with widgets")
+        bad_node, short_node = nodes[0], nodes[1]
+        bad_node["widgets_values"][0] = "bad"
+        short_node["widgets_values"].pop()
+        text = "\n".join(widget_value_problems(wf))
+        self.assertIn(f"{bad_node['type']} (id {bad_node['id']}) input", text)
+        self.assertIn("value 'bad'", text)
+        self.assertIn(f"{short_node['type']} (id {short_node['id']}): widgets_values has", text)
 
 
 if __name__ == "__main__":
