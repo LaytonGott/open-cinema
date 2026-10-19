@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from tests.bench_util import record_result
+from tests.bench_util import record_comparison, record_result
 
 HEADER = (
     "# Node speed\n"
@@ -48,6 +48,46 @@ class RecordResultTest(unittest.TestCase):
         record_result("OpenOptics_Missing", 4, 12.34, 3.456, path=self.path)
         with open(self.path, "rb") as f:
             self.assertEqual(f.read(), before)
+
+
+class RecordComparisonTest(unittest.TestCase):
+    HEADING = "## Compared with video generation"
+
+    def setUp(self):
+        fd, self.path = tempfile.mkstemp(suffix=".md")
+        os.close(fd)
+        self.addCleanup(os.remove, self.path)
+
+    def write(self, text):
+        with open(self.path, "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+
+    def read(self):
+        with open(self.path, "r", encoding="utf-8", newline="") as f:
+            return f.read()
+
+    def test_comparison_appends_section(self):
+        original = HEADER + ROW_A + TAIL
+        self.write(original)
+        record_comparison(14.14, path=self.path)
+        text = self.read()
+        self.assertTrue(text.startswith(original))
+        self.assertEqual(text.count(self.HEADING), 1)
+        self.assertIn("took 14.1 s", text)
+        self.assertIn("took 70.7 s", text)
+        self.assertIn("costs 20.0%", text)
+
+    def test_comparison_replaces_section(self):
+        before = HEADER + ROW_A + TAIL + "\n"
+        self.write(before + self.HEADING + "\n\nOLD SENTENCE\nmore old text\n")
+        record_comparison(14.14, path=self.path)
+        text = self.read()
+        self.assertTrue(text.startswith(before))
+        self.assertNotIn("OLD SENTENCE", text)
+        self.assertNotIn("more old text", text)
+        self.assertEqual(text.count(self.HEADING), 1)
+        self.assertIn("took 14.1 s", text)
+        self.assertIn("costs 20.0%", text)
 
 
 if __name__ == "__main__":

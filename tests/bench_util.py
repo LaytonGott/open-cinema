@@ -106,3 +106,46 @@ def record_result(node_key, chunk_frames, seconds, peak_gib, path=None):
     if changed:
         with open(path, "w", encoding="utf-8", newline="") as f:
             f.write("".join(lines))
+
+
+COMPARISON_HEADING = "## Compared with video generation"
+
+
+def record_comparison(dof_seconds, generation_seconds=70.7,
+                      label="LTX-2 19B Q4_K_M, warm", path=None):
+    """Write the Depth of Field vs video generation comparison section.
+
+    Rewrites the section of docs/node-speed.md (or path) that starts at the
+    line "## Compared with video generation" and runs to the end of the file,
+    or appends it if missing. dof_seconds and generation_seconds are in
+    seconds (1 decimal); the cost is 100 * dof_seconds / generation_seconds
+    percent (1 decimal). Lines before the section stay untouched. Only
+    benchmark tests may call it.
+
+    Returns None.
+    """
+    if path is None:
+        path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "docs", "node-speed.md")
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        lines = f.read().splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if line.rstrip("\r\n") == COMPARISON_HEADING:
+            lines = lines[:i]
+            break
+    else:
+        if lines and not lines[-1].endswith("\n"):
+            lines[-1] += "\n"
+        if lines:
+            lines.append("\n")
+    percent = 100 * dof_seconds / generation_seconds
+    lines.append(
+        f"{COMPARISON_HEADING}\n\n"
+        f"Depth of Field on {BENCH_FRAMES} frames at {BENCH_WIDTH}x{BENCH_HEIGHT}"
+        f" took {dof_seconds:.1f} s; generating the same {BENCH_FRAMES}-frame"
+        f" clip with {label} took {generation_seconds:.1f} s"
+        f" (docs/benchmarks.md), so Depth of Field costs {percent:.1f}% of the"
+        f" generation time.\n")
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write("".join(lines))
