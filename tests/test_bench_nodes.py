@@ -1,3 +1,4 @@
+import gc
 import os
 import unittest
 
@@ -11,6 +12,7 @@ from tests.synth_frames import make_depth, make_frames
 @unittest.skipUnless(os.environ.get("OPEN_OPTICS_BENCH") == "1", "set by npm run test:bench")
 class TestBenchNodes(unittest.TestCase):
     def _bench(self, key):
+        baseline = torch.cuda.memory_allocated()
         cls = open_optics_nodes.NODE_CLASS_MAPPINGS[key]
         image = make_frames(121, 704, 1280)
         depth = make_depth(121, 704, 1280)
@@ -18,12 +20,17 @@ class TestBenchNodes(unittest.TestCase):
         outputs, seconds, peak = run_bench(cls, kwargs)
         print(f"{key}, 121 frames at 1280x704: {seconds:.1f} s, peak GPU memory {peak:.2f} GiB")
         record_result(key, 8, seconds, peak)
+        self.assertLess(peak, 8.0)
         self.assertIsInstance(outputs, tuple)
         out = outputs[0]
         self.assertEqual(out.device.type, "cpu")
         self.assertEqual(out.dtype, torch.float32)
         self.assertTrue(bool(torch.isfinite(out).all()))
+        del outputs, out, image, depth, kwargs
+        gc.collect()
+        torch.cuda.synchronize()
         torch.cuda.empty_cache()
+        self.assertLessEqual(torch.cuda.memory_allocated(), baseline)
 
     def test_bench_anamorphic(self):
         self._bench("OpenOptics_Anamorphic")
