@@ -164,6 +164,14 @@ class TestReadmeInstall(unittest.TestCase):
             self.assertIn(needle.lower(), section.lower(), f"README.md Install section does not mention '{needle}'")
 
 
+class TestReadmeTests(unittest.TestCase):
+    def test_tests_section_content(self):
+        section = _readme_section("Tests")
+        self.assertTrue(section, "README.md has no Tests section")
+        for needle in ("npm test", "npm run test:bench", "venv", "CUDA"):
+            self.assertIn(needle.lower(), section.lower(), f"README.md Tests section does not mention '{needle}'")
+
+
 class TestReadmeDevice(unittest.TestCase):
     def test_readme_device_behaviour(self):
         text = _readme_text()
