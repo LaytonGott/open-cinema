@@ -932,15 +932,17 @@ class FirstReleaseKwargsTest(unittest.TestCase):
                             self.assertEqual(kwargs[name].dtype, torch.float32)
 
 
-def run_first_release(key, device):
+def run_first_release(key, device, extra=None):
     """Run node `key` on `device` ('cpu' or 'cuda') with first-release inputs.
 
     Sets OPEN_OPTICS_DEVICE to `device` for the call and restores it afterwards.
+    `extra` is an optional dict of further keyword inputs passed to the node as well.
     Returns (kwargs, outputs): the kwargs dict used and the node's output tuple.
     """
     with open(FIXTURE, encoding="utf-8") as f:
         expected = json.load(f)[key]
     kwargs = first_release_kwargs(expected)
+    kwargs.update(extra or {})
     if "depth_mask" in kwargs and "depth_image" in kwargs:
         del kwargs["depth_image"]  # nodes accept exactly one depth source
     cls = NODE_CLASS_MAPPINGS[key]
@@ -997,6 +999,48 @@ class FirstReleaseCallTest(unittest.TestCase):
                             n = 1 if key == "OpenOptics_Anamorphic" else 3
                             self.assertEqual(tuple(out.shape[:n]), tuple(ref.shape[:n]),
                                              f"output {i} batch/spatial size changed")
+
+
+    def test_explicit_defaults_equal_omitted_inputs(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        for key, expected in fixture.items():
+            with self.subTest(key=key):
+                cls = NODE_CLASS_MAPPINGS[key]
+                old = {e[0] for s in ("required", "optional") for e in expected.get(s, [])}
+                added = {}
+                spec = cls.INPUT_TYPES()
+                for section in ("required", "optional"):
+                    for name, entry in spec.get(section, {}).items():
+                        if name in old:
+                            continue
+                        typ = entry[0]
+                        opts = entry[1] if len(entry) > 1 else {}
+                        if "default" in opts:
+                            added[name] = opts["default"]
+                        elif isinstance(typ, (list, tuple)):
+                            added[name] = typ[0]
+                _, before = run_first_release(key, "cpu")
+                _, after = run_first_release(key, "cpu", added)
+                n = min(len(cls.RETURN_TYPES), len(before))
+                self.assertGreaterEqual(len(after), n)
+                for i in range(n):
+                    if torch.is_tensor(before[i]):
+                        self.assertTrue(torch.allclose(before[i], after[i], atol=1e-6),
+                                        f"output {i} changed with explicit defaults")
+                    else:
+                        self.assertEqual(before[i], after[i])
+                for i in range(n, len(after)):
+                    self.assertEqual(len(before), len(after))
+                    if torch.is_tensor(before[i]):
+                        self.assertTrue(torch.allclose(before[i], after[i], atol=1e-6))
+                    else:
+                        self.assertEqual(before[i], after[i])
+                problems = output_problems("0", key, after, NODE_CLASS_MAPPINGS)
+                if key in ("OpenOptics_DepthToMetric", "OpenOptics_DepthTemporalSmooth"):
+                    problems = [p for p in problems
+                                if not p.endswith("output 0: values outside 0..1")]
+                self.assertEqual([], problems, "; ".join(problems))
 
 
 class FixturesPresentTest(unittest.TestCase):
