@@ -678,6 +678,31 @@ class DemoWorkflowRunTest(unittest.TestCase):
         self.check_runs(os.path.join(ROOT, "tests", "fixtures", "legacy_workflows",
                                      "open_optics_demo_release_ui.json"))
 
+    def test_demo_fails_when_required_input_added(self):
+        demo = os.path.join(ROOT, "workflows", "open_optics_demo.json")
+        graph = workflow_graph(demo)
+        used = sorted({e["class_type"] for e in graph.values()
+                       if e.get("class_type") in NODE_CLASS_MAPPINGS})
+        self.assertTrue(used)
+        for cls_name in used:
+            with self.subTest(cls=cls_name):
+                base = NODE_CLASS_MAPPINGS[cls_name]
+
+                class Changed(base):
+                    @classmethod
+                    def INPUT_TYPES(cls):
+                        spec = copy.deepcopy(super().INPUT_TYPES())
+                        spec.setdefault("required", {})["new_required"] = ("INT", {"default": 1})
+                        return spec
+
+                nodes = dict(NODE_CLASS_MAPPINGS)
+                nodes[cls_name] = Changed
+                errors = validate_api_graph(graph, nodes)
+                self.assertTrue(errors)
+                self.assertTrue(
+                    any("Required input is missing" in m and "new_required" in m for m in errors),
+                    errors)
+
 
 if __name__ == "__main__":
     unittest.main()
