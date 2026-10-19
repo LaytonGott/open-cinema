@@ -544,5 +544,27 @@ class TestSubjectRadiusNode(unittest.TestCase):
         self.assertAlmostEqual(float(out[0, 0, 0]), 2.0, places=4)
 
 
+class TestSubjectLimitsOnly(unittest.TestCase):
+    def _depth(self):
+        d = torch.full((1, 9, 9), 0.4)
+        d[0, 3:6, 3:6] = 0.8
+        d[0, 0, 0] = 1.6
+        d[0, 8, 8] = 0.1
+        return d
+
+    def test_percentiles_ignored(self):
+        for inverse_depth in (True, False):
+            outs = []
+            for low, high in [(2.0, 98.0), (0.0, 100.0), (40.0, 60.0)]:
+                out, _ = OpenOptics_DepthToMetric().convert(
+                    near_m=0.5, far_m=10.0, inverse_depth=inverse_depth,
+                    low_percentile=low, high_percentile=high,
+                    depth_mask=self._depth(), mode="subject", subject_m=2.0,
+                    subject_x=0.5, subject_y=0.5, subject_radius_px=1)
+                outs.append(out)
+            self.assertTrue(torch.equal(outs[0], outs[1]))
+            self.assertTrue(torch.equal(outs[0], outs[2]))
+
+
 if __name__ == "__main__":
     unittest.main()
