@@ -70,6 +70,20 @@ class NodeSpeedDocTest(unittest.TestCase):
         self.assertLess(float(cells[5]), 30)
         self.assertLess(float(cells[6]), 8)
 
+    def test_limits_and_real_clip_sections(self):
+        """'## Limits' states 30 s, 10 s, 20 s, 6 s and 8 GiB; '## Real clip' exists."""
+        self.assertIn("## Limits", self.lines)
+        self.assertIn("## Real clip", self.lines)
+        start = self.lines.index("## Limits")
+        end = len(self.lines)
+        for i in range(start + 1, len(self.lines)):
+            if self.lines[i].startswith("## "):
+                end = i
+                break
+        text = "\n".join(self.lines[start:end])
+        for limit in ("30 s", "10 s", "20 s", "6 s", "8 GiB"):
+            self.assertIn(limit, text)
+
     def test_cells_numeric_or_unmeasured(self):
         """Seconds and peak GiB cells are numbers or 'not yet measured'; chunk_frames is 8."""
         for key in KEYS:
