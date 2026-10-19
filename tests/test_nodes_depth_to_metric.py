@@ -461,5 +461,46 @@ class TestDepthToMetricSubjectMode(unittest.TestCase):
                 depth_mask=torch.zeros(1, 9, 9), mode="subject", subject_m=2.0)
 
 
+class TestSubjectModeScaling(unittest.TestCase):
+    def _run(self, inverse_depth):
+        d = torch.full((1, 9, 9), 0.4)
+        d[0, 3:6, 3:6] = 0.8
+        d[0, 0, 0] = 1.6
+        d[0, 8, 8] = 0.1
+        out, _ = OpenOptics_DepthToMetric().convert(
+            near_m=0.5, far_m=10.0, inverse_depth=inverse_depth, depth_mask=d,
+            mode="subject", subject_m=2.0, subject_x=0.5, subject_y=0.5,
+            subject_radius_px=1)
+        return out
+
+    def _check_window(self, out):
+        for v in out[0, 3:6, 3:6].flatten().tolist():
+            self.assertAlmostEqual(v, 2.0, places=4)
+
+    def test_window_all_subject_inverse(self):
+        self._check_window(self._run(True))
+
+    def test_window_all_subject_depth_like(self):
+        self._check_window(self._run(False))
+
+    def test_base_inverse_scale_only(self):
+        out = self._run(True)
+        self.assertAlmostEqual(float(out[0, 1, 7]), 4.0, places=4)
+        self.assertAlmostEqual(float(out[0, 7, 1]), 4.0, places=4)
+
+    def test_base_depth_like_scale_only(self):
+        out = self._run(False)
+        self.assertAlmostEqual(float(out[0, 1, 7]), 1.0, places=4)
+        self.assertAlmostEqual(float(out[0, 7, 1]), 1.0, places=4)
+
+    def test_inverse_off_matches_formula(self):
+        inv = self._run(True)
+        self.assertAlmostEqual(float(inv[0, 0, 0]), 1.0, places=4)
+        self.assertEqual(inv[0, 8, 8].item(), float(torch.tensor(10.0, dtype=torch.float32)))
+        dl = self._run(False)
+        self.assertAlmostEqual(float(dl[0, 0, 0]), 4.0, places=4)
+        self.assertEqual(dl[0, 8, 8].item(), float(torch.tensor(0.5, dtype=torch.float32)))
+
+
 if __name__ == "__main__":
     unittest.main()
