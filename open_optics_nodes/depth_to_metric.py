@@ -101,6 +101,21 @@ def _validate_subject_params(mode, subject_m, near_m, far_m, subject_x, subject_
         raise ValueError(f"subject_radius_px must be >= 0 px, got {subject_radius_px}")
 
 
+def _subject_region_values(depth, col, row, radius):
+    """Return the depth values in a square window around the subject pixel.
+
+    depth is a tensor [B, H, W] of unitless depth values; col and row are the
+    0-based integer subject pixel; radius is a pixel count >= 0. The window
+    covers rows row-radius..row+radius and columns col-radius..col+radius,
+    clipped to the image, taken from all B frames together (frame-major order).
+    Returns a 1-D float64 tensor of the window values (unitless).
+    """
+    h, w = depth.shape[1], depth.shape[2]
+    r0, r1 = max(row - radius, 0), min(row + radius + 1, h)
+    c0, c1 = max(col - radius, 0), min(col + radius + 1, w)
+    return depth.detach()[:, r0:r1, c0:c1].reshape(-1).to(torch.float64)
+
+
 class OpenOptics_DepthToMetric:
     """Convert a relative depth map to metric depth in metres."""
 

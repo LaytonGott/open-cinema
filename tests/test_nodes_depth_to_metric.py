@@ -4,7 +4,7 @@ import torch
 
 from open_optics.depth import depth_to_metric
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
-from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric, _validate_subject_params
+from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric, _subject_region_values, _validate_subject_params
 
 
 def _convert(depth, **kw):
@@ -381,6 +381,31 @@ class TestDepthToMetricSubjectValidation(unittest.TestCase):
 
     def test_valid_values_do_not_raise(self):
         _validate_subject_params("subject", 3.0, 1.0, 5.0, 0.5, 0.5, 4)
+
+
+class TestSubjectRegionValues(unittest.TestCase):
+    # Frame 0 holds 0..24 row by row, frame 1 holds 100..124.
+    D = torch.stack([torch.arange(25.0).reshape(5, 5),
+                     100.0 + torch.arange(25.0).reshape(5, 5)])
+
+    def test_centre_radius_1(self):
+        v = _subject_region_values(self.D, 2, 2, 1)
+        self.assertEqual(v.dtype, torch.float64)
+        self.assertEqual(v.shape, (18,))
+        # Frame 0: 6+7+8+11+12+13+16+17+18 = 108; frame 1: 108 + 9 * 100 = 1008.
+        self.assertAlmostEqual(float(v.sum()), 1116.0, places=9)
+        self.assertEqual(v[:9].tolist(), [6, 7, 8, 11, 12, 13, 16, 17, 18])
+
+    def test_corner_clipped(self):
+        v = _subject_region_values(self.D, 0, 0, 1)
+        self.assertEqual(v.shape, (8,))
+        # Frame 0: 0+1+5+6 = 12; frame 1: 12 + 4 * 100 = 412.
+        self.assertAlmostEqual(float(v.sum()), 424.0, places=9)
+
+    def test_radius_zero(self):
+        v = _subject_region_values(self.D, 3, 1, 0)
+        # Row 1, column 3 is value 8 in frame 0 and 108 in frame 1.
+        self.assertEqual(v.tolist(), [8.0, 108.0])
 
 
 if __name__ == "__main__":
