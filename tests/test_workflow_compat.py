@@ -192,6 +192,38 @@ def node_set_problems(fixture, nodes):
         for key in fixture if key not in nodes]
 
 
+def all_compat_problems(fixture, nodes):
+    """Return a list of strings from every compatibility checker for every fixture node in `nodes`.
+
+    `fixture` is the first-release inputs dict keyed by node key; `nodes` is the class mapping.
+    An error raised by one node's INPUT_TYPES is reported as "<key>: <error>" and the loop
+    goes on, so one broken node never hides the others. No units apply.
+    """
+    problems = list(node_set_problems(fixture, nodes))
+    for key, expected in fixture.items():
+        if key not in nodes:
+            continue
+        cls = nodes[key]
+        try:
+            spec = cls.INPUT_TYPES()
+            problems += first_release_problems(key, spec, expected)
+            problems += order_problems(key, spec, expected)
+            problems += combo_problems(key, spec, expected)
+            problems += default_problems(key, cls, expected)
+            problems += return_problems(key, cls, expected)
+        except Exception as e:
+            problems.append(f"{key}: {e}")
+    return problems
+
+
+class AllCompatTest(unittest.TestCase):
+    def test_all_nodes_clean(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        problems = all_compat_problems(fixture, NODE_CLASS_MAPPINGS)
+        self.assertEqual(problems, [], "\n".join(problems))
+
+
 class NodeSetProblemsTest(unittest.TestCase):
     def setUp(self):
         with open(FIXTURE, encoding="utf-8") as f:
