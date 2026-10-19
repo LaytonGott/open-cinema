@@ -31,18 +31,32 @@ def scan_comfy_imports():
         if not path.is_file():
             continue
         rel = path.relative_to(ROOT).as_posix()
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if isinstance(node, ast.Import):
-                modules = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-                modules = [node.module]
-            else:
-                continue
-            hits.extend((rel, m) for m in modules if m.split(".")[0] in COMFY_ROOTS)
+        hits.extend((rel, m) for m in comfy_imports_in_source(path.read_text(encoding="utf-8")))
     return sorted(hits)
 
 
+def comfy_imports_in_source(source):
+    """Return the list of ComfyUI module names imported anywhere in the Python source string."""
+    found = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            modules = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            modules = [node.module]
+        else:
+            continue
+        found.extend(m for m in modules if m.split(".")[0] in COMFY_ROOTS)
+    return found
+
+
 class TestComfyImportScan(unittest.TestCase):
+    def test_source_scan_detects_lazy_and_guarded(self):
+        lazy = "def f():\n    import comfy.utils\n"
+        guarded = "try:\n    from folder_paths import x\nexcept ImportError:\n    x = None\n"
+        self.assertEqual(comfy_imports_in_source(lazy), ["comfy.utils"])
+        self.assertEqual(comfy_imports_in_source(guarded), ["folder_paths"])
+        self.assertEqual(comfy_imports_in_source("import math\n"), [])
+
     def test_scan_finds_device_helper_import(self):
         hits = scan_comfy_imports()
         self.assertIn(("open_optics_nodes/device.py", "comfy.model_management"), hits, f"hits: {hits}")
