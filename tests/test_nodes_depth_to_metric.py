@@ -501,6 +501,19 @@ class TestSubjectModeScaling(unittest.TestCase):
         self.assertAlmostEqual(float(dl[0, 0, 0]), 4.0, places=4)
         self.assertEqual(dl[0, 8, 8].item(), float(torch.tensor(0.5, dtype=torch.float32)))
 
+    def test_depth_like_scale_only_other_subject(self):
+        d = torch.full((1, 9, 9), 1.0)
+        d[0, 3:6, 3:6] = 0.5
+        for inverse_depth, base_want in [(False, 6.0), (True, 1.5)]:
+            out, _ = OpenOptics_DepthToMetric().convert(
+                near_m=0.5, far_m=10.0, inverse_depth=inverse_depth, depth_mask=d,
+                mode="subject", subject_m=3.0, subject_x=0.5, subject_y=0.5,
+                subject_radius_px=1)
+            for v in out[0, 3:6, 3:6].flatten().tolist():
+                self.assertAlmostEqual(v, 3.0, places=4)
+            for r, c in [(0, 0), (1, 7), (8, 8)]:
+                self.assertAlmostEqual(float(out[0, r, c]), base_want, places=4)
+
 
 if __name__ == "__main__":
     unittest.main()
