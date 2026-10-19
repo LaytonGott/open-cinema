@@ -585,18 +585,24 @@ class UiConverterTest(unittest.TestCase):
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def workflow_files():
-    """Return sorted paths of the legacy fixture workflows plus the demo workflow. No units apply."""
-    legacy = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
+def workflow_files(legacy_dir=None):
+    """Return sorted paths of the workflows in `legacy_dir` (default: the legacy fixture folder) plus the demo workflow. No units apply."""
+    legacy = legacy_dir or os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
     files = [os.path.join(legacy, n) for n in os.listdir(legacy) if n.endswith(".json")]
     files.append(os.path.join(ROOT, "workflows", "open_optics_demo.json"))
     return sorted(files)
 
 
 def load_errors(path):
-    """Load the workflow JSON at `path` and return its list of validation error strings."""
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    """Load the workflow JSON at `path` and return its list of validation error strings.
+
+    An unreadable or invalid JSON file gives one error naming the file. No units apply.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+        return [f"{os.path.basename(path)}: cannot load workflow ({e})"]
     if isinstance(data, dict) and "nodes" in data:
         return validate_ui_graph(data)
     return validate_api_graph(data)
