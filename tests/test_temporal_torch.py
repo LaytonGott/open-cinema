@@ -1,3 +1,4 @@
+import inspect
 import unittest
 
 import torch
@@ -41,6 +42,14 @@ class SmoothSequenceTorchTest(unittest.TestCase):
 
     def test_matches_reference_cpu(self):
         self._check(torch.device("cpu"), "cpu")
+
+    def test_source_has_no_tolist_or_item(self):
+        from open_optics_nodes import temporal_torch
+
+        for fn in (temporal_torch.smooth_sequence_torch, temporal_torch._update_frame):
+            src = inspect.getsource(fn)
+            self.assertNotIn(".tolist(", src)
+            self.assertNotIn(".item(", src)
 
     @unittest.skipUnless(torch.cuda.is_available(), "CUDA not available")
     def test_matches_reference_cuda(self):
