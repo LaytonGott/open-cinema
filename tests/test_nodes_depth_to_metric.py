@@ -444,6 +444,17 @@ class TestSubjectToMetric(unittest.TestCase):
             self.assertAlmostEqual(got, want, places=4)
 
 
+class TestSubjectToMetricTensorScale(unittest.TestCase):
+    def test_per_frame_scale(self):
+        depth = torch.zeros(2, 2, 2)
+        depth[0] = 0.8
+        depth[1] = 0.4
+        d_s = torch.tensor([0.8, 0.4]).reshape(2, 1, 1)
+        out = _subject_to_metric(depth, d_s, 2.0, 0.5, 10.0, True)
+        for v in out.flatten().tolist():
+            self.assertAlmostEqual(v, 2.0, places=5)
+
+
 class TestDepthToMetricSubjectMode(unittest.TestCase):
     def _depth(self):
         d = torch.full((1, 9, 9), 0.4)

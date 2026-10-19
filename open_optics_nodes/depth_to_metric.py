@@ -159,13 +159,18 @@ def _subject_to_metric(depth, d_s, subject_m, near_m, far_m, inverse_depth):
     """Map a depth tensor to metres by scale from the subject depth.
 
     depth is a tensor of any shape with unitless values; d_s is the unitless
-    subject depth (> 0); subject_m, near_m and far_m are in metres. Torch form
+    subject depth (> 0), either a Python float (one scale for all of depth) or
+    a tensor of shape [n,1,1] (one value per frame, broadcast over depth
+    [n,H,W]; it is moved to depth's device and cast to float64). subject_m,
+    near_m and far_m are in metres. Torch form
     of open_optics.depth.subject_scale_metric: subject_m*d_s/d if
     inverse_depth else subject_m*d/d_s, where inverse_depth entries with
     d <= 0 become far_m. Returns a float32 tensor of the same shape and device
     in metres, clamped to [near_m, far_m].
     """
     d = depth.detach().to(torch.float64)
+    if torch.is_tensor(d_s):
+        d_s = d_s.detach().to(device=d.device, dtype=torch.float64)
     if inverse_depth:
         positive = d > 0
         safe = torch.where(positive, d, torch.ones_like(d))
