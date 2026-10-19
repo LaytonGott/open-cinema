@@ -31,13 +31,14 @@ def coc_radius_map(depth_m, focal_mm, f_number, focus_m, sensor_width_mm, max_ra
     """
     depth = sanitize_depth(depth_m).clamp(min=1e-3)
     width = depth.shape[-1]
-    uniq, inverse = torch.unique(depth, return_inverse=True)
-    radii = []
-    for d in uniq.cpu().tolist():
-        blur_mm = coc.blur_diameter_mm(focal_mm, f_number, focus_m * 1000.0, d * 1000.0)
-        radii.append(coc.blur_radius_px(blur_mm, width, sensor_width_mm, max_px=max_radius_px))
-    table = torch.tensor(radii, dtype=torch.float32, device=depth.device)
-    return table[inverse.reshape(-1)].reshape(depth.shape)
+    focus_mm = focus_m * 1000.0
+    # A scalar call validates the arguments (raises ValueError) and gives the scale.
+    scale = coc.blur_diameter_mm(focal_mm, f_number, focus_mm, math.inf)
+    coc.blur_radius_px(scale, width, sensor_width_mm, max_px=max_radius_px)
+    subject_mm = depth * 1000.0
+    blur_mm = scale * (subject_mm - focus_mm) / subject_mm
+    radius = blur_mm.abs() * width / sensor_width_mm / 2
+    return radius.clamp(max=max_radius_px).to(torch.float32)
 
 
 SHARP_RADIUS_PX = 0.5
