@@ -76,3 +76,33 @@ def run_bench(cls, kwargs, chunk_frames=None):
         seconds = time.perf_counter() - start
         peak_gib = torch.cuda.max_memory_allocated() / 1024 ** 3
     return outputs, seconds, peak_gib
+
+
+def record_result(node_key, chunk_frames, seconds, peak_gib, path=None):
+    """Write a benchmark result into the node speed table.
+
+    Rewrites the line starting with "| <node_key> |" in docs/node-speed.md
+    (or in path) with chunk_frames (frames), seconds (1 decimal) and
+    peak_gib (GiB, 2 decimals); every other line is left untouched, and
+    nothing changes if the row is missing. Only benchmark tests may call it.
+
+    Returns None.
+    """
+    if path is None:
+        path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "docs", "node-speed.md")
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        lines = f.read().splitlines(keepends=True)
+    prefix = f"| {node_key} |"
+    changed = False
+    for i, line in enumerate(lines):
+        if line.startswith(prefix):
+            ending = line[len(line.rstrip("\r\n")):]
+            lines[i] = (f"| {node_key} | {BENCH_FRAMES} | {BENCH_WIDTH}x{BENCH_HEIGHT}"
+                        f" | cuda | {chunk_frames} | {seconds:.1f} | {peak_gib:.2f} |"
+                        f"{ending}")
+            changed = True
+    if changed:
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write("".join(lines))
