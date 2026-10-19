@@ -50,5 +50,32 @@ class TestComfyImportScan(unittest.TestCase):
         self.assertEqual(bad, [], f"ComfyUI imports outside {sorted(ALLOWED_FILES)}: {hits}")
 
 
+def _licence_text():
+    path = ROOT / "LICENSE"
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def _is_gpl3(text):
+    return "GNU GENERAL PUBLIC LICENSE" in text and "Version 3, 29 June 2007" in text
+
+
+class TestLicenceFile(unittest.TestCase):
+    def test_license_exists(self):
+        self.assertTrue((ROOT / "LICENSE").is_file(), "LICENSE is missing at the repo root")
+
+    def test_license_is_gpl3(self):
+        text = _licence_text()
+        self.assertIn("GNU GENERAL PUBLIC LICENSE", text)
+        self.assertIn("Version 3, 29 June 2007", text)
+
+    def test_gpl_when_comfy_imported(self):
+        hits = scan_comfy_imports()
+        if hits:
+            self.assertTrue(
+                _is_gpl3(_licence_text()),
+                f"ComfyUI is imported ({hits}) so LICENSE must be GPL-3.0, but LICENSE is not",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
