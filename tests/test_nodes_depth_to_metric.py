@@ -652,5 +652,64 @@ class TestSubjectFrameDepths(unittest.TestCase):
             _subject_frame_depths(depth, region)
 
 
+class TestSubjectMaskNode(unittest.TestCase):
+    KW = dict(
+        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+        inverse_depth=True, low_percentile=0.0, high_percentile=100.0,
+        subject_x=0.5, subject_y=0.5, subject_radius_px=1,
+    )
+
+    def _depth(self):
+        depth = torch.full((1, 9, 9), 0.4)
+        depth[:, 3:6, 3:6] = 0.8
+        depth[0, 0, 0] = 1.6
+        depth[0, 8, 8] = 0.1
+        return depth
+
+    def _center_mask(self):
+        mask = torch.zeros(1, 9, 9)
+        mask[:, 3:6, 3:6] = 1.0
+        return mask
+
+    def test_mask_equals_point(self):
+        depth = self._depth()
+        out = _convert(depth, subject_mask=self._center_mask(), **self.KW)[0]
+        ref = _convert(depth, **self.KW)[0]
+        self.assertTrue(torch.allclose(out, ref, atol=1e-6))
+        for r in range(3, 6):
+            for c in range(3, 6):
+                self.assertAlmostEqual(out[0, r, c].item(), 2.0, places=5)
+
+    def test_mask_elsewhere(self):
+        mask = torch.zeros(1, 9, 9)
+        mask[:, 6:8, 1:3] = 1.0
+        out = _convert(self._depth(), subject_mask=mask, **self.KW)[0]
+        for r in (6, 7):
+            for c in (1, 2):
+                self.assertAlmostEqual(out[0, r, c].item(), 2.0, places=5)
+        self.assertAlmostEqual(out[0, 1, 7].item(), 2.0, places=5)
+        self.assertAlmostEqual(out[0, 4, 4].item(), 1.0, places=5)
+        self.assertAlmostEqual(out[0, 0, 0].item(), 0.5, places=5)
+        self.assertAlmostEqual(out[0, 8, 8].item(), 8.0, places=5)
+
+    def test_mask_ignores_point(self):
+        depth = self._depth()
+        mask = self._center_mask()
+        ref = _convert(depth, subject_mask=mask, **self.KW)[0]
+        for xy in (0.0, 1.0):
+            kw = dict(self.KW, subject_x=xy, subject_y=xy, subject_radius_px=0)
+            out = _convert(depth, subject_mask=mask, **kw)[0]
+            self.assertTrue(torch.allclose(out, ref, atol=1e-6))
+
+    def test_mask_batch(self):
+        depth = self._depth()
+        mask = self._center_mask()
+        ref = _convert(depth, subject_mask=mask, **self.KW)[0]
+        out = _convert(torch.cat([depth, depth]), subject_mask=mask, **self.KW)[0]
+        self.assertEqual(tuple(out.shape), (2, 9, 9))
+        for i in range(2):
+            self.assertTrue(torch.allclose(out[i:i + 1], ref, atol=1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()
