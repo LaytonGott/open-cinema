@@ -16,6 +16,15 @@ class TestFraming(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "image_width_px"):
             sensor_height_mm(36.0, 0, 704)
 
+    def test_sensor_height_mm_16_9_and_keywords(self):
+        self.assertAlmostEqual(sensor_height_mm(36.0, 1920, 1080), 20.25, places=6)
+        self.assertAlmostEqual(
+            sensor_height_mm(sensor_width_mm=36, image_width_px=1280, image_height_px=704),
+            19.8,
+            places=6,
+        )
+        self.assertAlmostEqual(sensor_height_mm(36.0, 1000, 1000), 36.0, places=6)
+
     def test_subject_distance_m_known_value(self):
         # h = 24 * 600 / 1200 = 12 mm; u = 50 * (1 + 1700 / 12) / 1000
         self.assertAlmostEqual(subject_distance_m(50, 24, 600, 1200), 7.133333, places=6)
