@@ -223,6 +223,8 @@ class TestFraming(unittest.TestCase):
             text = f.read()
         self.assertIn("## Helpers", text)
         self.assertIn("7.1", text)
+        self.assertIn("7.13", text)
+        self.assertIn("subject_distance_m(", text)
 
     def test_docstrings_state_units_and_estimate(self):
         for func in (subject_distance_m, subject_height_px):

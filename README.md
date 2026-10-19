@@ -54,6 +54,12 @@ Queue/Run produces a preview image.
 
 Worked example: a 1.7 m person fills half the frame (600 of 1200 px) with a 50 mm lens on a 24 mm tall sensor. The subject's height on the sensor is h = 24 * 600 / 1200 = 12 mm, and with u = f * (1 + H / h) the distance is 50 * (1 + 1700 / 12) mm, about 7.1 m.
 
+```python
+from open_optics.framing import subject_distance_m
+subject_distance_m(focal_mm=50, sensor_height_mm=24, subject_height_px=600, image_height_px=1200)
+# about 7.13 m (50 * (1 + 1700/12) / 1000 = 7.1333)
+```
+
 This is an estimate: it assumes a thin lens and a subject facing the camera. There is no ComfyUI node for these helpers.
 
 ## Tests
