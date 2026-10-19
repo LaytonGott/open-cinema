@@ -234,6 +234,10 @@ class OpenOptics_DepthToMetric:
                 "inverse_depth": ("BOOLEAN", {"default": True}),
                 "low_percentile": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 100.0, "step": 0.1}),
                 "high_percentile": ("FLOAT", {"default": 98.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+            },
+            "optional": {
+                "depth_mask": ("MASK",),
+                "depth_image": ("IMAGE",),
                 "chunk_frames": common.CHUNK_FRAMES_INPUT,
                 "mode": (["near_far", "subject"], {"default": "near_far", "tooltip": "near_far maps onto near_m..far_m; subject scales from the subject distance"}),
                 "subject_m": ("FLOAT", {"default": 3.0, "min": 0.001, "max": 100000.0, "step": 0.1, "tooltip": "Distance of the subject in metres; the subject region maps to this value. Must be within near_m..far_m."}),
@@ -241,10 +245,6 @@ class OpenOptics_DepthToMetric:
                 "subject_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "Subject point as a fraction (0 to 1) of image height"}),
                 "subject_radius_px": ("INT", {"default": 4, "min": 0, "max": 10000, "tooltip": "Half-size in pixels of the square window around the point"}),
                 "anchor_scope": (["batch", "frame"], {"default": "batch", "tooltip": "batch = one scale for all frames, frame = per-frame scale"}),
-            },
-            "optional": {
-                "depth_mask": ("MASK",),
-                "depth_image": ("IMAGE",),
                 "subject_mask": ("MASK", {"tooltip": "Optional MASK in 0..1, pixels above 0.5 are the subject; overrides the point"}),
             },
         }

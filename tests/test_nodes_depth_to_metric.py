@@ -184,7 +184,7 @@ class TestDepthToMetricDefaults(unittest.TestCase):
         self.assertEqual(req["high_percentile"][1]["default"], 98.0)
 
     def test_chunk_frames_input(self):
-        req = OpenOptics_DepthToMetric.INPUT_TYPES()["required"]
+        req = OpenOptics_DepthToMetric.INPUT_TYPES()["optional"]
         self.assertEqual(req["chunk_frames"][0], "INT")
         self.assertEqual(req["chunk_frames"][1]["default"], 8)
         self.assertEqual(req["chunk_frames"][1]["min"], 1)
@@ -334,7 +334,7 @@ class TestDepthToMetricBatchFit(unittest.TestCase):
 
 class TestDepthToMetricSubjectInputs(unittest.TestCase):
     def _required(self):
-        return OpenOptics_DepthToMetric.INPUT_TYPES()["required"]
+        return OpenOptics_DepthToMetric.INPUT_TYPES()["optional"]
 
     def test_mode_choices_and_default(self):
         spec = self._required()["mode"]
@@ -359,7 +359,7 @@ class TestDepthToMetricSubjectInputs(unittest.TestCase):
 
     def test_subject_inputs_have_tooltips(self):
         types = OpenOptics_DepthToMetric.INPUT_TYPES()
-        req = types["required"]
+        req = types["optional"]
         specs = {name: req[name] for name in (
             "mode", "subject_m", "subject_x", "subject_y",
             "subject_radius_px", "anchor_scope")}

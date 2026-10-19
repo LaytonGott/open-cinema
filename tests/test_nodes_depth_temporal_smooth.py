@@ -107,7 +107,7 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
         self.assertTrue((out > 0).all())
 
     def test_chunk_frames_input_spec(self):
-        spec = OpenOptics_DepthTemporalSmooth.INPUT_TYPES()["required"]["chunk_frames"]
+        spec = OpenOptics_DepthTemporalSmooth.INPUT_TYPES()["optional"]["chunk_frames"]
         self.assertEqual(spec[0], "INT")
         self.assertEqual(spec[1]["default"], 8)
         self.assertEqual(spec[1]["min"], 1)

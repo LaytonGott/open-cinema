@@ -42,7 +42,9 @@ class TestNodesChunked(unittest.TestCase):
 
     def test_chunk_frames_spec(self):
         for key, cls in NODE_CLASS_MAPPINGS.items():
-            spec = cls.INPUT_TYPES()["required"]["chunk_frames"]
+            types = cls.INPUT_TYPES()
+            spec = (types["required"].get("chunk_frames")
+                    or types["optional"]["chunk_frames"])
             self.assertEqual(spec[0], "INT", key)
             self.assertEqual(spec[1]["default"], 8, key)
             self.assertEqual(spec[1]["min"], 1, key)
