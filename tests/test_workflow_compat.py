@@ -1151,6 +1151,25 @@ class RunFirstReleaseMissingDefaultTest(unittest.TestCase):
         self.assertIn("chunk_frames", str(cm.exception))
 
 
+def added_defaults(key, expected):
+    """Return a dict of input name -> default for every input of node `key` not in the first release."""
+    cls = NODE_CLASS_MAPPINGS[key]
+    old = {e[0] for s in ("required", "optional") for e in expected.get(s, [])}
+    added = {}
+    spec = cls.INPUT_TYPES()
+    for section in ("required", "optional"):
+        for name, entry in spec.get(section, {}).items():
+            if name in old:
+                continue
+            typ = entry[0]
+            opts = entry[1] if len(entry) > 1 else {}
+            if "default" in opts:
+                added[name] = opts["default"]
+            elif isinstance(typ, (list, tuple)):
+                added[name] = typ[0]
+    return added
+
+
 class FirstReleaseCallTest(unittest.TestCase):
     def test_every_node_runs_with_first_release_inputs(self):
         with open(FIXTURE, encoding="utf-8") as f:
@@ -1189,19 +1208,7 @@ class FirstReleaseCallTest(unittest.TestCase):
         for key, expected in fixture.items():
             with self.subTest(key=key):
                 cls = NODE_CLASS_MAPPINGS[key]
-                old = {e[0] for s in ("required", "optional") for e in expected.get(s, [])}
-                added = {}
-                spec = cls.INPUT_TYPES()
-                for section in ("required", "optional"):
-                    for name, entry in spec.get(section, {}).items():
-                        if name in old:
-                            continue
-                        typ = entry[0]
-                        opts = entry[1] if len(entry) > 1 else {}
-                        if "default" in opts:
-                            added[name] = opts["default"]
-                        elif isinstance(typ, (list, tuple)):
-                            added[name] = typ[0]
+                added = added_defaults(key, expected)
                 _, before = run_first_release(key, "cpu")
                 _, after = run_first_release(key, "cpu", added)
                 n = min(len(cls.RETURN_TYPES), len(before))
