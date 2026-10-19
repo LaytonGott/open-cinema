@@ -59,16 +59,29 @@ class TestNodeCoverage(unittest.TestCase):
                 self.assertNotIn("depth_image", types["required"])
 
     def test_no_test_skips(self):
-        # skipUnless is allowed for the CUDA and benchmark tests.
-        words = ["skip" + "Test", "skip" + "If"]
+        # A skipped test hides a failure. The decorator skipUnless(<condition>, reason) is allowed everywhere, for tests
+        # that need CUDA. Skipping from inside a test or with any other form (the skipTest call, skipIf,
+        # unittest.skip, pytest.skip, pytest.mark.skip) is allowed only in the benchmark tests: they need the GPU, the
+        # real footage fixture or OPEN_OPTICS_BENCH=1, and skip (with a reason) when those are missing.
+        # Benchmark test files: test_bench_*.py, test_node_speed_doc.py and test_nodes_chunk_memory.py.
+        skip_words = [
+            "skip" + "Test", "skip" + "If", "unittest." + "skip(", "pytest." + "skip", "mark." + "skip",
+        ]
+        benchmark_files = ("test_bench_", "test_node_speed_doc", "test_nodes_chunk_memory")
         for filename in sorted(os.listdir(TESTS_DIR)):
             if not filename.endswith(".py") or filename == "test_nodes_coverage.py":
                 continue
+            with open(os.path.join(TESTS_DIR, filename), encoding="utf-8") as f:
+                text = f.read()
+            if filename.startswith(benchmark_files):
+                continue
             with self.subTest(file=filename):
-                with open(os.path.join(TESTS_DIR, filename), encoding="utf-8") as f:
-                    text = f.read()
-                for word in words:
-                    self.assertNotIn(word, text)
+                for word in skip_words:
+                    self.assertNotIn(word, text, f"{filename} skips tests; only benchmark tests may")
+
+    def test_skip_rule_would_catch_a_skip_outside_benchmarks(self):
+        self.assertTrue("test_bench_dof.py".startswith(("test_bench_", "test_node_speed_doc", "test_nodes_chunk_memory")))
+        self.assertFalse("test_nodes_vignette.py".startswith(("test_bench_", "test_node_speed_doc", "test_nodes_chunk_memory")))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,459 @@
+{
+ "OpenOptics_Anamorphic": {
+  "required": [
+   [
+    "image",
+    "IMAGE",
+    {}
+   ],
+   [
+    "squeeze",
+    "FLOAT",
+    {
+     "default": 1.33,
+     "min": 1.0,
+     "max": 4.0,
+     "step": 0.01
+    }
+   ],
+   [
+    "mode",
+    [
+     "desqueeze",
+     "squeeze"
+    ],
+    {
+     "default": "desqueeze"
+    }
+   ],
+   [
+    "keep_width",
+    "BOOLEAN",
+    {
+     "default": false
+    }
+   ]
+  ],
+  "optional": [],
+  "return_types": [
+   "IMAGE"
+  ]
+ },
+ "OpenOptics_ChromaticAberration": {
+  "required": [
+   [
+    "image",
+    "IMAGE",
+    {}
+   ],
+   [
+    "ca_r",
+    "FLOAT",
+    {
+     "default": 0.0,
+     "min": -0.1,
+     "max": 0.1,
+     "step": 0.0001
+    }
+   ],
+   [
+    "ca_b",
+    "FLOAT",
+    {
+     "default": 0.0,
+     "min": -0.1,
+     "max": 0.1,
+     "step": 0.0001
+    }
+   ]
+  ],
+  "optional": [],
+  "return_types": [
+   "IMAGE"
+  ]
+ },
+ "OpenOptics_DepthOfField": {
+  "required": [
+   [
+    "image",
+    "IMAGE",
+    {}
+   ],
+   [
+    "focal_mm",
+    "FLOAT",
+    {
+     "default": 50.0,
+     "min": 1.0,
+     "max": 1000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "f_number",
+    "FLOAT",
+    {
+     "default": 2.8,
+     "min": 0.5,
+     "max": 64.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "focus_m",
+    "FLOAT",
+    {
+     "default": 3.0,
+     "min": 0.01,
+     "max": 100000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "sensor_width_mm",
+    "FLOAT",
+    {
+     "default": 36.0,
+     "min": 1.0,
+     "max": 100.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "quality",
+    [
+     "draft",
+     "normal"
+    ],
+    {
+     "default": "normal"
+    }
+   ],
+   [
+    "max_radius_px",
+    "INT",
+    {
+     "default": 16,
+     "min": 0,
+     "max": 256,
+     "step": 1
+    }
+   ],
+   [
+    "colorspace",
+    [
+     "srgb",
+     "linear"
+    ],
+    {
+     "default": "srgb"
+    }
+   ]
+  ],
+  "optional": [
+   [
+    "depth_mask",
+    "MASK",
+    {}
+   ],
+   [
+    "depth_image",
+    "IMAGE",
+    {}
+   ]
+  ],
+  "return_types": [
+   "IMAGE",
+   "MASK"
+  ]
+ },
+ "OpenOptics_DepthTemporalSmooth": {
+  "required": [
+   [
+    "depth",
+    "MASK",
+    {}
+   ],
+   [
+    "strength",
+    "FLOAT",
+    {
+     "default": 0.7,
+     "min": 0.0,
+     "max": 1.0,
+     "step": 0.01
+    }
+   ]
+  ],
+  "optional": [],
+  "return_types": [
+   "MASK"
+  ]
+ },
+ "OpenOptics_DepthToMetric": {
+  "required": [
+   [
+    "near_m",
+    "FLOAT",
+    {
+     "default": 0.5,
+     "min": 0.001,
+     "max": 100000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "far_m",
+    "FLOAT",
+    {
+     "default": 10.0,
+     "min": 0.001,
+     "max": 100000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "inverse_depth",
+    "BOOLEAN",
+    {
+     "default": true
+    }
+   ],
+   [
+    "low_percentile",
+    "FLOAT",
+    {
+     "default": 2.0,
+     "min": 0.0,
+     "max": 100.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "high_percentile",
+    "FLOAT",
+    {
+     "default": 98.0,
+     "min": 0.0,
+     "max": 100.0,
+     "step": 0.1
+    }
+   ]
+  ],
+  "optional": [
+   [
+    "depth_mask",
+    "MASK",
+    {}
+   ],
+   [
+    "depth_image",
+    "IMAGE",
+    {}
+   ]
+  ],
+  "return_types": [
+   "MASK",
+   "IMAGE"
+  ]
+ },
+ "OpenOptics_FocalCrop": {
+  "required": [
+   [
+    "image",
+    "IMAGE",
+    {}
+   ],
+   [
+    "source_focal_mm",
+    "FLOAT",
+    {
+     "default": 24.0,
+     "min": 0.1,
+     "max": 2000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "target_focal_mm",
+    "FLOAT",
+    {
+     "default": 50.0,
+     "min": 0.1,
+     "max": 2000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "output_size",
+    [
+     "original",
+     "cropped"
+    ],
+    {
+     "default": "original"
+    }
+   ]
+  ],
+  "optional": [],
+  "return_types": [
+   "IMAGE"
+  ]
+ },
+ "OpenOptics_LensDistortion": {
+  "required": [
+   [
+    "image",
+    "IMAGE",
+    {}
+   ],
+   [
+    "focal_mm",
+    "FLOAT",
+    {
+     "default": 35.0,
+     "min": 0.1,
+     "max": 2000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "sensor_width_mm",
+    "FLOAT",
+    {
+     "default": 36.0,
+     "min": 0.1,
+     "max": 200.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "k1",
+    "FLOAT",
+    {
+     "default": 0.0,
+     "min": -10.0,
+     "max": 10.0,
+     "step": 0.001
+    }
+   ],
+   [
+    "k2",
+    "FLOAT",
+    {
+     "default": 0.0,
+     "min": -10.0,
+     "max": 10.0,
+     "step": 0.001
+    }
+   ],
+   [
+    "k3",
+    "FLOAT",
+    {
+     "default": 0.0,
+     "min": -10.0,
+     "max": 10.0,
+     "step": 0.001
+    }
+   ],
+   [
+    "p1",
+    "FLOAT",
+    {
+     "default": 0.0,
+     "min": -10.0,
+     "max": 10.0,
+     "step": 0.001
+    }
+   ],
+   [
+    "p2",
+    "FLOAT",
+    {
+     "default": 0.0,
+     "min": -10.0,
+     "max": 10.0,
+     "step": 0.001
+    }
+   ],
+   [
+    "direction",
+    [
+     "apply",
+     "remove"
+    ],
+    {
+     "default": "apply"
+    }
+   ],
+   [
+    "fit",
+    [
+     "keep",
+     "crop"
+    ],
+    {
+     "default": "keep"
+    }
+   ]
+  ],
+  "optional": [],
+  "return_types": [
+   "IMAGE"
+  ]
+ },
+ "OpenOptics_Vignette": {
+  "required": [
+   [
+    "image",
+    "IMAGE",
+    {}
+   ],
+   [
+    "focal_mm",
+    "FLOAT",
+    {
+     "default": 35.0,
+     "min": 0.1,
+     "max": 2000.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "sensor_width_mm",
+    "FLOAT",
+    {
+     "default": 36.0,
+     "min": 0.1,
+     "max": 200.0,
+     "step": 0.1
+    }
+   ],
+   [
+    "strength",
+    "FLOAT",
+    {
+     "default": 1.0,
+     "min": 0.0,
+     "max": 1.0,
+     "step": 0.01
+    }
+   ],
+   [
+    "colorspace",
+    [
+     "srgb",
+     "linear"
+    ],
+    {
+     "default": "srgb"
+    }
+   ]
+  ],
+  "optional": [],
+  "return_types": [
+   "IMAGE"
+  ]
+ }
+}

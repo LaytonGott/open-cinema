@@ -1,0 +1,226 @@
+{
+  "100": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "openoptics_before.mp4"
+    }
+  },
+  "101": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "100",
+        0
+      ]
+    }
+  },
+  "110": {
+    "class_type": "LoadDA3Model",
+    "inputs": {
+      "model_name": "depth_anything_3_mono_large.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "111": {
+    "class_type": "DA3Inference",
+    "inputs": {
+      "da3_model": [
+        "110",
+        0
+      ],
+      "image": [
+        "101",
+        0
+      ],
+      "resolution": 504,
+      "resize_method": "upper_bound_resize",
+      "mode": "mono"
+    }
+  },
+  "112": {
+    "class_type": "DA3Render",
+    "inputs": {
+      "da3_geometry": [
+        "111",
+        0
+      ],
+      "output": "depth",
+      "output.normalization": "raw",
+      "output.apply_sky_clip": false
+    }
+  },
+  "120": {
+    "class_type": "OpenOptics_DepthToMetric",
+    "inputs": {
+      "depth_image": [
+        "112",
+        0
+      ],
+      "near_m": 1.0,
+      "far_m": 40.0,
+      "inverse_depth": false,
+      "low_percentile": 2.0,
+      "high_percentile": 98.0
+    }
+  },
+  "121": {
+    "class_type": "OpenOptics_DepthTemporalSmooth",
+    "inputs": {
+      "depth": [
+        "120",
+        0
+      ],
+      "strength": 0.7
+    }
+  },
+  "130": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "120",
+        1
+      ],
+      "fps": 24.0
+    }
+  },
+  "131": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "130",
+        0
+      ],
+      "filename_prefix": "openoptics/depth_preview",
+      "format": "auto",
+      "codec": "auto"
+    }
+  },
+  "132": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "120",
+        1
+      ],
+      "batch_index": 60,
+      "length": 1
+    }
+  },
+  "133": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "132",
+        0
+      ],
+      "filename_prefix": "openoptics/depth_preview_f060"
+    }
+  },
+  "134": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "121",
+        0
+      ]
+    }
+  },
+  "135": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "134",
+        0
+      ],
+      "batch_index": 60,
+      "length": 1
+    }
+  },
+  "136": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "135",
+        0
+      ],
+      "filename_prefix": "openoptics/depth_smoothed_raw_f060"
+    }
+  },
+  "140": {
+    "class_type": "OpenOptics_DepthOfField",
+    "inputs": {
+      "image": [
+        "101",
+        0
+      ],
+      "depth_mask": [
+        "121",
+        0
+      ],
+      "focus_m": 1.15,
+      "quality": "normal",
+      "colorspace": "srgb",
+      "focal_mm": 50.0,
+      "f_number": 1.8,
+      "sensor_width_mm": 36.0,
+      "max_radius_px": 24
+    }
+  },
+  "141": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "140",
+        0
+      ],
+      "audio": [
+        "101",
+        1
+      ],
+      "fps": 24.0
+    }
+  },
+  "142": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "141",
+        0
+      ],
+      "filename_prefix": "openoptics/after",
+      "format": "auto",
+      "codec": "auto"
+    }
+  },
+  "143": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "140",
+        1
+      ]
+    }
+  },
+  "144": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "143",
+        0
+      ],
+      "fps": 24.0
+    }
+  },
+  "145": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "144",
+        0
+      ],
+      "filename_prefix": "openoptics/coc",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}
