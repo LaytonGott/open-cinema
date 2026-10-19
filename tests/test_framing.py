@@ -1,3 +1,4 @@
+import inspect
 import os
 import unittest
 
@@ -108,6 +109,16 @@ class TestFraming(unittest.TestCase):
             text = f.read()
         self.assertIn("## Helpers", text)
         self.assertIn("7.1", text)
+
+    def test_docstrings_state_units_and_estimate(self):
+        for func in (subject_distance_m, subject_height_px):
+            doc = inspect.getdoc(func).lower()
+            for word in ("millimetre", "metre", "pixel", "thin-lens",
+                         "estimate"):
+                self.assertIn(word, doc, f"{func.__name__}: {word}")
+        doc = inspect.getdoc(sensor_height_mm).lower()
+        for word in ("millimetre", "pixel"):
+            self.assertIn(word, doc)
 
 
 if __name__ == "__main__":
