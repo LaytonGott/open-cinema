@@ -33,3 +33,24 @@ def sensor_height_mm(sensor_width_mm, image_width_px, image_height_px):
     width_px = _positive("image_width_px", image_width_px)
     height_px = _positive("image_height_px", image_height_px)
     return width_mm * height_px / width_px
+
+
+def subject_distance_m(focal_mm, sensor_height_mm, subject_height_px,
+                       image_height_px, real_height_m=1.7):
+    """Return the estimated camera-to-subject distance in metres.
+
+    focal_mm and sensor_height_mm are in millimetres; subject_height_px and
+    image_height_px are in pixels; real_height_m is the real subject height in
+    metres (default 1.7). The subject's height on the sensor is
+    h = sensor_height_mm * subject_height_px / image_height_px, and the
+    thin-lens relation u = f * (1 + H / h) gives the distance. The result is an
+    estimate because real heights vary.
+    Raises ValueError if any argument is not a finite number greater than 0.
+    """
+    focal = _positive("focal_mm", focal_mm)
+    sensor = _positive("sensor_height_mm", sensor_height_mm)
+    subject_px = _positive("subject_height_px", subject_height_px)
+    image_px = _positive("image_height_px", image_height_px)
+    real_m = _positive("real_height_m", real_height_m)
+    h = sensor * subject_px / image_px
+    return focal * (1 + real_m * 1000 / h) / 1000
