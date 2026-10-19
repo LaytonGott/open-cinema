@@ -35,8 +35,10 @@ class OpenOptics_ChromaticAberration:
                 "image": ("IMAGE",),
                 "ca_r": ("FLOAT", {"default": 0.0, "min": -0.1, "max": 0.1, "step": 0.0001}),
                 "ca_b": ("FLOAT", {"default": 0.0, "min": -0.1, "max": 0.1, "step": 0.0001}),
+            },
+            "optional": {
                 "chunk_frames": common.CHUNK_FRAMES_INPUT,
-            }
+            },
         }
 
     RETURN_TYPES = ("IMAGE",)
