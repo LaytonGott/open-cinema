@@ -1,6 +1,7 @@
 """Depth helpers for the Open Optics nodes (CPU torch tensors)."""
 
 import math
+import time
 
 import torch
 
@@ -263,6 +264,7 @@ class OpenOptics_DepthToMetric:
         IMAGE [B, H, W, 3] with (far_m - Z) / (far_m - near_m) clamped to 0..1.
         Raises ValueError for bad inputs.
         """
+        t0 = time.perf_counter()
         if mode == "subject":
             _validate_subject_params(mode, subject_m, near_m, far_m, subject_x,
                                      subject_y, subject_radius_px)
@@ -294,6 +296,7 @@ class OpenOptics_DepthToMetric:
         device = get_device()
         zs = []
         previews = []
+        worked_on = device
         for start, stop in common.chunk_ranges(depth.shape[0], chunk_frames):
             chunk = depth[start:stop].to(device)
             if mode == "subject":
@@ -305,6 +308,10 @@ class OpenOptics_DepthToMetric:
                 z = _map_to_metric(chunk, d_lo, d_hi, near_m, far_m, inverse_depth)
             shade = torch.clamp((far_m - z) / (far_m - near_m), 0.0, 1.0)
             preview = shade.unsqueeze(-1).repeat(1, 1, 1, 3)
+            worked_on = z
             zs.append(z.cpu().to(torch.float32))
             previews.append(preview.cpu().to(torch.float32))
-        return (torch.cat(zs), torch.cat(previews))
+        result = (torch.cat(zs), torch.cat(previews))
+        common.log_call("OpenOptics_DepthToMetric", worked_on, depth.shape[0], chunk_frames,
+                        time.perf_counter() - t0)
+        return result

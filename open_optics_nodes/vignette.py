@@ -1,5 +1,7 @@
 """Vignette node: apply cos^4 natural vignetting to an image."""
 
+import time
+
 import torch
 
 from open_optics import vignetting
@@ -38,6 +40,7 @@ class OpenOptics_Vignette:
         1-tuple with a CPU float32 IMAGE [B, H, W, C], 0-1. Raises ValueError
         if strength is outside 0..1 or the inputs are invalid.
         """
+        t0 = time.perf_counter()
         common.check_chunk_frames(chunk_frames)
         common.check_image(image)
         focal_mm = common.require_positive("focal_mm", focal_mm)
@@ -59,4 +62,7 @@ class OpenOptics_Vignette:
             linear = common.to_linear(image[start:stop].to(device), colorspace)
             out = common.finish(common.from_linear(linear * gain, colorspace))
             outs.append(out.cpu().to(torch.float32))
-        return (torch.cat(outs),)
+        result = torch.cat(outs)
+        common.log_call("OpenOptics_Vignette", gain, image.shape[0], chunk_frames,
+                        time.perf_counter() - t0)
+        return (result,)
