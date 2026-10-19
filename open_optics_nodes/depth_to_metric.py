@@ -116,6 +116,26 @@ def _subject_region_values(depth, col, row, radius):
     return depth.detach()[:, r0:r1, c0:c1].reshape(-1).to(torch.float64)
 
 
+def _subject_to_metric(depth, d_s, subject_m, near_m, far_m, inverse_depth):
+    """Map a depth tensor to metres by scale from the subject depth.
+
+    depth is a tensor of any shape with unitless values; d_s is the unitless
+    subject depth (> 0); subject_m, near_m and far_m are in metres. Torch form
+    of open_optics.depth.subject_scale_metric: subject_m*d_s/d if
+    inverse_depth else subject_m*d/d_s, where inverse_depth entries with
+    d <= 0 become far_m. Returns a float32 tensor of the same shape and device
+    in metres, clamped to [near_m, far_m].
+    """
+    d = depth.detach().to(torch.float64)
+    if inverse_depth:
+        positive = d > 0
+        safe = torch.where(positive, d, torch.ones_like(d))
+        z = torch.where(positive, subject_m * d_s / safe, torch.full_like(d, far_m))
+    else:
+        z = subject_m * d / d_s
+    return torch.clamp(z, near_m, far_m).to(torch.float32)
+
+
 class OpenOptics_DepthToMetric:
     """Convert a relative depth map to metric depth in metres."""
 

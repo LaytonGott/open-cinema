@@ -4,7 +4,9 @@ import torch
 
 from open_optics.depth import depth_to_metric
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
-from open_optics_nodes.depth_to_metric import OpenOptics_DepthToMetric, _subject_region_values, _validate_subject_params
+from open_optics_nodes.depth_to_metric import (
+    OpenOptics_DepthToMetric, _subject_region_values, _subject_to_metric,
+    _validate_subject_params)
 
 
 def _convert(depth, **kw):
@@ -406,6 +408,26 @@ class TestSubjectRegionValues(unittest.TestCase):
         v = _subject_region_values(self.D, 3, 1, 0)
         # Row 1, column 3 is value 8 in frame 0 and 108 in frame 1.
         self.assertEqual(v.tolist(), [8.0, 108.0])
+
+
+class TestSubjectToMetric(unittest.TestCase):
+    DEPTH = [0.8, 0.4, 1.6, 0.1, 0.0]
+
+    def _run(self, inverse_depth):
+        depth = torch.tensor(self.DEPTH)
+        return _subject_to_metric(depth, 0.8, 2.0, 0.5, 10.0, inverse_depth)
+
+    def test_inverse(self):
+        out = self._run(True)
+        self.assertEqual(out.dtype, torch.float32)
+        for got, want in zip(out.tolist(), [2.0, 4.0, 1.0, 10.0, 10.0]):
+            self.assertAlmostEqual(got, want, places=4)
+
+    def test_depth_like(self):
+        out = self._run(False)
+        self.assertEqual(out.dtype, torch.float32)
+        for got, want in zip(out.tolist(), [2.0, 1.0, 4.0, 0.5, 0.5]):
+            self.assertAlmostEqual(got, want, places=4)
 
 
 if __name__ == "__main__":
