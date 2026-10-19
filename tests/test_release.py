@@ -148,6 +148,26 @@ class TestReadmeNodes(unittest.TestCase):
             )
 
 
+class TestReadmeLicence(unittest.TestCase):
+    def test_licence_section_names_licence(self):
+        section = _readme_section("Licence")
+        self.assertTrue(section, "README.md has no Licence section")
+        self.assertIn("GPL-3.0", section, "README.md Licence section does not name 'GPL-3.0'")
+        self.assertTrue(_is_gpl3(_licence_text()), "LICENSE file is not GPL-3.0")
+
+    def test_licence_section_states_scan(self):
+        section = _readme_section("Licence")
+        self.assertTrue(section, "README.md has no Licence section")
+        for needle in ("comfy.model_management", "combined work"):
+            self.assertIn(needle.lower(), section.lower(), f"README.md Licence section does not mention '{needle}'")
+
+    def test_licence_section_states_dependencies(self):
+        section = _readme_section("Licence")
+        self.assertTrue(section, "README.md has no Licence section")
+        for needle in ("no code was copied", "torch", "numpy", "not bundled"):
+            self.assertIn(needle.lower(), section.lower(), f"README.md Licence section does not mention '{needle}'")
+
+
 def _load_workflow():
     path = ROOT / "workflows" / "open_optics_demo.json"
     return json.loads(path.read_text(encoding="utf-8"))
