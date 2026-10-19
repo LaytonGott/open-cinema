@@ -1,6 +1,8 @@
 import unittest
 
-from open_optics.framing import sensor_height_mm, subject_distance_m
+from open_optics.framing import (
+    sensor_height_mm, subject_distance_m, subject_height_px,
+)
 
 
 class TestFraming(unittest.TestCase):
@@ -22,6 +24,21 @@ class TestFraming(unittest.TestCase):
             image_height_px=1200, real_height_m=1.7,
         )
         self.assertAlmostEqual(value, 7.133333, places=6)
+
+    def test_subject_height_px_known_value(self):
+        # h = 35 * 1700 / (5000 - 35) mm; * 704 / 24
+        self.assertAlmostEqual(subject_height_px(35, 24, 704, 5.0), 351.527358, places=6)
+
+    def test_subject_height_px_round_trip(self):
+        distance = subject_distance_m(50, 24, 333, 1080, 1.7)
+        self.assertAlmostEqual(
+            subject_height_px(50, 24, 1080, distance, 1.7), 333, places=6)
+
+    def test_subject_height_px_rejects_close_distance(self):
+        with self.assertRaisesRegex(ValueError, "distance_m"):
+            subject_height_px(50, 24, 1080, 0.05)
+        with self.assertRaisesRegex(ValueError, "distance_m"):
+            subject_height_px(50, 24, 1080, 0)
 
 
 if __name__ == "__main__":
