@@ -549,5 +549,45 @@ class RunApiGraphTest(unittest.TestCase):
         self.assertEqual(list(out.shape), [3, 32, 32, 3])
 
 
+def workflow_graph(path):
+    """Load the workflow JSON at `path` and return it as an API-format graph dict."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "nodes" in data:
+        return ui_to_api(data)
+    return data
+
+
+class WorkflowRunTest(unittest.TestCase):
+    def test_all_workflows_run(self):
+        devices = ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
+        for path in workflow_files():
+            name = os.path.basename(path)
+            for device in devices:
+                with self.subTest(file=name, device=device):
+                    previous = os.environ.get("OPEN_OPTICS_DEVICE")
+                    os.environ["OPEN_OPTICS_DEVICE"] = device
+                    try:
+                        graph = workflow_graph(path)
+                        results = run_api_graph(graph)
+                    finally:
+                        if previous is None:
+                            os.environ.pop("OPEN_OPTICS_DEVICE", None)
+                        else:
+                            os.environ["OPEN_OPTICS_DEVICE"] = previous
+                        if device == "cuda":
+                            torch.cuda.empty_cache()
+                    self.assertTrue(results, f"{name}: no Open Optics node ran")
+                    for node_id, outputs in results.items():
+                        cls_name = graph[node_id]["class_type"]
+                        problems = output_problems(node_id, cls_name, outputs, NODE_CLASS_MAPPINGS)
+                        if cls_name in ("OpenOptics_DepthToMetric", "OpenOptics_DepthTemporalSmooth"):
+                            # output 0 is depth in metres, so it may exceed 1
+                            problems = [p for p in problems
+                                        if not p.endswith("output 0: values outside 0..1")]
+                        self.assertEqual([], problems,
+                                         f"{name} node {node_id} ({cls_name}): " + "; ".join(problems))
+
+
 if __name__ == "__main__":
     unittest.main()
