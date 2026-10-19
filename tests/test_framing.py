@@ -90,6 +90,16 @@ class TestFraming(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "distance_m"):
             subject_height_px(50, 24, 1080, 0)
 
+    def test_sensor_height_mm_rejects_bad_arguments(self):
+        good = dict(sensor_width_mm=36.0, image_width_px=1280,
+                    image_height_px=704)
+        for name in good:
+            for bad in (0, -1, float('nan'), float('inf'), 'abc', True):
+                with self.subTest(name=name, bad=bad):
+                    kwargs = dict(good, **{name: bad})
+                    with self.assertRaisesRegex(ValueError, name):
+                        sensor_height_mm(**kwargs)
+
     def test_subject_height_px_rejects_bad_arguments(self):
         good = dict(focal_mm=50, sensor_height_mm=24, image_height_px=1080,
                     distance_m=5.0, real_height_m=1.7)
