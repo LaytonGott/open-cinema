@@ -164,6 +164,18 @@ class TestReadmeInstall(unittest.TestCase):
             self.assertIn(needle.lower(), section.lower(), f"README.md Install section does not mention '{needle}'")
 
 
+class TestReadmeDevice(unittest.TestCase):
+    def test_readme_device_behaviour(self):
+        text = _readme_text()
+        lower = text.lower()
+        for needle in ("OPEN_OPTICS_DEVICE", "cpu", "cuda", "auto", "chunk_frames"):
+            self.assertIn(needle.lower(), lower, f"README.md does not mention '{needle}'")
+        self.assertTrue(
+            "fall back" in lower or "falls back" in lower,
+            "README.md does not mention 'fall back' or 'falls back'",
+        )
+
+
 class TestReadmeNodes(unittest.TestCase):
     def test_nodes_table_matches_registry(self):
         from open_optics_nodes import NODE_DISPLAY_NAME_MAPPINGS
