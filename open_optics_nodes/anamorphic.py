@@ -2,10 +2,12 @@
 
 import math
 
+import torch
 import torch.nn.functional as F
 
 from open_optics import anamorphic
 from open_optics_nodes import common
+from open_optics_nodes.device import get_device
 
 
 class OpenOptics_Anamorphic:
@@ -19,6 +21,7 @@ class OpenOptics_Anamorphic:
                 "squeeze": ("FLOAT", {"default": 1.33, "min": 1.0, "max": 4.0, "step": 0.01}),
                 "mode": (["desqueeze", "squeeze"], {"default": "desqueeze"}),
                 "keep_width": ("BOOLEAN", {"default": False}),
+                "chunk_frames": common.CHUNK_FRAMES_INPUT,
             }
         }
 
@@ -26,15 +29,19 @@ class OpenOptics_Anamorphic:
     FUNCTION = "apply"
     CATEGORY = "Open Optics"
 
-    def apply(self, image, squeeze=1.33, mode="desqueeze", keep_width=False):
+    def apply(self, image, squeeze=1.33, mode="desqueeze", keep_width=False, chunk_frames=8):
         """Resize the image by the squeeze factor with bilinear interpolation.
 
         squeeze is unitless, at least 1. Sizes are in pixels and come from the
         library: desqueeze widens (width * squeeze), or with keep_width
-        shortens (height / squeeze); squeeze mode is the inverse. Returns a
-        1-tuple with an IMAGE [B, H, W, C], 0-1. Raises ValueError if squeeze
-        is below 1 or mode is unknown.
+        shortens (height / squeeze); squeeze mode is the inverse. chunk_frames
+        (a count of frames, >= 1, default 8) is how many frames are processed
+        at a time on get_device(); the result does not depend on it. Returns
+        a 1-tuple with a CPU float32 IMAGE [B, H, W, C], 0-1. Raises
+        ValueError if squeeze is below 1, mode is unknown or chunk_frames is
+        invalid.
         """
+        common.check_chunk_frames(chunk_frames)
         common.check_image(image)
         if not math.isfinite(squeeze):
             raise ValueError(f"squeeze must be finite, got {squeeze}")
@@ -46,6 +53,11 @@ class OpenOptics_Anamorphic:
         size_fn = anamorphic.desqueeze_size if mode == "desqueeze" else anamorphic.squeeze_size
         new_w, new_h = size_fn(w, h, squeeze, lib_mode)
         new_w, new_h = max(1, round(new_w)), max(1, round(new_h))
-        x = image.permute(0, 3, 1, 2)
-        x = F.interpolate(x, size=(new_h, new_w), mode="bilinear", align_corners=False)
-        return (common.finish(x.permute(0, 2, 3, 1)),)
+        device = get_device()
+        outs = []
+        for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
+            x = image[start:stop].to(device).permute(0, 3, 1, 2)
+            x = F.interpolate(x, size=(new_h, new_w), mode="bilinear", align_corners=False)
+            out = common.finish(x.permute(0, 2, 3, 1))
+            outs.append(out.cpu().to(torch.float32))
+        return (torch.cat(outs),)

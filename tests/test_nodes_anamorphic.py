@@ -111,6 +111,32 @@ class TestAnamorphicRoundTrip(unittest.TestCase):
         self.assertLessEqual(float((out - img).abs().max()), 0.003)
 
 
+class TestAnamorphicChunking(unittest.TestCase):
+    def setUp(self):
+        self.node = OpenOptics_Anamorphic()
+        self.img = torch.rand(5, 12, 16, 3, dtype=torch.float32)
+
+    def test_input_type(self):
+        spec = OpenOptics_Anamorphic.INPUT_TYPES()["required"]["chunk_frames"]
+        self.assertEqual(spec[0], "INT")
+        self.assertEqual(spec[1]["default"], 8)
+        self.assertEqual(spec[1]["min"], 1)
+
+    def test_zero_raises(self):
+        with self.assertRaises(ValueError):
+            self.node.apply(self.img, 2.0, "desqueeze", False, 0)
+
+    def test_chunks_match_full(self):
+        before = self.img.clone()
+        full = self.node.apply(self.img, 2.0, "desqueeze", False, 8)[0]
+        for n in (1, 3):
+            out = self.node.apply(self.img, 2.0, "desqueeze", False, n)[0]
+            self.assertEqual(out.device.type, "cpu")
+            self.assertEqual(out.dtype, torch.float32)
+            self.assertLessEqual(float((out - full).abs().max()), 1e-5)
+        self.assertTrue(torch.equal(self.img, before))
+
+
 class TestAnamorphicMinSize(unittest.TestCase):
     def test_one_pixel_minimum(self):
         img = torch.rand(1, 1, 1, 3)
