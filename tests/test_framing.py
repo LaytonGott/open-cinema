@@ -69,6 +69,15 @@ class TestFraming(unittest.TestCase):
         # h = 35 * 1700 / (5000 - 35) mm; * 704 / 24
         self.assertAlmostEqual(subject_height_px(35, 24, 704, 5.0), 351.527358, places=6)
 
+    def test_subject_height_px_hand_values(self):
+        # h = 85*300/(2210-85) = 12 mm on a 24 mm sensor, 1200 px -> 600 px
+        self.assertAlmostEqual(subject_height_px(85, 24, 1200, 2.21, 0.3), 600, places=6)
+        self.assertAlmostEqual(subject_height_px(50, 19.8, 704, 7.204882155), 422.4, delta=1e-5)
+        self.assertEqual(
+            subject_height_px(35, 24, 704, 5.0),
+            subject_height_px(focal_mm=35, sensor_height_mm=24, image_height_px=704,
+                              distance_m=5.0, real_height_m=1.7))
+
     def test_subject_height_px_round_trip(self):
         distance = subject_distance_m(50, 24, 333, 1080, 1.7)
         self.assertAlmostEqual(
