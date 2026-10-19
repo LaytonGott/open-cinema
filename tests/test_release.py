@@ -120,17 +120,37 @@ def _readme_text():
     return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
+def readme_problems(text, display_names):
+    """Return a list of messages for missing README headings and unmentioned node display names."""
+    problems = []
+    headings = [line for line in text.splitlines() if line.startswith("#")]
+    for name in ("Install", "Nodes", "Example workflow", "Tests", "Licence"):
+        if not any(name.lower() in h.lower() for h in headings):
+            problems.append(f"README.md has no heading containing '{name}'")
+    for name in display_names:
+        if name not in text:
+            problems.append(f"README.md does not mention node '{name}'")
+    return problems
+
+
 class TestReadme(unittest.TestCase):
     def test_readme_exists(self):
         self.assertTrue((ROOT / "README.md").is_file(), "README.md is missing at the repo root")
 
     def test_readme_has_headings(self):
-        headings = [line for line in _readme_text().splitlines() if line.startswith("#")]
-        for name in ("Install", "Nodes", "Example workflow", "Tests", "Licence"):
-            self.assertTrue(
-                any(name.lower() in h.lower() for h in headings),
-                f"README.md has no heading containing '{name}'",
-            )
+        from open_optics_nodes import NODE_DISPLAY_NAME_MAPPINGS
+
+        self.assertEqual(readme_problems(_readme_text(), list(NODE_DISPLAY_NAME_MAPPINGS.values())), [])
+
+    def test_readme_problems_detect_breakage(self):
+        from open_optics_nodes import NODE_DISPLAY_NAME_MAPPINGS
+
+        names = list(NODE_DISPLAY_NAME_MAPPINGS.values())
+        text = "\n".join(l for l in _readme_text().splitlines() if l.strip() != "## Tests")
+        broken = text.replace(names[0], "")
+        problems = readme_problems(broken, names)
+        self.assertIn("README.md has no heading containing 'Tests'", problems)
+        self.assertIn(f"README.md does not mention node '{names[0]}'", problems)
 
     def test_readme_intro_mentions_comfyui(self):
         intro = _readme_text().split("\n## ")[0]
