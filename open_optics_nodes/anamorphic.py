@@ -22,8 +22,10 @@ class OpenOptics_Anamorphic:
                 "squeeze": ("FLOAT", {"default": 1.33, "min": 1.0, "max": 4.0, "step": 0.01}),
                 "mode": (["desqueeze", "squeeze"], {"default": "desqueeze"}),
                 "keep_width": ("BOOLEAN", {"default": False}),
+            },
+            "optional": {
                 "chunk_frames": common.CHUNK_FRAMES_INPUT,
-            }
+            },
         }
 
     RETURN_TYPES = ("IMAGE",)
