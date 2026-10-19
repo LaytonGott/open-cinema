@@ -59,6 +59,10 @@ class TestFraming(unittest.TestCase):
                                2 * (subject_distance_m(50, 24, 600, 1200, 0.3) - 0.05),
                                places=6)
 
+    def test_subject_distance_m_hand_values_real_height_0_3(self):
+        # 50 * (1 + 300 / 12) / 1000 = 1.3 m
+        self.assertAlmostEqual(subject_distance_m(50, 24, 600, 1200, 0.3), 1.3, places=6)
+
     def test_subject_distance_m_keywords_match_positional_and_default(self):
         keyword = subject_distance_m(focal_mm=50, sensor_height_mm=24,
                                      subject_height_px=600, image_height_px=1200)
