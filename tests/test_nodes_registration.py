@@ -1,8 +1,11 @@
 """Tests for node registration and the root-level re-export."""
 
 import importlib.util
+import json
 import os
+import subprocess
 import sys
+import tempfile
 import unittest
 
 import open_optics_nodes
@@ -73,6 +76,43 @@ class TestRegistration(unittest.TestCase):
         self.assertEqual(
             root.NODE_DISPLAY_NAME_MAPPINGS, open_optics_nodes.NODE_DISPLAY_NAME_MAPPINGS
         )
+
+
+# Loads the root __init__.py the way ComfyUI loads a custom-node folder: by
+# file location, under a module name that is not importable, with the repo
+# absent from sys.path.
+COMFY_STYLE_LOAD = r"""
+import importlib.util, json, os, sys
+repo = sys.argv[1]
+norm = lambda p: os.path.normcase(os.path.abspath(p or os.curdir))
+sys.path[:] = [p for p in sys.path if norm(p) != norm(repo)]
+try:
+    import open_optics_nodes
+except ModuleNotFoundError:
+    pass
+else:
+    raise SystemExit("open_optics_nodes importable before loading the pack")
+spec = importlib.util.spec_from_file_location(
+    "ComfyUI-OpenOptics", os.path.join(repo, "__init__.py"))
+module = importlib.util.module_from_spec(spec)
+sys.modules["ComfyUI-OpenOptics"] = module
+spec.loader.exec_module(module)
+print(json.dumps(sorted(module.NODE_CLASS_MAPPINGS)))
+"""
+
+
+class TestComfyStyleLoad(unittest.TestCase):
+    def test_loads_by_file_location_without_repo_on_path(self):
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        with tempfile.TemporaryDirectory() as cwd:
+            result = subprocess.run(
+                [sys.executable, "-c", COMFY_STYLE_LOAD, REPO_ROOT],
+                cwd=cwd, env=env, capture_output=True, text=True,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        names = json.loads(result.stdout.strip().splitlines()[-1])
+        self.assertEqual(len(names), 8)
+        self.assertEqual(set(names), set(EXPECTED_NAMES))
 
 
 if __name__ == "__main__":

@@ -66,7 +66,7 @@ class OpenOptics_DepthOfField:
         linear = common.to_linear(image, colorspace)
         radius = coc_radius_map(depth, focal_mm, f_number, focus_m, sensor_width_mm,
                                 max_radius_px)
-        result = composite_layers(linear, depth, radius, _LAYERS[quality])
+        result = composite_layers(linear, depth, radius, _LAYERS[quality], focus_m)
         out = common.finish(common.from_linear(result, colorspace))
         coc = common.finish(radius / float(max_radius_px))
         return (out, coc)

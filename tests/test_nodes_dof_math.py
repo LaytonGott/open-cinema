@@ -21,7 +21,7 @@ class SanitizeDepthTest(unittest.TestCase):
         radius = coc_radius_map(depth, 50, 2.8, 3.0, 36, 20)
         self.assertTrue(torch.isfinite(radius).all().item())
         img = torch.rand(1, 2, 3, 3, generator=torch.Generator().manual_seed(2))
-        out = composite_layers(img, depth, radius, 4)
+        out = composite_layers(img, depth, radius, 4, 3.0)
         self.assertTrue(torch.isfinite(out).all().item())
         self.assertGreaterEqual(out.min().item(), 0.0)
         self.assertLessEqual(out.max().item(), 1.0)
@@ -56,7 +56,7 @@ class CompositeLayersTest(unittest.TestCase):
         g = torch.Generator().manual_seed(0)
         img = torch.rand(1, 8, 8, 3, generator=g)
         depth = torch.rand(1, 8, 8, generator=g) * 10 + 1
-        out = composite_layers(img, depth, torch.zeros(1, 8, 8), 4)
+        out = composite_layers(img, depth, torch.zeros(1, 8, 8), 4, 3.0)
         self.assertTrue(torch.allclose(out, img, atol=1e-5))
 
     def test_no_halo_on_sharp_foreground(self):
@@ -66,7 +66,7 @@ class CompositeLayersTest(unittest.TestCase):
         depth[:, :, :8] = 2.0
         radius = torch.zeros(1, 8, 16)
         radius[:, :, 8:] = 3.0
-        out = composite_layers(img, depth, radius, 4)
+        out = composite_layers(img, depth, radius, 4, 3.0)
         self.assertTrue(torch.allclose(out[:, :, :8], torch.ones(1, 8, 8, 3), atol=1e-5))
 
     def test_constant_colour_preserved(self):
@@ -75,7 +75,7 @@ class CompositeLayersTest(unittest.TestCase):
         g = torch.Generator().manual_seed(1)
         depth = torch.rand(1, 16, 16, generator=g) * 8 + 1
         radius = torch.rand(1, 16, 16, generator=g) * 3
-        out = composite_layers(img, depth, radius, 4)
+        out = composite_layers(img, depth, radius, 4, 3.0)
         self.assertTrue(torch.allclose(out, img, atol=1e-4))
 
 

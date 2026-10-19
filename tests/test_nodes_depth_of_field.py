@@ -228,6 +228,31 @@ class TestDepthOfFieldLayers(unittest.TestCase):
         self.assertGreater(float(out[:, :, 17, :].mean()), 0.01)
         self.assertLess(float(out[:, :, 28:32, :].max()), 1e-3)
 
+    def test_sharp_subject_inside_wide_depth_range_stays_sharp(self):
+        # Regression: layers were equal bins in metres with each bin's mean CoC,
+        # so a subject at focus shared a bin with blurred ground and lost its
+        # sharpness. Subject at 1.15 m (focus), ground at 4 m and a far strip at
+        # 40 m: equal metre bins put 1.15 m and 4 m together.
+        # 85 mm f/1.4 at 1.15 m: f^2/(N(s-f)) = 7225/(1.4*1065) = 4.846 mm;
+        # at 4 m the diameter is 4.846*(4-1.15)/4 = 3.453 mm = 6.14 px on a
+        # 64 px, 36 mm frame, a radius of 3.07 px.
+        gen = torch.Generator().manual_seed(3)
+        img = torch.rand(1, 64, 64, 3, generator=gen)
+        depth = torch.full((1, 64, 64), 4.0)
+        depth[:, :, :24] = 1.15
+        depth[:, :8, 24:] = 40.0
+        for quality in ("draft", "normal"):
+            out, coc_px = OpenOptics_DepthOfField().apply(
+                img, focal_mm=85.0, f_number=1.4, focus_m=1.15, sensor_width_mm=36.0,
+                max_radius_px=16, quality=quality, colorspace="linear", depth_mask=depth)
+            self.assertAlmostEqual(float(coc_px[0, 32, 40]) * 16, 3.07, delta=0.01)
+            subject = (out[:, :, :24] - img[:, :, :24]).abs().max()
+            self.assertLessEqual(float(subject), 1e-4, quality)
+            ground_in = img[:, 16:56, 32:56]
+            ground_out = out[:, 16:56, 32:56]
+            ratio = float(ground_out.diff(dim=2).var() / ground_in.diff(dim=2).var())
+            self.assertLess(ratio, 0.25, quality)
+
     def test_normal_at_least_as_close_to_fine_reference(self):
         gen = torch.Generator().manual_seed(0)
         img = torch.rand(1, 32, 32, 3, generator=gen)
@@ -237,7 +262,7 @@ class TestDepthOfFieldLayers(unittest.TestCase):
         radius = dof_math.coc_radius_map(
             dof_math.sanitize_depth(depth), 85.0, 1.8, 3.0, 36.0, 8)
         ref = dof_math.composite_layers(
-            img, dof_math.sanitize_depth(depth), radius, 32)
+            img, dof_math.sanitize_depth(depth), radius, 32, 3.0)
         errs = {}
         for quality in ("draft", "normal"):
             out, _ = OpenOptics_DepthOfField().apply(
