@@ -336,5 +336,32 @@ class TestWorkflowWidgets(unittest.TestCase):
                              f"{node['type']}: widgets_values has {actual} values, node has {expected} widget inputs")
 
 
+class TestWidgetValues(unittest.TestCase):
+    def test_widget_values_valid(self):
+        wf = _load_workflow()
+        for node in wf["nodes"]:
+            if not node["type"].startswith("OpenOptics_"):
+                continue
+            pairs = widget_inputs(NODE_CLASS_MAPPINGS[node["type"]])
+            for (name, spec), value in zip(pairs, node.get("widgets_values", [])):
+                kind = spec[0]
+                where = f"{node['type']} input {name} value {value!r}"
+                opts = spec[1] if len(spec) > 1 and isinstance(spec[1], dict) else {}
+                if isinstance(kind, (list, tuple)):
+                    self.assertIn(value, list(kind), f"{where} is not in choices {list(kind)}")
+                    continue
+                if kind == "BOOLEAN":
+                    self.assertIsInstance(value, bool, f"{where} is not a bool")
+                elif kind == "STRING":
+                    self.assertIsInstance(value, str, f"{where} is not a str")
+                else:
+                    ok = isinstance(value, int) if kind == "INT" else isinstance(value, (int, float))
+                    self.assertTrue(ok and not isinstance(value, bool), f"{where} is not a valid {kind}")
+                    if "min" in opts:
+                        self.assertGreaterEqual(value, opts["min"], f"{where} is below min {opts['min']}")
+                    if "max" in opts:
+                        self.assertLessEqual(value, opts["max"], f"{where} is above max {opts['max']}")
+
+
 if __name__ == "__main__":
     unittest.main()
