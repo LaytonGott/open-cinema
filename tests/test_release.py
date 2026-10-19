@@ -382,6 +382,25 @@ class TestWorkflowWidgets(unittest.TestCase):
             self.assertEqual(actual, expected,
                              f"{node['type']}: widgets_values has {actual} values, node has {expected} widget inputs")
 
+    def test_inputs_match_registered(self):
+        wf = _load_workflow()
+        for node in wf["nodes"]:
+            if not node["type"].startswith("OpenOptics_"):
+                continue
+            spec = NODE_CLASS_MAPPINGS[node["type"]].INPUT_TYPES()
+            declared = {**(spec.get("required") or {}), **(spec.get("optional") or {})}
+            for inp in node.get("inputs", []):
+                name = inp["name"]
+                self.assertIn(name, declared, f"{node['type']} input {name} is not in INPUT_TYPES")
+                kind = declared[name][0]
+                accepted = ["COMBO"] if isinstance(kind, (list, tuple)) else [kind]
+                widget = inp.get("widget")
+                if widget:
+                    accepted.append(widget.get("type", ""))
+                    accepted.append(widget.get("name", ""))
+                self.assertIn(inp["type"], accepted,
+                              f"{node['type']} input {name} type {inp['type']!r} does not match declared {kind!r}")
+
     def test_outputs_match_return_types(self):
         wf = _load_workflow()
         for node in wf["nodes"]:
