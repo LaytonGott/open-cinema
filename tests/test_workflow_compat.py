@@ -193,6 +193,31 @@ class NodeSetProblemsTest(unittest.TestCase):
         self.assertTrue(any(key in p for p in problems), problems)
 
 
+class ReturnTypesTest(unittest.TestCase):
+    KEY = "OpenOptics_DepthOfField"
+
+    def setUp(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            self.fixture = json.load(f)
+
+    def test_all_nodes_keep_first_release_outputs(self):
+        problems = []
+        for key, expected in self.fixture.items():
+            problems += return_problems(key, NODE_CLASS_MAPPINGS[key], expected)
+        self.assertEqual(problems, [], "\n".join(problems))
+
+    def test_inserted_output_is_reported(self):
+        base = NODE_CLASS_MAPPINGS[self.KEY]
+        sub = type("Inserted", (base,), {"RETURN_TYPES": ("FLOAT",) + tuple(base.RETURN_TYPES)})
+        problems = return_problems(self.KEY, sub, self.fixture[self.KEY])
+        self.assertTrue(any(self.KEY in p for p in problems), problems)
+
+    def test_appended_output_is_allowed(self):
+        base = NODE_CLASS_MAPPINGS[self.KEY]
+        sub = type("Appended", (base,), {"RETURN_TYPES": tuple(base.RETURN_TYPES) + ("FLOAT",)})
+        self.assertEqual(return_problems(self.KEY, sub, self.fixture[self.KEY]), [])
+
+
 class _CleanNode:
     @classmethod
     def INPUT_TYPES(cls):
