@@ -937,5 +937,41 @@ class TestUnknownModeMessage(unittest.TestCase):
         self.assertIn("foo", str(cm.exception))
 
 
+class TestEmptySubjectMask(unittest.TestCase):
+    KW = dict(
+        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+        low_percentile=0.0, high_percentile=100.0,
+    )
+
+    def _depth(self):
+        d0 = torch.full((9, 9), 0.4)
+        d0[3:6, 3:6] = 0.8
+        return torch.stack([d0, d0 * 0.5])
+
+    def _half_empty_mask(self):
+        sm = torch.zeros(2, 9, 9)
+        sm[0, 3:6, 3:6] = 1.0
+        return sm
+
+    def test_all_zero_mask_raises_in_both_scopes(self):
+        for scope in ("batch", "frame"):
+            with self.subTest(anchor_scope=scope):
+                with self.assertRaisesRegex(ValueError,
+                                            "subject mask is empty"):
+                    _convert(self._depth(), anchor_scope=scope,
+                             subject_mask=torch.zeros(1, 9, 9), **self.KW)
+
+    def test_batch_scope_allows_one_empty_frame(self):
+        out = _convert(self._depth(), anchor_scope="batch",
+                       subject_mask=self._half_empty_mask(), **self.KW)[0]
+        self.assertEqual(tuple(out.shape), (2, 9, 9))
+        self.assertAlmostEqual(out[0, 4, 4].item(), 2.0, places=5)
+
+    def test_frame_scope_raises_on_empty_frame(self):
+        with self.assertRaisesRegex(ValueError, "subject mask is empty"):
+            _convert(self._depth(), anchor_scope="frame",
+                     subject_mask=self._half_empty_mask(), **self.KW)
+
+
 if __name__ == "__main__":
     unittest.main()
