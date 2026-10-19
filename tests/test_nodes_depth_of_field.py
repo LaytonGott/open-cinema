@@ -1,3 +1,4 @@
+import inspect
 import unittest
 
 import torch
@@ -286,10 +287,18 @@ class TestDepthOfFieldLayers(unittest.TestCase):
 
 class TestDepthOfFieldChunking(unittest.TestCase):
     def test_input_types(self):
-        spec = OpenOptics_DepthOfField.INPUT_TYPES()["required"]["chunk_frames"]
+        spec = OpenOptics_DepthOfField.INPUT_TYPES()["optional"]["chunk_frames"]
         self.assertEqual(spec[0], "INT")
         self.assertEqual(spec[1]["default"], 8)
         self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_is_optional_with_default(self):
+        types = OpenOptics_DepthOfField.INPUT_TYPES()
+        self.assertNotIn("chunk_frames", types["required"])
+        self.assertEqual(types["optional"]["chunk_frames"][1]["default"], 8)
+        params = inspect.signature(OpenOptics_DepthOfField.apply).parameters
+        self.assertEqual(params["chunk_frames"].default, 8)
+        self.assertEqual(params["max_layers"].default, 12)
 
     def test_zero_raises(self):
         img = torch.rand(1, 32, 32, 3)

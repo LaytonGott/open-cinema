@@ -76,7 +76,7 @@ class DofQualityTest(unittest.TestCase):
 
     def test_default_chunk_frames(self):
         spec = OpenOptics_DepthOfField.INPUT_TYPES()
-        self.assertEqual(spec["required"]["chunk_frames"][1]["default"], 8)
+        self.assertEqual(spec["optional"]["chunk_frames"][1]["default"], 8)
 
     # Note: the full-size 8 GiB limit is checked by scripts/accept_gpu.py.
     @unittest.skipUnless(torch.cuda.is_available(), "CUDA not available")

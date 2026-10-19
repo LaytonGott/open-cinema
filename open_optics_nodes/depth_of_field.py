@@ -27,11 +27,11 @@ class OpenOptics_DepthOfField:
                 "quality": (["draft", "normal"], {"default": "normal"}),
                 "max_radius_px": ("INT", {"default": 16, "min": 0, "max": 256, "step": 1}),
                 "colorspace": (["srgb", "linear"], {"default": "srgb"}),
-                "chunk_frames": common.CHUNK_FRAMES_INPUT,
             },
             "optional": {
                 "depth_mask": ("MASK",),
                 "depth_image": ("IMAGE",),
+                "chunk_frames": common.CHUNK_FRAMES_INPUT,
                 "max_layers": ("INT", {"default": 12, "min": 1, "max": 64, "step": 1}),
             },
         }
