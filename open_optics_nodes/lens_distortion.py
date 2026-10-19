@@ -26,8 +26,10 @@ class OpenOptics_LensDistortion:
                 "p2": ("FLOAT", dict(coeff)),
                 "direction": (["apply", "remove"], {"default": "apply"}),
                 "fit": (["keep", "crop"], {"default": "keep"}),
+            },
+            "optional": {
                 "chunk_frames": common.CHUNK_FRAMES_INPUT,
-            }
+            },
         }
 
     RETURN_TYPES = ("IMAGE",)
