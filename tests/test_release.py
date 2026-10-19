@@ -168,6 +168,22 @@ class TestReadmeLicence(unittest.TestCase):
             self.assertIn(needle.lower(), section.lower(), f"README.md Licence section does not mention '{needle}'")
 
 
+class TestReadmeWorkflowSection(unittest.TestCase):
+    def test_example_workflow_section_content(self):
+        from open_optics_nodes import NODE_DISPLAY_NAME_MAPPINGS
+
+        section = _readme_section("Example workflow")
+        self.assertTrue(section.strip(), "README.md has no Example workflow section")
+        self.assertNotEqual(section.strip(), "TODO", "README.md Example workflow section is 'TODO'")
+        stages = ("DepthToMetric", "FocalCrop", "DepthOfField", "LensDistortion",
+                  "Vignette", "ChromaticAberration", "Anamorphic")
+        needles = ["workflows/open_optics_demo.json", "input", "depth map", "Depth Anything"]
+        needles += [NODE_DISPLAY_NAME_MAPPINGS[f"OpenOptics_{s}"] for s in stages]
+        needles.append("Preview")
+        for needle in needles:
+            self.assertIn(needle.lower(), section.lower(), f"README.md Example workflow section does not mention '{needle}'")
+
+
 def _load_workflow():
     path = ROOT / "workflows" / "open_optics_demo.json"
     return json.loads(path.read_text(encoding="utf-8"))
