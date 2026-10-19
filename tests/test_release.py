@@ -230,6 +230,39 @@ class TestWorkflowFile(unittest.TestCase):
         ])
         self.assertEqual(actual, expected, f"workflow node types are {actual}, expected {expected}")
 
+    def test_workflow_wiring_order(self):
+        wf = _load_workflow()
+        nodes = {n["id"]: n for n in wf["nodes"]}
+        edges = set()
+        load_to_depth = set()
+        load_to_crop = set()
+        for _lid, from_node, from_slot, to_node, to_slot, _t in wf["links"]:
+            from_type = nodes[from_node]["type"]
+            target = nodes[to_node]
+            slot_name = target["inputs"][to_slot]["name"]
+            edges.add((from_type, from_slot, target["type"], slot_name))
+            if from_type == "LoadImage" and target["type"] == "OpenOptics_DepthToMetric":
+                load_to_depth.add(from_node)
+            if from_type == "LoadImage" and target["type"] == "OpenOptics_FocalCrop":
+                load_to_crop.add(from_node)
+        required = [
+            ("LoadImage", 0, "OpenOptics_DepthToMetric", "depth_image"),
+            ("OpenOptics_DepthToMetric", 0, "OpenOptics_DepthOfField", "depth_mask"),
+            ("OpenOptics_FocalCrop", 0, "OpenOptics_DepthOfField", "image"),
+            ("OpenOptics_DepthOfField", 0, "OpenOptics_LensDistortion", "image"),
+            ("OpenOptics_LensDistortion", 0, "OpenOptics_Vignette", "image"),
+            ("OpenOptics_Vignette", 0, "OpenOptics_ChromaticAberration", "image"),
+            ("OpenOptics_ChromaticAberration", 0, "OpenOptics_Anamorphic", "image"),
+            ("OpenOptics_Anamorphic", 0, "PreviewImage", "images"),
+            ("LoadImage", 0, "OpenOptics_FocalCrop", "image"),
+        ]
+        for edge in required:
+            self.assertIn(edge, edges, f"workflow is missing the connection {edge}")
+        self.assertEqual(len(load_to_depth), 1, f"LoadImage nodes feeding DepthToMetric: {load_to_depth}")
+        self.assertEqual(len(load_to_crop), 1, f"LoadImage nodes feeding FocalCrop: {load_to_crop}")
+        self.assertTrue(load_to_depth.isdisjoint(load_to_crop),
+                        "the same LoadImage feeds both DepthToMetric and FocalCrop")
+
 
 if __name__ == "__main__":
     unittest.main()
