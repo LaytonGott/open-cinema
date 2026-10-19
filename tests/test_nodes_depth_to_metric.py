@@ -798,5 +798,39 @@ class TestAnchorScopeFrameNode(unittest.TestCase):
         self.assertTrue(torch.allclose(a, b, atol=1e-6))
 
 
+class TestAnchorScopeFrame(unittest.TestCase):
+    KW = dict(
+        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+        inverse_depth=True, low_percentile=0.0, high_percentile=100.0,
+        subject_x=0.5, subject_y=0.5, subject_radius_px=1,
+    )
+
+    def _depth(self):
+        d0 = torch.full((9, 9), 0.4)
+        d0[3:6, 3:6] = 0.8
+        d0[0, 0] = 1.6
+        d0[8, 8] = 0.1
+        return torch.stack([d0, d0 * 0.5])
+
+    def test_frame_per_frame_scale(self):
+        out = _convert(self._depth(), anchor_scope="frame", **self.KW)[0]
+        for i in range(2):
+            self.assertAlmostEqual(out[i, 4, 4].item(), 2.0, places=5)
+            self.assertAlmostEqual(out[i, 0, 1].item(), 4.0, places=5)
+        self.assertTrue(torch.allclose(out[1], out[0], atol=1e-6))
+
+    def test_single_frame_batch_equals_frame(self):
+        depth = self._depth()[:1]
+        a = _convert(depth, anchor_scope="batch", **self.KW)[0]
+        b = _convert(depth, anchor_scope="frame", **self.KW)[0]
+        self.assertTrue(torch.allclose(a, b))
+
+    def test_chunk_frames_same_in_frame_scope(self):
+        depth = self._depth()
+        a = _convert(depth, anchor_scope="frame", chunk_frames=1, **self.KW)[0]
+        b = _convert(depth, anchor_scope="frame", chunk_frames=8, **self.KW)[0]
+        self.assertTrue(torch.allclose(a, b))
+
+
 if __name__ == "__main__":
     unittest.main()
