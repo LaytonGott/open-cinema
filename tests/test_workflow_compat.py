@@ -64,6 +64,56 @@ def order_problems(key, spec, expected):
     return problems
 
 
+def combo_problems(key, spec, expected):
+    """Return a list of strings describing added combo inputs of node `key` with a bad default.
+
+    `spec` is an INPUT_TYPES() dict and `expected` the fixture entry. An added combo is an
+    input not in the fixture whose type is a list/tuple of choices; it needs an options dict
+    whose 'default' is the first choice. No units apply.
+    """
+    problems = []
+    old_names = {e[0] for s in ("required", "optional") for e in expected.get(s, [])}
+    for section in ("required", "optional"):
+        for name, value in spec.get(section, {}).items():
+            if name in old_names:
+                continue
+            if not isinstance(value, (tuple, list)) or not isinstance(value[0], (list, tuple)):
+                continue
+            choices = list(value[0])
+            opts = value[1] if len(value) > 1 and isinstance(value[1], dict) else {}
+            if "default" not in opts:
+                problems.append(f"{key}: added combo '{name}' has no default")
+            elif choices and opts["default"] != choices[0]:
+                problems.append(
+                    f"{key}: added combo '{name}' default '{opts['default']}' "
+                    f"is not its first choice '{choices[0]}'")
+    return problems
+
+
+class AddedComboDefaultTest(unittest.TestCase):
+    def setUp(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            self.fixture = json.load(f)
+
+    def test_added_combos_default_to_first_choice(self):
+        problems = []
+        for key, expected in self.fixture.items():
+            spec = NODE_CLASS_MAPPINGS[key].INPUT_TYPES()
+            problems += combo_problems(key, spec, expected)
+        self.assertEqual(problems, [], "\n".join(problems))
+
+    def test_bad_combo_is_reported(self):
+        key = "OpenOptics_DepthToMetric"
+        expected = self.fixture[key]
+        spec = copy.deepcopy(NODE_CLASS_MAPPINGS[key].INPUT_TYPES())
+        spec.setdefault("optional", {})
+        spec["optional"]["nodef"] = (["a", "b"],)
+        spec["optional"]["second"] = (["a", "b"], {"default": "b"})
+        problems = combo_problems(key, spec, expected)
+        self.assertTrue(any(key in p and "nodef" in p for p in problems), problems)
+        self.assertTrue(any(key in p and "second" in p for p in problems), problems)
+
+
 class AddedInputOrderTest(unittest.TestCase):
     def setUp(self):
         with open(FIXTURE, encoding="utf-8") as f:
