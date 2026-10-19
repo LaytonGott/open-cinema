@@ -142,19 +142,24 @@ def default_problems(key, cls, expected):
             if name in old_names:
                 continue
             if section == "required":
-                problems.append(f"{key}: added input {name} is required")
+                problems.append(
+                    f"{key}: new input {name} is required; make it optional with a default")
             opts = value[1] if isinstance(value, (tuple, list)) and len(value) > 1 \
                 and isinstance(value[1], dict) else {}
             if "default" not in opts:
-                problems.append(f"{key}: added input {name} has no default in INPUT_TYPES")
+                problems.append(
+                    f"{key}: new input {name} has no default in INPUT_TYPES; add a default")
                 continue
             param = params.get(name)
             if param is None or param.default is inspect.Parameter.empty:
-                problems.append(f"{key}: added input {name} has no Python default")
+                problems.append(
+                    f"{key}: new input {name} has no Python default; "
+                    "add a matching default to the node function")
             elif param.default != opts["default"]:
                 problems.append(
-                    f"{key}: added input {name} Python default {param.default!r} "
-                    f"differs from INPUT_TYPES default {opts['default']!r}")
+                    f"{key}: new input {name} Python default {param.default!r} "
+                    f"differs from INPUT_TYPES default {opts['default']!r}; "
+                    "add a matching default to the node function")
     return problems
 
 
@@ -254,9 +259,10 @@ class AddedInputDefaultsTest(unittest.TestCase):
             self.expected = json.load(f)[self.KEY]
         self.base = NODE_CLASS_MAPPINGS[self.KEY]
 
-    def assert_reported(self, cls):
+    def assert_reported(self, cls, hint):
         problems = default_problems(self.KEY, cls, self.expected)
-        self.assertTrue(any(self.KEY in p and "chunk_frames" in p for p in problems), problems)
+        self.assertTrue(any(self.KEY in p and "chunk_frames" in p and hint in p
+                            for p in problems), problems)
 
     def test_required_added_input_is_reported(self):
         base = self.base
@@ -268,7 +274,7 @@ class AddedInputDefaultsTest(unittest.TestCase):
                 spec["required"]["chunk_frames"] = spec["optional"].pop("chunk_frames")
                 return spec
 
-        self.assert_reported(Required)
+        self.assert_reported(Required, "make it optional with a default")
 
     def test_missing_input_default_is_reported(self):
         base = self.base
@@ -282,7 +288,7 @@ class AddedInputDefaultsTest(unittest.TestCase):
                     kind, {k: v for k, v in opts.items() if k != "default"})
                 return spec
 
-        self.assert_reported(NoDefault)
+        self.assert_reported(NoDefault, "add a default")
 
     def test_missing_python_default_is_reported(self):
         base = self.base
@@ -291,7 +297,7 @@ class AddedInputDefaultsTest(unittest.TestCase):
             def apply(self, image, chunk_frames):
                 pass
 
-        self.assert_reported(NoPyDefault)
+        self.assert_reported(NoPyDefault, "add a matching default to the node function")
 
 
 class AddedInputOrderTest(unittest.TestCase):
