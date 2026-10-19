@@ -168,6 +168,54 @@ class DefaultProblemsTest(unittest.TestCase):
         self.assertEqual(default_problems("Clean", _CleanNode, expected), [])
 
 
+class AddedInputDefaultsTest(unittest.TestCase):
+    KEY = "OpenOptics_Vignette"
+
+    def setUp(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            self.expected = json.load(f)[self.KEY]
+        self.base = NODE_CLASS_MAPPINGS[self.KEY]
+
+    def assert_reported(self, cls):
+        problems = default_problems(self.KEY, cls, self.expected)
+        self.assertTrue(any(self.KEY in p and "chunk_frames" in p for p in problems), problems)
+
+    def test_required_added_input_is_reported(self):
+        base = self.base
+
+        class Required(base):
+            @classmethod
+            def INPUT_TYPES(cls):
+                spec = copy.deepcopy(base.INPUT_TYPES())
+                spec["required"]["chunk_frames"] = spec["optional"].pop("chunk_frames")
+                return spec
+
+        self.assert_reported(Required)
+
+    def test_missing_input_default_is_reported(self):
+        base = self.base
+
+        class NoDefault(base):
+            @classmethod
+            def INPUT_TYPES(cls):
+                spec = copy.deepcopy(base.INPUT_TYPES())
+                kind, opts = spec["optional"]["chunk_frames"][:2]
+                spec["optional"]["chunk_frames"] = (
+                    kind, {k: v for k, v in opts.items() if k != "default"})
+                return spec
+
+        self.assert_reported(NoDefault)
+
+    def test_missing_python_default_is_reported(self):
+        base = self.base
+
+        class NoPyDefault(base):
+            def apply(self, image, chunk_frames):
+                pass
+
+        self.assert_reported(NoPyDefault)
+
+
 class AddedInputOrderTest(unittest.TestCase):
     def setUp(self):
         with open(FIXTURE, encoding="utf-8") as f:
