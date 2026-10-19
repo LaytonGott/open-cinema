@@ -363,5 +363,40 @@ class WorkflowFilesValidTest(unittest.TestCase):
                 self.assertEqual([], errors, "; ".join(map(str, errors)))
 
 
+class ValidatorCatchesProblemsTest(unittest.TestCase):
+    def setUp(self):
+        path = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows", "pipeline_depth_api.json")
+        with open(path, encoding="utf-8") as f:
+            self.graph = copy.deepcopy(json.load(f))
+
+    def test_missing_required_input_fails(self):
+        del self.graph["120"]["inputs"]["near_m"]
+        errors = validate_api_graph(self.graph)
+        self.assertTrue(any("Required input is missing" in e and "120" in e and "near_m" in e
+                            for e in errors), errors)
+
+    def test_out_of_range_fails(self):
+        self.graph["121"]["inputs"]["strength"] = 5.0
+        errors = validate_api_graph(self.graph)
+        self.assertTrue(any("strength" in e and "5.0" in e for e in errors), errors)
+
+    def test_unknown_choice_fails(self):
+        graph = {
+            "1": {"class_type": "LoadImage", "inputs": {"image": "x.png"}},
+            "2": {"class_type": "OpenOptics_Anamorphic",
+                  "inputs": {"image": ["1", 0], "squeeze": 1.33, "mode": "sideways",
+                             "keep_width": False}},
+        }
+        errors = validate_api_graph(graph)
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("mode", errors[0])
+        self.assertIn("sideways", errors[0])
+
+    def test_wrong_boolean_kind_fails(self):
+        self.graph["120"]["inputs"]["inverse_depth"] = 1.0
+        errors = validate_api_graph(self.graph)
+        self.assertTrue(any("inverse_depth" in e for e in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main()
