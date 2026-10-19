@@ -88,6 +88,29 @@ class FocalCropTest(unittest.TestCase):
         self.assertTrue(1 <= out.shape[1] <= 5)
         self.assertTrue(1 <= out.shape[2] <= 7)
 
+    def test_chunk_frames_input(self):
+        spec = OpenOptics_FocalCrop.INPUT_TYPES()["required"]["chunk_frames"]
+        self.assertEqual(spec[0], "INT")
+        self.assertEqual(spec[1]["default"], 8)
+        self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_zero_raises(self):
+        with self.assertRaisesRegex(ValueError, "chunk_frames"):
+            OpenOptics_FocalCrop().crop(_image(), 24.0, 50.0, "original", chunk_frames=0)
+
+    def test_chunk_sizes_match_full(self):
+        img = torch.rand(5, 33, 31, 3, generator=torch.Generator().manual_seed(4))
+        before = img.clone()
+        for mode in ("original", "cropped"):
+            (full,) = OpenOptics_FocalCrop().crop(img, 24.0, 48.0, mode, chunk_frames=8)
+            for size in (1, 3):
+                (out,) = OpenOptics_FocalCrop().crop(img, 24.0, 48.0, mode, chunk_frames=size)
+                self.assertEqual(out.shape, full.shape)
+                self.assertLess((out - full).abs().max().item(), 1e-5)
+                self.assertEqual(out.device.type, "cpu")
+                self.assertEqual(out.dtype, torch.float32)
+        self.assertTrue(torch.equal(img, before))
+
     def test_registered(self):
         self.assertIs(NODE_CLASS_MAPPINGS["OpenOptics_FocalCrop"], OpenOptics_FocalCrop)
         self.assertEqual(NODE_DISPLAY_NAME_MAPPINGS["OpenOptics_FocalCrop"], "Open Optics: Focal Crop")
