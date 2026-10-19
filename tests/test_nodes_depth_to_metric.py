@@ -506,6 +506,41 @@ class TestDepthToMetricSubjectMode(unittest.TestCase):
                 depth_mask=torch.zeros(1, 9, 9), mode="subject", subject_m=2.0)
 
 
+class TestSubjectDepthUnusable(unittest.TestCase):
+    def _run(self, depth, **kw):
+        return OpenOptics_DepthToMetric().convert(
+            near_m=0.5, far_m=10.0, inverse_depth=True, depth_mask=depth,
+            mode="subject", subject_m=2.0, subject_x=0.5, subject_y=0.5,
+            subject_radius_px=1, **kw)
+
+    def _window(self, values):
+        d = torch.full((1, 9, 9), 0.8)
+        d[0, 3:6, 3:6] = torch.tensor(values).reshape(3, 3)
+        return d
+
+    def test_all_zero(self):
+        for scope in ("batch", "frame"):
+            with self.subTest(anchor_scope=scope):
+                with self.assertRaisesRegex(ValueError, r"(?s)subject depth.*0\.0"):
+                    self._run(torch.zeros(1, 9, 9), anchor_scope=scope)
+
+    def test_nan_window(self):
+        nan = float("nan")
+        d = self._window([nan, nan, nan, nan, nan, 0.8, 0.8, 0.8, 0.8])
+        with self.assertRaisesRegex(ValueError, r"(?s)subject depth.*nan"):
+            self._run(d)
+
+    def test_negative_window(self):
+        d = self._window([-0.5] * 9)
+        with self.assertRaisesRegex(ValueError, r"(?s)subject depth.*-0\.5"):
+            self._run(d)
+
+    def test_inf_window(self):
+        d = self._window([float("inf")] * 9)
+        with self.assertRaisesRegex(ValueError, "subject depth"):
+            self._run(d)
+
+
 class TestSubjectModeScaling(unittest.TestCase):
     def _run(self, inverse_depth):
         d = torch.full((1, 9, 9), 0.4)
