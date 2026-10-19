@@ -3,6 +3,7 @@ import copy
 import inspect
 import json
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -1073,6 +1074,50 @@ class RunFirstReleaseTest(unittest.TestCase):
         before = os.environ.get("OPEN_OPTICS_DEVICE")
         run_first_release("OpenOptics_DepthToMetric", "cpu")
         self.assertEqual(os.environ.get("OPEN_OPTICS_DEVICE"), before)
+
+
+def missing_default_run_problems(key, cls, kwargs):
+    """Call the node with only first-release kwargs; return a list of strings.
+
+    Each string names an added input the function cannot run without. The
+    list is empty when the call works. Has no units. Other errors propagate.
+    """
+    try:
+        getattr(cls(), cls.FUNCTION)(**kwargs)
+    except TypeError as error:
+        text = str(error)
+        if "missing" not in text or "required" not in text:
+            raise
+        names = re.findall(r"'([^']+)'", text)
+        return [
+            f"{key}: cannot run without added input '{name}' "
+            "(give the function parameter a default)"
+            for name in names
+        ]
+    return []
+
+
+class MissingDefaultRunTest(unittest.TestCase):
+    def test_missing_default_is_named(self):
+        class Fake:
+            FUNCTION = "go"
+
+            def go(self, image, extra):
+                return (image,)
+
+        problems = missing_default_run_problems("Fake_Node", Fake, {"image": 1})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("Fake_Node", problems[0])
+        self.assertIn("'extra'", problems[0])
+
+    def test_default_gives_no_problems(self):
+        class Fake:
+            FUNCTION = "go"
+
+            def go(self, image, extra=1):
+                return (image,)
+
+        self.assertEqual(missing_default_run_problems("Fake_Node", Fake, {"image": 1}), [])
 
 
 class FirstReleaseCallTest(unittest.TestCase):
