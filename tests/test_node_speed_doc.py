@@ -71,6 +71,15 @@ class NodeSpeedDocTest(unittest.TestCase):
         self.assertLess(float(cells[5]), 30)
         self.assertLess(float(cells[6]), 8)
 
+    def test_cells_numeric_or_unmeasured(self):
+        """Seconds and peak GiB cells are numbers or 'not yet measured'; chunk_frames is 8."""
+        for key in KEYS:
+            row = [line for line in self.lines if line.startswith("| %s |" % key)][0]
+            cells = split_row(row)
+            self.assertEqual(cells[4], "8", key)
+            for cell in (cells[5], cells[6]):
+                self.assertTrue(is_float(cell) or cell == "not yet measured", key)
+
     @unittest.skipUnless(os.environ.get("OPEN_OPTICS_BENCH") == "1", "set by npm run test:bench")
     def test_node_speed_doc_has_numbers(self):
         """Every row has measured seconds and peak GiB numbers."""
