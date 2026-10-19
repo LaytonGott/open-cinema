@@ -1,6 +1,6 @@
 {
-  "last_node_id": 5,
-  "last_link_id": 4,
+  "last_node_id": 8,
+  "last_link_id": 7,
   "nodes": [
     {
       "id": 1, "type": "LoadImage", "pos": [0, 0], "size": [315, 314], "flags": {}, "order": 0, "mode": 0,
@@ -52,18 +52,54 @@
         { "name": "depth_mask", "type": "MASK", "link": 4 }
       ],
       "outputs": [
-        { "name": "image", "type": "IMAGE", "links": null, "slot_index": 0 },
+        { "name": "image", "type": "IMAGE", "links": [5], "slot_index": 0 },
         { "name": "coc_px", "type": "MASK", "links": null, "slot_index": 1 }
       ],
       "properties": { "Node name for S&R": "OpenOptics_DepthOfField" },
       "widgets_values": [50.0, 2.8, 3.0, 36.0, "normal", 16, "srgb", 8]
+    },
+    {
+      "id": 6, "type": "OpenOptics_LensDistortion", "pos": [1200, 200], "size": [315, 250], "flags": {}, "order": 5, "mode": 0,
+      "inputs": [
+        { "name": "image", "type": "IMAGE", "link": 5 }
+      ],
+      "outputs": [
+        { "name": "image", "type": "IMAGE", "links": [6], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "OpenOptics_LensDistortion" },
+      "widgets_values": [35.0, 36.0, 0.0, 0.0, 0.0, 0.0, 0.0, "apply", "keep", 8]
+    },
+    {
+      "id": 7, "type": "OpenOptics_Vignette", "pos": [1600, 200], "size": [315, 250], "flags": {}, "order": 6, "mode": 0,
+      "inputs": [
+        { "name": "image", "type": "IMAGE", "link": 6 }
+      ],
+      "outputs": [
+        { "name": "image", "type": "IMAGE", "links": [7], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "OpenOptics_Vignette" },
+      "widgets_values": [35.0, 36.0, 1.0, "srgb", 8]
+    },
+    {
+      "id": 8, "type": "OpenOptics_ChromaticAberration", "pos": [2000, 200], "size": [315, 250], "flags": {}, "order": 7, "mode": 0,
+      "inputs": [
+        { "name": "image", "type": "IMAGE", "link": 7 }
+      ],
+      "outputs": [
+        { "name": "image", "type": "IMAGE", "links": null, "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "OpenOptics_ChromaticAberration" },
+      "widgets_values": [0.0, 0.0, 8]
     }
   ],
   "links": [
     [1, 2, 0, 3, 0, "IMAGE"],
     [2, 1, 0, 4, 0, "IMAGE"],
     [3, 4, 0, 5, 0, "IMAGE"],
-    [4, 3, 0, 5, 1, "MASK"]
+    [4, 3, 0, 5, 1, "MASK"],
+    [5, 5, 0, 6, 0, "IMAGE"],
+    [6, 6, 0, 7, 0, "IMAGE"],
+    [7, 7, 0, 8, 0, "IMAGE"]
   ],
   "groups": [],
   "config": {},
