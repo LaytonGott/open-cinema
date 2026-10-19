@@ -1298,5 +1298,24 @@ class ClaudeMdRuleTest(unittest.TestCase):
             "CLAUDE.md lacks the workflow compatibility line")
 
 
+class CompatConventionsTest(unittest.TestCase):
+    def test_compat_file_follows_conventions(self):
+        with open(__file__, encoding="utf-8") as f:
+            text = f.read()
+        forbidden = [
+            "skip" + "Test",
+            "skip" + "If",
+            "pytest." + "skip",
+            "hash" + "lib",
+            "import " + "comfy",
+            "from " + "comfy",
+        ]
+        for word in forbidden:
+            self.assertNotIn(word, text)
+        for func in (first_release_kwargs, run_api_graph):
+            size = inspect.signature(func).parameters["size"].default
+            self.assertLessEqual(size, 64)
+
+
 if __name__ == "__main__":
     unittest.main()
