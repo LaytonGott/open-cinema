@@ -1253,6 +1253,27 @@ class LegacyOldResultsTest(unittest.TestCase):
                     else:
                         self.assertEqual(before[i], after[i])
 
+    def test_old_results_equal_on_available_devices(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        devices = ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
+        for key, expected in fixture.items():
+            for device in devices:
+                with self.subTest(key=key, device=device):
+                    try:
+                        _, before = run_first_release(key, device)
+                        _, after = run_first_release(key, device, added_defaults(key, expected))
+                    finally:
+                        if device == "cuda":
+                            torch.cuda.empty_cache()
+                    for i in range(min(len(before), len(after))):
+                        if torch.is_tensor(before[i]):
+                            self.assertTrue(
+                                torch.allclose(before[i].cpu(), after[i].cpu(), atol=OLD_RESULT_ATOL),
+                                f"output {i} changed with explicit defaults")
+                        else:
+                            self.assertEqual(before[i], after[i])
+
 
 class FixturesPresentTest(unittest.TestCase):
     def test_legacy_files_and_input_keys(self):
