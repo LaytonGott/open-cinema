@@ -36,12 +36,14 @@ def first_release_problems(key, spec, expected):
             if got != exp:
                 problems.append(
                     f"{key}: first-release input '{exp[0]}' changed "
-                    f"(expected {exp}, got {got}) in {section}")
+                    f"(expected {exp}, got {got}) in {section}; "
+                    "restore the first-release name, type and position")
         if section == "required" and len(current) != len(want):
             extra = [c[0] for c in current[len(want):]]
             problems.append(
                 f"{key}: required inputs differ in count (expected {len(want)}, "
-                f"got {len(current)}; extra {extra})")
+                f"got {len(current)}; extra {extra}); "
+                "restore the first-release name, type and position")
     return problems
 
 
@@ -339,6 +341,8 @@ class FirstReleaseInputsTest(unittest.TestCase):
                               for n, v in self.spec[section].items()}
         problems = first_release_problems(self.key, self.spec, self.fixture[self.key])
         self.assertTrue(any(self.key in p and "'k1'" in p for p in problems), problems)
+        self.assertTrue(any("restore the first-release name, type and position" in p
+                            for p in problems), problems)
 
     def test_retyping_is_detected(self):
         section = self._section_of("p1")
