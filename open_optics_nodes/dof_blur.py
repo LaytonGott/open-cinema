@@ -6,16 +6,16 @@ import torch
 import torch.nn.functional as F
 
 
-def disc_kernel(radius):
+def disc_kernel(radius, device=None):
     """Build a normalised disc blur kernel for a radius in pixels.
 
-    Returns a float32 tensor [k, k] with k = 2 * ceil(radius) + 1. Weight is 1 where
-    the distance from the centre is <= radius (the centre is always 1), then the
-    kernel is scaled to sum to 1.
+    Returns a float32 tensor [k, k] with k = 2 * ceil(radius) + 1, created on
+    `device` (None means the CPU). Weight is 1 where the distance from the centre
+    is <= radius (the centre is always 1), then the kernel is scaled to sum to 1.
     """
     r = math.ceil(radius)
     k = 2 * r + 1
-    coords = torch.arange(k, dtype=torch.float32) - r
+    coords = torch.arange(k, dtype=torch.float32, device=device) - r
     dist2 = coords[:, None] ** 2 + coords[None, :] ** 2
     kernel = (dist2 <= float(radius) ** 2).to(torch.float32)
     kernel[r, r] = 1.0
@@ -33,7 +33,7 @@ def blur_layer(premult, radius):
         return premult
     c = premult.shape[1]
     pad = math.ceil(radius)
-    kernel = disc_kernel(radius).to(premult.device, premult.dtype)
+    kernel = disc_kernel(radius, premult.device).to(premult.dtype)
     weight = kernel[None, None].repeat(c, 1, 1, 1)
     padded = F.pad(premult, (pad, pad, pad, pad), mode="replicate")
     return F.conv2d(padded, weight, groups=c)

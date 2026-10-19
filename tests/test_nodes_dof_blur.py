@@ -14,6 +14,12 @@ class DofBlurTest(unittest.TestCase):
         for i, j in ((1, 1), (0, 1), (1, 0), (1, 2), (2, 1)):
             self.assertAlmostEqual(k[i, j].item(), 0.2, places=6)
 
+    def test_kernel_on_device_argument(self):
+        k = dof_blur.disc_kernel(2.0, device=torch.device("cpu"))
+        self.assertEqual(tuple(k.shape), (5, 5))
+        self.assertAlmostEqual(k.sum().item(), 1.0, delta=1e-6)
+        self.assertAlmostEqual(k[2, 2].item(), 1.0 / 13.0, delta=1e-6)
+
     def test_kernel_sums_to_one(self):
         for r in (0.3, 1.0, 2.5, 4.0):
             self.assertAlmostEqual(dof_blur.disc_kernel(r).sum().item(), 1.0, places=6)
