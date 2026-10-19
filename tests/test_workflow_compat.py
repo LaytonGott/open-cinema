@@ -641,5 +641,43 @@ class WorkflowRunTest(unittest.TestCase):
                                          f"{name} node {node_id} ({cls_name}): " + "; ".join(problems))
 
 
+DEMO_CLASSES = {"OpenOptics_" + n for n in (
+    "DepthToMetric", "FocalCrop", "DepthOfField", "LensDistortion",
+    "Vignette", "ChromaticAberration", "Anamorphic")}
+
+
+class DemoWorkflowRunTest(unittest.TestCase):
+    def check_runs(self, path):
+        graph = workflow_graph(path)
+        self.assertEqual([], validate_api_graph(graph))
+        previous = os.environ.get("OPEN_OPTICS_DEVICE")
+        os.environ["OPEN_OPTICS_DEVICE"] = "cpu"
+        try:
+            results = run_api_graph(graph)
+        finally:
+            if previous is None:
+                os.environ.pop("OPEN_OPTICS_DEVICE", None)
+            else:
+                os.environ["OPEN_OPTICS_DEVICE"] = previous
+        ours = {nid: e["class_type"] for nid, e in graph.items()
+                if e.get("class_type") in NODE_CLASS_MAPPINGS}
+        self.assertTrue(DEMO_CLASSES <= set(ours.values()))
+        for node_id, cls_name in ours.items():
+            self.assertIn(node_id, results, f"node {node_id} ({cls_name}) produced no output")
+            self.assertTrue(results[node_id], f"node {node_id} ({cls_name}) returned nothing")
+            problems = output_problems(node_id, cls_name, results[node_id], NODE_CLASS_MAPPINGS)
+            if cls_name == "OpenOptics_DepthToMetric":
+                # output 0 is depth in metres, so it may exceed 1
+                problems = [p for p in problems if not p.endswith("output 0: values outside 0..1")]
+            self.assertEqual([], problems, f"node {node_id} ({cls_name}): " + "; ".join(problems))
+
+    def test_demo_workflow_runs_unchanged(self):
+        self.check_runs(os.path.join(ROOT, "workflows", "open_optics_demo.json"))
+
+    def test_released_ui_demo_runs_unchanged(self):
+        self.check_runs(os.path.join(ROOT, "tests", "fixtures", "legacy_workflows",
+                                     "open_optics_demo_release_ui.json"))
+
+
 if __name__ == "__main__":
     unittest.main()
