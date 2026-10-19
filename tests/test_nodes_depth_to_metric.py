@@ -325,5 +325,28 @@ class TestDepthToMetricBatchFit(unittest.TestCase):
                         self.assertAlmostEqual(v, 3.0, delta=1e-5)
 
 
+class TestDepthToMetricSubjectInputs(unittest.TestCase):
+    def _required(self):
+        return OpenOptics_DepthToMetric.INPUT_TYPES()["required"]
+
+    def test_mode_choices_and_default(self):
+        spec = self._required()["mode"]
+        self.assertEqual(list(spec[0]), ["near_far", "subject"])
+        self.assertEqual(spec[1]["default"], "near_far")
+
+    def test_subject_defaults(self):
+        req = self._required()
+        self.assertAlmostEqual(req["subject_m"][1]["default"], 3.0, places=6)
+        self.assertAlmostEqual(req["subject_x"][1]["default"], 0.5, places=6)
+        self.assertAlmostEqual(req["subject_y"][1]["default"], 0.5, places=6)
+        self.assertEqual(req["subject_radius_px"][1]["default"], 4)
+
+    def test_near_far_default_mode_values(self):
+        d = torch.tensor([[[0.0, 0.5, 1.0]]])
+        z, _ = _convert(d)
+        for got, want in zip(z[0, 0].tolist(), [5.0, 1.666667, 1.0]):
+            self.assertAlmostEqual(got, want, places=5)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -89,6 +89,11 @@ class OpenOptics_DepthToMetric:
                 "low_percentile": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 100.0, "step": 0.1}),
                 "high_percentile": ("FLOAT", {"default": 98.0, "min": 0.0, "max": 100.0, "step": 0.1}),
                 "chunk_frames": common.CHUNK_FRAMES_INPUT,
+                "mode": (["near_far", "subject"], {"default": "near_far"}),
+                "subject_m": ("FLOAT", {"default": 3.0, "min": 0.001, "max": 100000.0, "step": 0.1}),
+                "subject_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "subject_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "subject_radius_px": ("INT", {"default": 4, "min": 0, "max": 10000}),
             },
             "optional": {
                 "depth_mask": ("MASK",),
@@ -102,8 +107,15 @@ class OpenOptics_DepthToMetric:
     CATEGORY = "Open Optics"
 
     def convert(self, near_m=0.5, far_m=10.0, inverse_depth=True, low_percentile=2.0,
-                high_percentile=98.0, depth_mask=None, depth_image=None, chunk_frames=8):
+                high_percentile=98.0, depth_mask=None, depth_image=None, chunk_frames=8,
+                mode="near_far", subject_m=3.0, subject_x=0.5, subject_y=0.5,
+                subject_radius_px=4):
         """Convert relative depth to metres.
+
+        mode ("near_far" or "subject"), subject_m (metres), subject_x and
+        subject_y (0 to 1 image position) and subject_radius_px (pixels) are
+        the subject inputs; they are accepted but not used yet, and only
+        near_far behaviour is implemented.
 
         near_m and far_m are in metres; percentiles are 0 to 100. Exactly one
         of depth_mask or depth_image must be connected. The percentile fit uses
