@@ -1,3 +1,4 @@
+import inspect
 import math
 import unittest
 
@@ -150,10 +151,18 @@ class VignetteChunkTest(unittest.TestCase):
         self.node = OpenOptics_Vignette()
 
     def test_input_types_lists_chunk_frames(self):
-        spec = OpenOptics_Vignette.INPUT_TYPES()["required"]["chunk_frames"]
+        spec = OpenOptics_Vignette.INPUT_TYPES()["optional"]["chunk_frames"]
         self.assertEqual(spec[0], "INT")
         self.assertEqual(spec[1]["default"], 8)
         self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_is_optional_with_default(self):
+        types = OpenOptics_Vignette.INPUT_TYPES()
+        self.assertNotIn("chunk_frames", types["required"])
+        self.assertIn("chunk_frames", types["optional"])
+        self.assertEqual(types["optional"]["chunk_frames"][1]["default"], 8)
+        param = inspect.signature(OpenOptics_Vignette.apply).parameters["chunk_frames"]
+        self.assertEqual(param.default, 8)
 
     def test_chunk_frames_zero_raises(self):
         with self.assertRaises(ValueError) as cm:

@@ -21,8 +21,10 @@ class OpenOptics_Vignette:
                 "sensor_width_mm": ("FLOAT", {"default": 36.0, "min": 0.1, "max": 200.0, "step": 0.1}),
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "colorspace": (["srgb", "linear"], {"default": "srgb"}),
+            },
+            "optional": {
                 "chunk_frames": common.CHUNK_FRAMES_INPUT,
-            }
+            },
         }
 
     RETURN_TYPES = ("IMAGE",)
