@@ -832,5 +832,54 @@ class TestAnchorScopeFrame(unittest.TestCase):
         self.assertTrue(torch.allclose(a, b))
 
 
+class TestSubjectDepthInputs(unittest.TestCase):
+    KW = dict(
+        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+        subject_x=0.5, subject_y=0.5, subject_radius_px=1,
+        low_percentile=0.0, high_percentile=100.0,
+    )
+
+    def _depth(self):
+        d = torch.full((1, 9, 9), 0.4)
+        d[0, 3:6, 3:6] = 0.8
+        d[0, 0, 0] = 1.6
+        d[0, 8, 8] = 0.1
+        return d
+
+    def _both(self, **kw):
+        depth = self._depth()
+        image = depth.unsqueeze(-1).repeat(1, 1, 1, 3)
+        node = OpenOptics_DepthToMetric()
+        a = node.convert(depth_mask=depth, **self.KW, **kw)[0]
+        b = node.convert(depth_image=image, **self.KW, **kw)[0]
+        return a, b
+
+    def test_mask_equals_image(self):
+        for inverse in (True, False):
+            for scope in ("batch", "frame"):
+                with self.subTest(inverse_depth=inverse, anchor_scope=scope):
+                    a, b = self._both(inverse_depth=inverse, anchor_scope=scope)
+                    self.assertTrue(torch.allclose(a, b, atol=1e-6))
+
+    def test_mask_equals_image_with_subject_mask(self):
+        sm = torch.zeros(1, 9, 9)
+        sm[0, 3:6, 3:6] = 1.0
+        for inverse in (True, False):
+            with self.subTest(inverse_depth=inverse):
+                a, b = self._both(inverse_depth=inverse, subject_mask=sm)
+                self.assertTrue(torch.allclose(a, b, atol=1e-6))
+
+    def test_both_inputs_raise(self):
+        depth = self._depth()
+        image = depth.unsqueeze(-1).repeat(1, 1, 1, 3)
+        with self.assertRaisesRegex(ValueError, "Exactly one"):
+            OpenOptics_DepthToMetric().convert(
+                depth_mask=depth, depth_image=image, **self.KW)
+
+    def test_neither_input_raises(self):
+        with self.assertRaisesRegex(ValueError, "Exactly one"):
+            OpenOptics_DepthToMetric().convert(**self.KW)
+
+
 if __name__ == "__main__":
     unittest.main()
