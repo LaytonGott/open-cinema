@@ -4,6 +4,8 @@ import json
 import os
 import unittest
 
+import torch
+
 import open_optics_nodes
 from open_optics_nodes import NODE_CLASS_MAPPINGS
 
@@ -430,6 +432,53 @@ class UiValidatorCatchesProblemsTest(unittest.TestCase):
         errors = validate_ui_graph(self.workflow)
         self.assertTrue(any("Required input is missing" in e and "image" in e
                             for e in errors), errors)
+
+
+def output_problems(node_id, cls_name, outputs, nodes):
+    """Return a list of strings, one per wrong tensor in a node's `outputs` tuple.
+
+    `nodes` maps class names to node classes whose RETURN_TYPES say which outputs are
+    IMAGE or MASK. Wrong means: dtype not float32, IMAGE not [B, H, W, 3 or 4], MASK not
+    3-D, values outside 0..1, or NaN/inf. Values are unitless.
+    """
+    types = getattr(nodes[cls_name], "RETURN_TYPES", ())
+    problems = []
+    for i, out in enumerate(outputs):
+        if not torch.is_tensor(out):
+            continue
+        kind = types[i] if i < len(types) else None
+        why = []
+        if out.dtype != torch.float32:
+            why.append(f"dtype {out.dtype} is not float32")
+        if kind == "IMAGE" and not (out.dim() == 4 and out.shape[-1] in (3, 4)):
+            why.append(f"IMAGE shape {tuple(out.shape)} is not [B, H, W, 3 or 4]")
+        if kind == "MASK" and out.dim() != 3:
+            why.append(f"MASK shape {tuple(out.shape)} is not 3-D")
+        if out.numel() and out.is_floating_point():
+            if not bool(torch.isfinite(out).all()):
+                why.append("contains NaN or inf")
+            elif bool((out < 0).any()) or bool((out > 1).any()):
+                why.append("values outside 0..1")
+        for w in why:
+            problems.append(f"node {node_id} ({cls_name}) output {i}: {w}")
+    return problems
+
+
+class OutputProblemsTest(unittest.TestCase):
+    class _Fake:
+        RETURN_TYPES = ("IMAGE",)
+
+    def test_output_problems_reports_bad_tensors(self):
+        nodes = {"Fake": self._Fake}
+        nan = torch.full((1, 4, 4, 3), float("nan"))
+        big = torch.full((1, 4, 4, 3), 2.0)
+        good = torch.full((1, 4, 4, 3), 0.5, dtype=torch.float32)
+        self.assertTrue(output_problems("7", "Fake", (nan,), nodes))
+        bad = output_problems("7", "Fake", (big,), nodes)
+        self.assertTrue(bad)
+        self.assertIn("7", bad[0])
+        self.assertIn("Fake", bad[0])
+        self.assertEqual(output_problems("7", "Fake", (good,), nodes), [])
 
 
 if __name__ == "__main__":
