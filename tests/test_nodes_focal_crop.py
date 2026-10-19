@@ -1,3 +1,4 @@
+import inspect
 import math
 import unittest
 
@@ -89,10 +90,17 @@ class FocalCropTest(unittest.TestCase):
         self.assertTrue(1 <= out.shape[2] <= 7)
 
     def test_chunk_frames_input(self):
-        spec = OpenOptics_FocalCrop.INPUT_TYPES()["required"]["chunk_frames"]
+        spec = OpenOptics_FocalCrop.INPUT_TYPES()["optional"]["chunk_frames"]
         self.assertEqual(spec[0], "INT")
         self.assertEqual(spec[1]["default"], 8)
         self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_is_optional_with_default(self):
+        inputs = OpenOptics_FocalCrop.INPUT_TYPES()
+        self.assertNotIn("chunk_frames", inputs["required"])
+        self.assertEqual(inputs["optional"]["chunk_frames"][1]["default"], 8)
+        params = inspect.signature(OpenOptics_FocalCrop.crop).parameters
+        self.assertEqual(params["chunk_frames"].default, 8)
 
     def test_chunk_frames_zero_raises(self):
         with self.assertRaisesRegex(ValueError, "chunk_frames"):

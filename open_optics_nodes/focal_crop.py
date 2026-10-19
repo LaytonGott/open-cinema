@@ -24,8 +24,10 @@ class OpenOptics_FocalCrop:
                 "source_focal_mm": ("FLOAT", {"default": 24.0, "min": 0.1, "max": 2000.0, "step": 0.1}),
                 "target_focal_mm": ("FLOAT", {"default": 50.0, "min": 0.1, "max": 2000.0, "step": 0.1}),
                 "output_size": (["original", "cropped"], {"default": "original"}),
+            },
+            "optional": {
                 "chunk_frames": common.CHUNK_FRAMES_INPUT,
-            }
+            },
         }
 
     RETURN_TYPES = ("IMAGE",)
