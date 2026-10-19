@@ -12,3 +12,7 @@ These numbers come from `npm run test:bench` on the RTX 3090 (NVIDIA GeForce RTX
 | OpenOptics_FocalCrop | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
 | OpenOptics_LensDistortion | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
 | OpenOptics_Vignette | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
+
+## Compared with video generation
+
+Depth of Field cost versus generating the clip (LTX-2 19B Q4_K_M, warm, 70.7 s per docs/benchmarks.md): not yet measured; npm run test:bench fills this in with the seconds and the percentage.

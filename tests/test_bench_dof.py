@@ -5,7 +5,7 @@ import unittest
 import torch
 
 from open_optics_nodes import OpenOptics_DepthOfField
-from tests.bench_util import node_kwargs, record_result, run_bench
+from tests.bench_util import node_kwargs, record_comparison, record_result, run_bench
 from tests.synth_frames import make_depth, make_frames
 
 
@@ -26,6 +26,7 @@ class TestBenchDepthOfField(unittest.TestCase):
         print(f"Depth of Field, 121 frames at 1280x704: {seconds:.1f} s, "
               f"peak GPU memory {peak:.2f} GiB")
         record_result("OpenOptics_DepthOfField", 8, seconds, peak)
+        record_comparison(seconds)
         out = outputs[0]
         self.assertLess(seconds, 30.0)
         self.assertLess(peak, 8.0)
