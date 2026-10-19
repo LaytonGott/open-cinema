@@ -59,13 +59,14 @@ def order_problems(key, spec, expected):
     for name in spec.get("required", {}):
         if name not in old_names:
             problems.append(
-                f"{key}: added input '{name}' is in 'required'; it must be optional")
+                f"{key}: new input {name} is required; make it optional with a default")
     want = [e[0] for e in expected.get("optional", [])]
     current = list(spec.get("optional", {}))
     for i, name in enumerate(current[:len(want)]):
         if name not in old_names:
             problems.append(
-                f"{key}: added input '{name}' comes before first-release input '{want[i]}'")
+                f"{key}: new input {name} comes before first-release input {want[i]}; "
+                "append it after the existing inputs")
     return problems
 
 
@@ -307,6 +308,7 @@ class AddedInputOrderTest(unittest.TestCase):
         spec["optional"] = {"zzz": ("FLOAT", {"default": 0.0}), **spec["optional"]}
         problems = order_problems(key, spec, expected)
         self.assertTrue(any(key in p and "zzz" in p for p in problems), problems)
+        self.assertTrue(any("append it after the existing inputs" in p for p in problems), problems)
 
         spec = copy.deepcopy(NODE_CLASS_MAPPINGS[key].INPUT_TYPES())
         spec["required"]["zzz"] = ("FLOAT", {"default": 0.0})
