@@ -47,6 +47,15 @@ class CocRadiusMapTest(unittest.TestCase):
         out = coc_radius_map(depth, 50, 2.8, 3.0, 36, 0.1)
         self.assertAlmostEqual(out[0, 0, 0].item(), 0.1, delta=1e-6)
 
+    def test_focus_zero_and_far_side_monotonic(self):
+        depth = torch.full((2, 16, 16), 3.0, dtype=torch.float32)
+        depth[:, :, :5] = 1.0
+        depth[:, :, 11:] = 10.0
+        out = coc_radius_map(depth, 50, 2.0, 3.0, 36, 32)
+        self.assertAlmostEqual(out[0, 0, 8].item(), 0.0, delta=1e-6)
+        mid = coc_radius_map(torch.full((2, 16, 16), 5.0), 50, 2.0, 3.0, 36, 32)
+        self.assertGreater(out[1, 3, 13].item(), mid[0, 0, 0].item())
+
     def test_dtype(self):
         out = coc_radius_map(torch.full((1, 2, 8), 2.0, dtype=torch.float64), 50, 2.8, 3.0, 36, 10)
         self.assertEqual(out.dtype, torch.float32)

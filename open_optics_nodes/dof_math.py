@@ -33,10 +33,10 @@ def coc_radius_map(depth_m, focal_mm, f_number, focus_m, sensor_width_mm, max_ra
     width = depth.shape[-1]
     uniq, inverse = torch.unique(depth, return_inverse=True)
     radii = []
-    for d in uniq.tolist():
+    for d in uniq.cpu().tolist():
         blur_mm = coc.blur_diameter_mm(focal_mm, f_number, focus_m * 1000.0, d * 1000.0)
         radii.append(coc.blur_radius_px(blur_mm, width, sensor_width_mm, max_px=max_radius_px))
-    table = torch.tensor(radii, dtype=torch.float32).to(depth.device)
+    table = torch.tensor(radii, dtype=torch.float32, device=depth.device)
     return table[inverse.reshape(-1)].reshape(depth.shape)
 
 
