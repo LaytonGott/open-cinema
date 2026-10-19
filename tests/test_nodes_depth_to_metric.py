@@ -357,6 +357,30 @@ class TestDepthToMetricSubjectInputs(unittest.TestCase):
         optional = OpenOptics_DepthToMetric.INPUT_TYPES()["optional"]
         self.assertEqual(optional["subject_mask"][0], "MASK")
 
+    def test_subject_inputs_have_tooltips(self):
+        types = OpenOptics_DepthToMetric.INPUT_TYPES()
+        req = types["required"]
+        specs = {name: req[name] for name in (
+            "mode", "subject_m", "subject_x", "subject_y",
+            "subject_radius_px", "anchor_scope")}
+        specs["subject_mask"] = types["optional"]["subject_mask"]
+        for name, spec in specs.items():
+            tip = spec[1].get("tooltip")
+            self.assertIsInstance(tip, str, name)
+            self.assertTrue(tip.strip(), name)
+        self.assertIn("metres", specs["subject_m"][1]["tooltip"])
+        self.assertIn("pixel", specs["subject_radius_px"][1]["tooltip"].lower())
+        self.assertIn("fraction", specs["subject_x"][1]["tooltip"])
+        self.assertIn("fraction", specs["subject_y"][1]["tooltip"])
+        self.assertEqual(list(req["mode"][0]), ["near_far", "subject"])
+        self.assertEqual(req["mode"][1]["default"], "near_far")
+        self.assertAlmostEqual(req["subject_m"][1]["default"], 3.0, places=6)
+        self.assertAlmostEqual(req["subject_x"][1]["default"], 0.5, places=6)
+        self.assertAlmostEqual(req["subject_y"][1]["default"], 0.5, places=6)
+        self.assertEqual(req["subject_radius_px"][1]["default"], 4)
+        self.assertEqual(list(req["anchor_scope"][0]), ["batch", "frame"])
+        self.assertEqual(req["anchor_scope"][1]["default"], "batch")
+
     def test_unknown_anchor_scope_in_subject_mode(self):
         with self.assertRaises(ValueError):
             _convert(torch.tensor([[[0.0, 0.5, 1.0]]]), mode="subject", anchor_scope="bogus")
