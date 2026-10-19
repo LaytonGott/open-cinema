@@ -771,6 +771,24 @@ class LegacyNodeProblemsTest(unittest.TestCase):
         self.assertTrue(any("OpenOptics_" in p for p in problems), problems)
 
 
+class NodeSetTest(unittest.TestCase):
+    KEY = "OpenOptics_Vignette"
+
+    def test_node_set_matches_fixture(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        self.assertEqual(node_set_problems(fixture, NODE_CLASS_MAPPINGS), [])
+        self.assertEqual(legacy_node_problems(NODE_CLASS_MAPPINGS), [])
+
+    def test_removed_node_is_reported_by_both(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        nodes = dict(NODE_CLASS_MAPPINGS)
+        del nodes[self.KEY]
+        for problems in (node_set_problems(fixture, nodes), legacy_node_problems(nodes)):
+            self.assertTrue(any(self.KEY in p for p in problems), problems)
+
+
 class WorkflowRunTest(unittest.TestCase):
     def test_all_workflows_run(self):
         devices = ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
