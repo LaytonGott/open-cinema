@@ -1115,5 +1115,16 @@ class FixturesPresentTest(unittest.TestCase):
         self.assertEqual(set(NODE_CLASS_MAPPINGS), set(recorded))
 
 
+class ClaudeMdRuleTest(unittest.TestCase):
+    def test_claude_md_has_compat_rule(self):
+        with open(os.path.join(ROOT, "CLAUDE.md"), encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        needed = ("optional", "tests/fixtures/legacy_workflows/",
+                  "first_release_inputs.json", "Never edit")
+        self.assertTrue(
+            any(all(n in line for n in needed) for line in lines),
+            "CLAUDE.md lacks the workflow compatibility line")
+
+
 if __name__ == "__main__":
     unittest.main()
