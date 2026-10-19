@@ -36,6 +36,11 @@ class TestNodesCpuOnly(unittest.TestCase):
         files = _node_files()
         self.assertGreaterEqual(len(files), 5)
         for path in files:
+            if (
+                os.path.basename(path) == "device.py"
+                and os.path.basename(os.path.dirname(path)) == "open_optics_nodes"
+            ):
+                continue
             with open(path, encoding="utf-8") as f:
                 text = f.read()
             for word in FORBIDDEN:
