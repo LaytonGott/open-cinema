@@ -112,8 +112,9 @@ def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m):
             continue
         alpha = mask.to(torch.float32)[:, None]
         layer_radius = 0.0 if mask is sharp else radius[mask].mean().item()
-        colour_b = blur_layer(chw * alpha, layer_radius)
-        alpha_b = blur_layer(alpha, layer_radius)
+        res = blur_layer(torch.cat([chw * alpha, alpha], dim=1), layer_radius)
+        colour_b = res[:, :3]
+        alpha_b = res[:, 3:]
         out = colour_b + out * (1.0 - alpha_b)
         cov = alpha_b + cov * (1.0 - alpha_b)
     out = out / cov.clamp_min(1e-8)

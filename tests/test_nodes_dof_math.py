@@ -1,7 +1,9 @@
 import unittest
+from unittest import mock
 
 import torch
 
+from open_optics_nodes import dof_math
 from open_optics_nodes.dof_math import coc_radius_map, composite_layers, sanitize_depth
 
 
@@ -68,6 +70,25 @@ class CompositeLayersTest(unittest.TestCase):
         radius[:, :, 8:] = 3.0
         out = composite_layers(img, depth, radius, 4, 3.0)
         self.assertTrue(torch.allclose(out[:, :, :8], torch.ones(1, 8, 8, 3), atol=1e-5))
+
+    def test_one_blur_call_per_layer(self):
+        img = torch.zeros(1, 8, 16, 3)
+        img[:, :, :8] = 1.0
+        depth = torch.full((1, 8, 16), 10.0)
+        depth[:, :, :8] = 2.0
+        radius = torch.zeros(1, 8, 16)
+        radius[:, :, 8:] = 3.0
+        channels = []
+        original = dof_math.blur_layer
+
+        def recording(x, *args, **kwargs):
+            channels.append(x.shape[1])
+            return original(x, *args, **kwargs)
+
+        with mock.patch("open_optics_nodes.dof_math.blur_layer", recording):
+            composite_layers(img, depth, radius, 4, 3.0)
+        self.assertEqual(len(channels), 2)
+        self.assertEqual(channels, [4, 4])
 
     def test_constant_colour_preserved(self):
         img = torch.full((1, 16, 16, 3), 0.5)
