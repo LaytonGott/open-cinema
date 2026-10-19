@@ -37,6 +37,15 @@ class TestBenchNodes(unittest.TestCase):
     def test_bench_lens_distortion(self):
         self._bench("OpenOptics_LensDistortion")
 
+    def test_bench_vignette(self):
+        self._bench("OpenOptics_Vignette")
+
+    def test_bench_depth_to_metric(self):
+        self._bench("OpenOptics_DepthToMetric")
+
+    def test_bench_depth_temporal_smooth(self):
+        self._bench("OpenOptics_DepthTemporalSmooth")
+
 
 if __name__ == "__main__":
     unittest.main()
