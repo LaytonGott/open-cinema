@@ -172,6 +172,18 @@ class TestDepthOfFieldEdgeCases(unittest.TestCase):
                 self.assertGreaterEqual(float(coc_px.min()), 0.0)
                 self.assertLessEqual(float(coc_px.max()), 1.0)
 
+    def test_max_layers_input_definition(self):
+        optional = OpenOptics_DepthOfField.INPUT_TYPES()["optional"]
+        self.assertEqual(optional["max_layers"],
+                         ("INT", {"default": 12, "min": 1, "max": 64, "step": 1}))
+        self.assertEqual(list(optional)[-1], "max_layers")
+        img = self._img()
+        depth = torch.full((1, 16, 16), 3.0)
+        for bad in (0, 65, True, 2.5):
+            with self.subTest(max_layers=bad):
+                with self.assertRaisesRegex(ValueError, "max_layers"):
+                    OpenOptics_DepthOfField().apply(img, depth_mask=depth, max_layers=bad)
+
     def test_max_radius_zero_identity(self):
         img = self._img()
         depth = torch.full((1, 16, 16), 20.0)

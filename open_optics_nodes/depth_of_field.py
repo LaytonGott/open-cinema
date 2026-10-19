@@ -31,6 +31,7 @@ class OpenOptics_DepthOfField:
             "optional": {
                 "depth_mask": ("MASK",),
                 "depth_image": ("IMAGE",),
+                "max_layers": ("INT", {"default": 12, "min": 1, "max": 64, "step": 1}),
             },
         }
 
@@ -41,7 +42,7 @@ class OpenOptics_DepthOfField:
 
     def apply(self, image, focal_mm=50.0, f_number=2.8, focus_m=3.0, sensor_width_mm=36.0,
               quality="normal", max_radius_px=16, colorspace="srgb",
-              depth_mask=None, depth_image=None, chunk_frames=8):
+              depth_mask=None, depth_image=None, chunk_frames=8, max_layers=12):
         """Apply depth of field blur.
 
         focal_mm and sensor_width_mm are in millimetres, focus_m is in metres,
@@ -53,9 +54,14 @@ class OpenOptics_DepthOfField:
         with an all-zero coc_px. Raises ValueError for bad inputs, including a
         negative or non-finite max_radius_px. chunk_frames (a count of frames,
         >= 1, default 8) is how many frames are processed at a time; both
-        outputs are built chunk by chunk and do not depend on it.
+        outputs are built chunk by chunk and do not depend on it. max_layers
+        (a count of layers, an integer from 1 to 64, default 12) caps the
+        number of blurred depth layers per frame.
         """
         common.check_chunk_frames(chunk_frames)
+        if (isinstance(max_layers, bool) or not isinstance(max_layers, int)
+                or not 1 <= max_layers <= 64):
+            raise ValueError(f"max_layers must be an integer from 1 to 64, got {max_layers!r}")
         common.check_image(image)
         common.require_positive("focal_mm", focal_mm)
         common.require_positive("f_number", f_number)
@@ -75,7 +81,8 @@ class OpenOptics_DepthOfField:
             depth_c = depth[start:stop].to(device)
             radius = coc_radius_map(depth_c, focal_mm, f_number, focus_m, sensor_width_mm,
                                     max_radius_px)
-            result = composite_layers(linear, depth_c, radius, _LAYERS[quality], focus_m)
+            result = composite_layers(linear, depth_c, radius, _LAYERS[quality], focus_m,
+                                       max_layers)
             outs.append(common.finish(common.from_linear(result, colorspace)).cpu().to(torch.float32))
             cocs.append(common.finish(radius / float(max_radius_px)).cpu().to(torch.float32))
         return (torch.cat(outs), torch.cat(cocs))
