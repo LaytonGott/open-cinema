@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from open_optics.framing import (
@@ -51,6 +52,13 @@ class TestFraming(unittest.TestCase):
 
     def test_subject_distance_m_accepts_ints(self):
         self.assertIsInstance(subject_distance_m(50, 24, 600, 1200), float)
+
+    def test_readme_documents_helpers(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "README.md")
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("## Helpers", text)
+        self.assertIn("7.1", text)
 
 
 if __name__ == "__main__":

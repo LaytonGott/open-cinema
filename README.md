@@ -48,6 +48,14 @@ The stages, in order:
 
 Queue/Run produces a preview image.
 
+## Helpers
+
+`open_optics/framing.py` has three plain Python helpers for framing estimates: `sensor_height_mm` (sensor height from sensor width and image size), `subject_distance_m` (how far away a subject of known height is) and `subject_height_px` (the inverse: how tall a subject appears at a given distance).
+
+Worked example: a 1.7 m person fills half the frame (600 of 1200 px) with a 50 mm lens on a 24 mm tall sensor. The subject's height on the sensor is h = 24 * 600 / 1200 = 12 mm, and with u = f * (1 + H / h) the distance is 50 * (1 + 1700 / 12) mm, about 7.1 m.
+
+This is an estimate: it assumes a thin lens and a subject facing the camera. There is no ComfyUI node for these helpers.
+
 ## Tests
 
 Run all tests with `npm test`. Run the GPU benchmarks with `npm run test:bench` (it sets `OPEN_OPTICS_BENCH=1`).
