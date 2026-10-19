@@ -245,7 +245,7 @@ class OpenOptics_DepthToMetric:
                 "subject_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "Subject point as a fraction (0 to 1) of image height"}),
                 "subject_radius_px": ("INT", {"default": 4, "min": 0, "max": 10000, "tooltip": "Half-size in pixels of the square window around the point"}),
                 "anchor_scope": (["batch", "frame"], {"default": "batch", "tooltip": "batch = one scale for all frames, frame = per-frame scale"}),
-                "subject_mask": ("MASK", {"tooltip": "Optional MASK in 0..1, pixels above 0.5 are the subject; overrides the point"}),
+                "subject_mask": ("MASK", {"default": None, "tooltip": "Optional MASK in 0..1, pixels above 0.5 are the subject; overrides the point"}),
             },
         }
 
