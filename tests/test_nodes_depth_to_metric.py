@@ -515,5 +515,34 @@ class TestSubjectModeScaling(unittest.TestCase):
                 self.assertAlmostEqual(float(out[0, r, c]), base_want, places=4)
 
 
+class TestSubjectRadiusNode(unittest.TestCase):
+    def _run(self, d, x, y, radius):
+        out, _ = OpenOptics_DepthToMetric().convert(
+            near_m=0.5, far_m=10.0, inverse_depth=False, depth_mask=d,
+            mode="subject", subject_m=2.0, subject_x=x, subject_y=y,
+            subject_radius_px=radius)
+        return out
+
+    def test_radius_one_centre_window(self):
+        d = torch.full((1, 9, 9), 1.0)
+        d[0, 3:6, 3:6] = 0.5
+        out = self._run(d, 0.5, 0.5, 1)
+        for v in out[0, 3:6, 3:6].flatten().tolist():
+            self.assertAlmostEqual(v, 2.0, places=4)
+
+    def test_radius_zero_single_pixel(self):
+        d = torch.full((1, 9, 9), 1.0)
+        d[0, 4, 4] = 0.5
+        out = self._run(d, 0.5, 0.5, 0)
+        self.assertAlmostEqual(float(out[0, 4, 4]), 2.0, places=4)
+        self.assertAlmostEqual(float(out[0, 0, 1]), 4.0, places=4)
+
+    def test_corner_clipped_window(self):
+        d = torch.full((1, 9, 9), 1.0)
+        d[0, 0:2, 0:2] = 0.5
+        out = self._run(d, 0.0, 0.0, 1)
+        self.assertAlmostEqual(float(out[0, 0, 0]), 2.0, places=4)
+
+
 if __name__ == "__main__":
     unittest.main()
