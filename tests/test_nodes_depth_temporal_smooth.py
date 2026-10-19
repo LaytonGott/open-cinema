@@ -112,6 +112,14 @@ class TestDepthTemporalSmoothNode(unittest.TestCase):
         self.assertEqual(spec[1]["default"], 8)
         self.assertEqual(spec[1]["min"], 1)
 
+    def test_added_inputs_are_optional_with_defaults(self):
+        import inspect
+        types = OpenOptics_DepthTemporalSmooth.INPUT_TYPES()
+        self.assertNotIn("chunk_frames", types["required"])
+        self.assertIn("chunk_frames", types["optional"])
+        params = inspect.signature(OpenOptics_DepthTemporalSmooth.smooth).parameters
+        self.assertEqual(params["chunk_frames"].default, 8)
+
     def test_chunk_frames_zero_raises(self):
         with self.assertRaisesRegex(ValueError, "chunk_frames"):
             OpenOptics_DepthTemporalSmooth().smooth(torch.ones(3, 4, 4), 0.7, 0)

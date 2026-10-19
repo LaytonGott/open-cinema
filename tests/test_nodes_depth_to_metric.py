@@ -189,6 +189,24 @@ class TestDepthToMetricDefaults(unittest.TestCase):
         self.assertEqual(req["chunk_frames"][1]["default"], 8)
         self.assertEqual(req["chunk_frames"][1]["min"], 1)
 
+    def test_added_inputs_are_optional_with_defaults(self):
+        import inspect
+        types = OpenOptics_DepthToMetric.INPUT_TYPES()
+        added = ["chunk_frames", "mode", "subject_m", "subject_x", "subject_y",
+                 "subject_radius_px", "anchor_scope", "subject_mask"]
+        optional_names = list(types["optional"])
+        params = inspect.signature(OpenOptics_DepthToMetric.convert).parameters
+        for name in added:
+            self.assertNotIn(name, types["required"])
+            self.assertIn(name, types["optional"])
+            self.assertGreater(optional_names.index(name), optional_names.index("depth_mask"))
+            self.assertGreater(optional_names.index(name), optional_names.index("depth_image"))
+            self.assertIn(name, params)
+            if name == "subject_mask":
+                self.assertIsNone(params[name].default)
+            else:
+                self.assertEqual(params[name].default, types["optional"][name][1]["default"])
+
     def test_chunk_frames_zero_raises(self):
         with self.assertRaisesRegex(ValueError, "chunk_frames"):
             OpenOptics_DepthToMetric().convert(depth_mask=torch.rand(1, 4, 4), chunk_frames=0)
