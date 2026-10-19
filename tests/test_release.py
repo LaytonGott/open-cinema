@@ -282,6 +282,32 @@ class TestWorkflowLinks(unittest.TestCase):
         ids = [n["id"] for n in wf["nodes"]]
         self.assertEqual(len(ids), len(set(ids)), f"node ids are not unique: {ids}")
 
+    def test_node_link_references(self):
+        wf = _load_workflow()
+        nodes = {n["id"]: n for n in wf["nodes"]}
+        by_id = {link[0]: link for link in wf["links"]}
+        for link in wf["links"]:
+            lid, from_node, from_slot, to_node, to_slot, _t = link
+            out_links = nodes[from_node]["outputs"][from_slot].get("links") or []
+            self.assertIn(lid, out_links, f"link {link}: source output links are {out_links}")
+            in_link = nodes[to_node]["inputs"][to_slot].get("link")
+            self.assertEqual(in_link, lid, f"link {link}: target input link is {in_link}")
+        for node in wf["nodes"]:
+            for slot, inp in enumerate(node.get("inputs", [])):
+                lid = inp.get("link")
+                if lid is None:
+                    continue
+                self.assertIn(lid, by_id, f"node {node['id']} input {slot} references missing link {lid}")
+                link = by_id[lid]
+                self.assertEqual((link[3], link[4]), (node["id"], slot),
+                                 f"node {node['id']} input {slot} references link {link} with another target")
+            for slot, out in enumerate(node.get("outputs", [])):
+                for lid in out.get("links") or []:
+                    self.assertIn(lid, by_id, f"node {node['id']} output {slot} references missing link {lid}")
+                    link = by_id[lid]
+                    self.assertEqual((link[1], link[2]), (node["id"], slot),
+                                     f"node {node['id']} output {slot} references link {link} with another source")
+
 
 if __name__ == "__main__":
     unittest.main()
