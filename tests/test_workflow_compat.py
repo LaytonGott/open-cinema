@@ -967,6 +967,38 @@ class RunFirstReleaseTest(unittest.TestCase):
         self.assertEqual(os.environ.get("OPEN_OPTICS_DEVICE"), before)
 
 
+class FirstReleaseCallTest(unittest.TestCase):
+    def test_every_node_runs_with_first_release_inputs(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+        devices = ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
+        for key, expected in fixture.items():
+            for device in devices:
+                with self.subTest(key=key, device=device):
+                    try:
+                        kwargs, outputs = run_first_release(key, device)
+                    finally:
+                        if device == "cuda":
+                            torch.cuda.empty_cache()
+                    self.assertIsInstance(outputs, tuple)
+                    self.assertGreaterEqual(len(outputs), len(expected["return_types"]))
+                    problems = output_problems("0", key, outputs, NODE_CLASS_MAPPINGS)
+                    if key in ("OpenOptics_DepthToMetric", "OpenOptics_DepthTemporalSmooth"):
+                        # output 0 is depth in metres, so it may exceed 1
+                        problems = [p for p in problems
+                                    if not p.endswith("output 0: values outside 0..1")]
+                    self.assertEqual([], problems, "; ".join(problems))
+                    types = NODE_CLASS_MAPPINGS[key].RETURN_TYPES
+                    ref = next((v for v in kwargs.values()
+                                if torch.is_tensor(v) and v.dim() == 4), None)
+                    for i, out in enumerate(outputs):
+                        if i < len(types) and types[i] == "IMAGE" and ref is not None:
+                            # Anamorphic resizes the width by design: check the batch only
+                            n = 1 if key == "OpenOptics_Anamorphic" else 3
+                            self.assertEqual(tuple(out.shape[:n]), tuple(ref.shape[:n]),
+                                             f"output {i} batch/spatial size changed")
+
+
 class FixturesPresentTest(unittest.TestCase):
     def test_legacy_files_and_input_keys(self):
         legacy = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
