@@ -335,6 +335,23 @@ class TestWorkflowWidgets(unittest.TestCase):
             self.assertEqual(actual, expected,
                              f"{node['type']}: widgets_values has {actual} values, node has {expected} widget inputs")
 
+    def test_outputs_match_return_types(self):
+        wf = _load_workflow()
+        for node in wf["nodes"]:
+            if not node["type"].startswith("OpenOptics_"):
+                continue
+            cls = NODE_CLASS_MAPPINGS[node["type"]]
+            outputs = node.get("outputs", [])
+            self.assertEqual(len(outputs), len(cls.RETURN_TYPES),
+                             f"{node['type']} (id {node['id']}): {len(outputs)} outputs, RETURN_TYPES has {len(cls.RETURN_TYPES)}")
+            names = getattr(cls, "RETURN_NAMES", None)
+            for i, out in enumerate(outputs):
+                self.assertEqual(out["type"], cls.RETURN_TYPES[i],
+                                 f"{node['type']} (id {node['id']}) output {i} type")
+                if names:
+                    self.assertEqual(out["name"], names[i],
+                                     f"{node['type']} (id {node['id']}) output {i} name")
+
 
 class TestWidgetValues(unittest.TestCase):
     def test_widget_values_valid(self):
