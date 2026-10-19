@@ -128,6 +128,18 @@ def subject_median(values):
     return percentile(items, 50)
 
 
+def validate_subject_depth(d_s):
+    """Check the unitless subject median depth d_s is usable.
+
+    d_s is the unitless subject median depth. Returns None; raises ValueError
+    when d_s is not finite or not > 0.
+    """
+    if not (math.isfinite(d_s) and d_s > 0):
+        raise ValueError(
+            f"subject depth is unusable (must be finite and > 0), got {d_s}"
+        )
+
+
 def subject_scale_metric(d, d_s, subject_m, inverse_depth):
     """Metric distance of a pixel from the subject's distance, by scale only.
 

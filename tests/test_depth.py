@@ -11,7 +11,22 @@ from open_optics.depth import (
     subject_pixel,
     subject_scale_metric,
     validate_depth_params,
+    validate_subject_depth,
 )
+
+
+class TestValidateSubjectDepth(unittest.TestCase):
+    def test_unusable_values_raise(self):
+        for value, text in ((0.0, "0.0"), (-1.0, "-1.0"),
+                            (float("nan"), "nan"), (float("inf"), "inf")):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError) as ctx:
+                    validate_subject_depth(value)
+                self.assertIn("subject depth", str(ctx.exception))
+                self.assertIn(text, str(ctx.exception))
+
+    def test_positive_value_ok(self):
+        self.assertIsNone(validate_subject_depth(0.5))
 
 
 class TestInverseMapping(unittest.TestCase):
