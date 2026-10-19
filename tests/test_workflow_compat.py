@@ -1,5 +1,6 @@
 """Saved workflows store widget values by position, so first-release inputs must not change."""
 import copy
+import inspect
 import json
 import os
 import unittest
@@ -114,6 +115,57 @@ class AddedComboDefaultTest(unittest.TestCase):
         problems = combo_problems(key, spec, expected)
         self.assertTrue(any(key in p and "nodef" in p for p in problems), problems)
         self.assertTrue(any(key in p and "second" in p for p in problems), problems)
+
+
+def default_problems(key, cls, expected):
+    """Return a list of strings describing added inputs of node class `cls` without a default.
+
+    `expected` is the fixture entry for `key`. An added input is one whose name is not in it.
+    It is a problem if it is 'required', if its options dict has no 'default' (combos too), or
+    if the node function has no Python default for it or one that differs. No units apply.
+    """
+    problems = []
+    spec = cls.INPUT_TYPES()
+    old_names = {e[0] for s in ("required", "optional") for e in expected.get(s, [])}
+    params = inspect.signature(getattr(cls, cls.FUNCTION)).parameters
+    for section in ("required", "optional"):
+        for name, value in spec.get(section, {}).items():
+            if name in old_names:
+                continue
+            if section == "required":
+                problems.append(f"{key}: added input {name} is required")
+            opts = value[1] if isinstance(value, (tuple, list)) and len(value) > 1 \
+                and isinstance(value[1], dict) else {}
+            if "default" not in opts:
+                problems.append(f"{key}: added input {name} has no default in INPUT_TYPES")
+                continue
+            param = params.get(name)
+            if param is None or param.default is inspect.Parameter.empty:
+                problems.append(f"{key}: added input {name} has no Python default")
+            elif param.default != opts["default"]:
+                problems.append(
+                    f"{key}: added input {name} Python default {param.default!r} "
+                    f"differs from INPUT_TYPES default {opts['default']!r}")
+    return problems
+
+
+class _CleanNode:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"image": ("IMAGE",)},
+                "optional": {"gain": ("FLOAT", {"default": 1.0})}}
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "run"
+
+    def run(self, image, gain=1.0):
+        return (image,)
+
+
+class DefaultProblemsTest(unittest.TestCase):
+    def test_default_problems_clean_case(self):
+        expected = {"required": [["image", "IMAGE", {}]], "optional": []}
+        self.assertEqual(default_problems("Clean", _CleanNode, expected), [])
 
 
 class AddedInputOrderTest(unittest.TestCase):
