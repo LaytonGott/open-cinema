@@ -1,6 +1,6 @@
 {
-  "last_node_id": 8,
-  "last_link_id": 7,
+  "last_node_id": 10,
+  "last_link_id": 9,
   "nodes": [
     {
       "id": 1, "type": "LoadImage", "pos": [0, 0], "size": [315, 314], "flags": {}, "order": 0, "mode": 0,
@@ -86,10 +86,30 @@
         { "name": "image", "type": "IMAGE", "link": 7 }
       ],
       "outputs": [
-        { "name": "image", "type": "IMAGE", "links": null, "slot_index": 0 }
+        { "name": "image", "type": "IMAGE", "links": [8], "slot_index": 0 }
       ],
       "properties": { "Node name for S&R": "OpenOptics_ChromaticAberration" },
       "widgets_values": [0.0, 0.0, 8]
+    },
+    {
+      "id": 9, "type": "OpenOptics_Anamorphic", "pos": [2400, 200], "size": [315, 130], "flags": {}, "order": 8, "mode": 0,
+      "inputs": [
+        { "name": "image", "type": "IMAGE", "link": 8 }
+      ],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [9], "slot_index": 0 }
+      ],
+      "properties": { "Node name for S&R": "OpenOptics_Anamorphic" },
+      "widgets_values": [1.33, "desqueeze", false, 8]
+    },
+    {
+      "id": 10, "type": "PreviewImage", "pos": [2800, 200], "size": [315, 250], "flags": {}, "order": 9, "mode": 0,
+      "inputs": [
+        { "name": "images", "type": "IMAGE", "link": 9 }
+      ],
+      "outputs": [],
+      "properties": { "Node name for S&R": "PreviewImage" },
+      "widgets_values": []
     }
   ],
   "links": [
@@ -99,7 +119,9 @@
     [4, 3, 0, 5, 1, "MASK"],
     [5, 5, 0, 6, 0, "IMAGE"],
     [6, 6, 0, 7, 0, "IMAGE"],
-    [7, 7, 0, 8, 0, "IMAGE"]
+    [7, 7, 0, 8, 0, "IMAGE"],
+    [8, 8, 0, 9, 0, "IMAGE"],
+    [9, 9, 0, 10, 0, "IMAGE"]
   ],
   "groups": [],
   "config": {},
