@@ -1,0 +1,35 @@
+"""Framing helpers: sensor geometry derived from the image size.
+
+Lengths are in millimetres and image sizes are in pixels. Standard library
+only.
+"""
+
+import math  # noqa: F401
+
+from open_optics import validation
+
+
+def _positive(name, value):
+    """Return value as a float if it is a finite number greater than 0.
+
+    Raises ValueError, naming the argument, for every bad value, including
+    non-numbers such as bool or str (validation raises TypeError for those).
+    """
+    try:
+        return validation.require_positive(name, value)
+    except TypeError as error:
+        raise ValueError(str(error)) from error
+
+
+def sensor_height_mm(sensor_width_mm, image_width_px, image_height_px):
+    """Return the sensor height in millimetres for an image of the given size.
+
+    sensor_width_mm is the sensor width in millimetres; image_width_px and
+    image_height_px are the image size in pixels. Pixels are assumed square, so
+    the height is sensor_width_mm * image_height_px / image_width_px.
+    Raises ValueError if any argument is not a finite number greater than 0.
+    """
+    width_mm = _positive("sensor_width_mm", sensor_width_mm)
+    width_px = _positive("image_width_px", image_width_px)
+    height_px = _positive("image_height_px", image_height_px)
+    return width_mm * height_px / width_px
