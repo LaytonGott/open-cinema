@@ -333,5 +333,35 @@ class UiConverterTest(unittest.TestCase):
         self.assertEqual(validate_ui_graph(workflow), [])
 
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def workflow_files():
+    """Return sorted paths of the legacy fixture workflows plus the demo workflow. No units apply."""
+    legacy = os.path.join(ROOT, "tests", "fixtures", "legacy_workflows")
+    files = [os.path.join(legacy, n) for n in os.listdir(legacy) if n.endswith(".json")]
+    files.append(os.path.join(ROOT, "workflows", "open_optics_demo.json"))
+    return sorted(files)
+
+
+def load_errors(path):
+    """Load the workflow JSON at `path` and return its list of validation error strings."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "nodes" in data:
+        return validate_ui_graph(data)
+    return validate_api_graph(data)
+
+
+class WorkflowFilesValidTest(unittest.TestCase):
+    def test_all_workflows_validate(self):
+        files = workflow_files()
+        self.assertGreaterEqual(len(files), 5)
+        for path in files:
+            with self.subTest(file=os.path.basename(path)):
+                errors = load_errors(path)
+                self.assertEqual([], errors, "; ".join(map(str, errors)))
+
+
 if __name__ == "__main__":
     unittest.main()
