@@ -5,7 +5,8 @@ import torch
 from open_optics.depth import depth_to_metric
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
 from open_optics_nodes.depth_to_metric import (
-    OpenOptics_DepthToMetric, _subject_mask_region, _subject_region_values,
+    OpenOptics_DepthToMetric, _subject_frame_depths, _subject_mask_region,
+    _subject_region_values,
     _subject_to_metric, _validate_subject_params)
 
 
@@ -621,6 +622,34 @@ class TestSubjectMaskRegion(unittest.TestCase):
     def test_wrong_batch_raises(self):
         with self.assertRaises(ValueError):
             _subject_mask_region(torch.ones(3, 4, 4), (2, 4, 4))
+
+
+class TestSubjectFrameDepths(unittest.TestCase):
+    def test_two_frames(self):
+        depth = torch.ones(2, 5, 5)
+        region = torch.zeros(2, 5, 5, dtype=torch.bool)
+        region[:, 1:4, 1:4] = True
+        depth[0][region[0]] = 0.8
+        depth[1][region[1]] = 0.4
+        out = _subject_frame_depths(depth, region)
+        self.assertEqual(tuple(out.shape), (2,))
+        self.assertAlmostEqual(out[0].item(), 0.8, places=6)
+        self.assertAlmostEqual(out[1].item(), 0.4, places=6)
+
+    def test_even_count_mean_of_middle(self):
+        depth = torch.ones(1, 4, 4)
+        region = torch.zeros(1, 4, 4, dtype=torch.bool)
+        region[0, 0, 0] = region[0, 1, 1] = True
+        depth[0, 0, 0] = 0.2
+        depth[0, 1, 1] = 0.4
+        out = _subject_frame_depths(depth, region)
+        self.assertAlmostEqual(out[0].item(), 0.3, places=6)
+
+    def test_empty_region_raises(self):
+        depth = torch.ones(1, 4, 4)
+        region = torch.zeros(1, 4, 4, dtype=torch.bool)
+        with self.assertRaises(ValueError):
+            _subject_frame_depths(depth, region)
 
 
 if __name__ == "__main__":

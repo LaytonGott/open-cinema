@@ -137,6 +137,24 @@ def _subject_mask_region(subject_mask, depth_shape):
     return region
 
 
+def _subject_frame_depths(depth, region):
+    """Return the per-frame subject depth as a float64 tensor [B].
+
+    depth is a float tensor [B, H, W] (unitless depth values); region is a
+    bool tensor [B, H, W] marking the subject pixels. Each element is the
+    median of depth[b][region[b]] from subject_median (unitless; the mean of
+    the two middle values for an even count). Raises ValueError, naming the
+    frame index, if a frame has no True pixel in region.
+    """
+    out = []
+    for b in range(depth.shape[0]):
+        values = depth[b][region[b]].detach().to(torch.float64)
+        if values.numel() == 0:
+            raise ValueError(f"frame {b} has no subject pixel in region")
+        out.append(subject_median(values.tolist()))
+    return torch.tensor(out, dtype=torch.float64)
+
+
 def _subject_to_metric(depth, d_s, subject_m, near_m, far_m, inverse_depth):
     """Map a depth tensor to metres by scale from the subject depth.
 
