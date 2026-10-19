@@ -15,6 +15,8 @@ import open_optics_nodes
 from open_optics_nodes import NODE_CLASS_MAPPINGS
 
 FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "first_release_inputs.json")
+# Absolute tolerance for comparing first-release-only calls with explicit-default calls.
+OLD_RESULT_ATOL = 1e-6
 
 
 def _entry(name, value):
@@ -1206,14 +1208,14 @@ class FirstReleaseCallTest(unittest.TestCase):
                 self.assertGreaterEqual(len(after), n)
                 for i in range(n):
                     if torch.is_tensor(before[i]):
-                        self.assertTrue(torch.allclose(before[i], after[i], atol=1e-6),
+                        self.assertTrue(torch.allclose(before[i], after[i], atol=OLD_RESULT_ATOL),
                                         f"output {i} changed with explicit defaults")
                     else:
                         self.assertEqual(before[i], after[i])
                 for i in range(n, len(after)):
                     self.assertEqual(len(before), len(after))
                     if torch.is_tensor(before[i]):
-                        self.assertTrue(torch.allclose(before[i], after[i], atol=1e-6))
+                        self.assertTrue(torch.allclose(before[i], after[i], atol=OLD_RESULT_ATOL))
                     else:
                         self.assertEqual(before[i], after[i])
                 problems = output_problems("0", key, after, NODE_CLASS_MAPPINGS)
