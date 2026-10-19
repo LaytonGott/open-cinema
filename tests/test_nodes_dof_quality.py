@@ -74,6 +74,29 @@ class DofQualityTest(unittest.TestCase):
         finally:
             torch.cuda.empty_cache()
 
+    def test_default_chunk_frames(self):
+        spec = OpenOptics_DepthOfField.INPUT_TYPES()
+        self.assertEqual(spec["required"]["chunk_frames"][1]["default"], 8)
+
+    # Note: the full-size 8 GiB limit is checked by scripts/accept_gpu.py.
+    @unittest.skipUnless(torch.cuda.is_available(), "CUDA not available")
+    def test_default_chunk_peak_gpu_memory(self):
+        frames = 16
+        image, depth = make_scene()
+        image = image.repeat(2, 1, 1, 1)[:frames].contiguous()
+        depth = depth.repeat(2, 1, 1)[:frames].contiguous()
+        try:
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats()
+            with mock.patch.dict(os.environ, {"OPEN_OPTICS_DEVICE": "cuda"}):
+                out, _ = OpenOptics_DepthOfField().apply(
+                    image, focal_mm=50.0, f_number=2.0, focus_m=3.0, sensor_width_mm=36.0,
+                    quality="normal", max_radius_px=32, colorspace="srgb", depth_mask=depth)
+            self.assertEqual(out.shape[0], frames)
+            self.assertLess(torch.cuda.max_memory_allocated(), 1024 ** 3)
+        finally:
+            torch.cuda.empty_cache()
+
 
 if __name__ == "__main__":
     unittest.main()
