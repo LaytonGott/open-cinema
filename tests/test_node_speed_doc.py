@@ -62,6 +62,15 @@ class NodeSpeedDocTest(unittest.TestCase):
         self.assertTrue(is_float("1.5"))
         self.assertFalse(is_float("not yet measured"))
 
+    def test_dof_row_measured(self):
+        """The Depth of Field row has measured seconds and peak GiB numbers."""
+        row = [line for line in self.lines if line.startswith("| OpenOptics_DepthOfField |")][0]
+        cells = split_row(row)
+        self.assertTrue(is_float(cells[5]))
+        self.assertTrue(is_float(cells[6]))
+        self.assertLess(float(cells[5]), 30)
+        self.assertLess(float(cells[6]), 8)
+
     @unittest.skipUnless(os.environ.get("OPEN_OPTICS_BENCH") == "1", "set by npm run test:bench")
     def test_node_speed_doc_has_numbers(self):
         """Every row has measured seconds and peak GiB numbers."""
