@@ -1,4 +1,6 @@
+import os
 import unittest
+from unittest import mock
 
 import torch
 
@@ -861,6 +863,29 @@ class TestAnchorScopeFrame(unittest.TestCase):
         a = _convert(depth, anchor_scope="batch", **self.KW)[0]
         b = _convert(depth, anchor_scope="frame", **self.KW)[0]
         self.assertTrue(torch.allclose(a, b))
+
+    def test_single_frame_scopes_equal(self):
+        depth = self._depth()[:1]
+        kw = dict(self.KW)
+        point = dict(kw)
+        masked = dict(kw, subject_mask=torch.ones(1, 9, 9))
+        cases = {
+            "depth_mask point": dict(depth_mask=depth, **point),
+            "depth_mask subject_mask": dict(depth_mask=depth, **masked),
+            "depth_image point": dict(
+                depth_image=depth.unsqueeze(-1).repeat(1, 1, 1, 3), **point),
+            "depth_image subject_mask": dict(
+                depth_image=depth.unsqueeze(-1).repeat(1, 1, 1, 3), **masked),
+        }
+        with mock.patch.dict(os.environ, {"OPEN_OPTICS_DEVICE": "cpu"}):
+            for name, inputs in cases.items():
+                with self.subTest(case=name):
+                    zb, pb = OpenOptics_DepthToMetric().convert(
+                        anchor_scope="batch", **inputs)
+                    zf, pf = OpenOptics_DepthToMetric().convert(
+                        anchor_scope="frame", **inputs)
+                    self.assertTrue(torch.equal(zb, zf))
+                    self.assertTrue(torch.equal(pb, pf))
 
     def test_chunk_frames_same_in_frame_scope(self):
         depth = self._depth()
