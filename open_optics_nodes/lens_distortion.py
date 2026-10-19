@@ -3,6 +3,7 @@
 import torch
 
 from open_optics_nodes import common, distortion_grid
+from open_optics_nodes.device import get_device
 
 
 class OpenOptics_LensDistortion:
@@ -23,6 +24,7 @@ class OpenOptics_LensDistortion:
                 "p2": ("FLOAT", dict(coeff)),
                 "direction": (["apply", "remove"], {"default": "apply"}),
                 "fit": (["keep", "crop"], {"default": "keep"}),
+                "chunk_frames": common.CHUNK_FRAMES_INPUT,
             }
         }
 
@@ -31,7 +33,8 @@ class OpenOptics_LensDistortion:
     CATEGORY = "Open Optics"
 
     def apply(self, image, focal_mm=35.0, sensor_width_mm=36.0, k1=0.0, k2=0.0,
-              k3=0.0, p1=0.0, p2=0.0, direction="apply", fit="keep"):
+              k3=0.0, p1=0.0, p2=0.0, direction="apply", fit="keep",
+              chunk_frames=8):
         """Resample the image through the Brown-Conrady distortion model.
 
         focal_mm and sensor_width_mm are in millimetres; k1, k2, k3, p1, p2
@@ -39,10 +42,14 @@ class OpenOptics_LensDistortion:
         the source at undistort_point of its position (ideal to lens); with
         'remove' it samples at distort_point (lens to ideal). fit 'keep' fills
         areas that map outside the source with black; fit 'crop' zooms in to
-        hide them. The output size equals the input size. Returns a 1-tuple
-        with an IMAGE [B, H, W, C], 0-1.
+        hide them. The output size equals the input size. chunk_frames (a count
+        of frames, >= 1, default 8) is how many frames are processed at a time
+        on get_device(); the result does not depend on it. Returns a 1-tuple
+        with a CPU float32 IMAGE [B, H, W, C], 0-1.
         """
+        common.check_chunk_frames(chunk_frames)
         common.check_image(image)
+        device = get_device()
         common.require_positive("focal_mm", focal_mm)
         common.require_positive("sensor_width_mm", sensor_width_mm)
         common.require_choice("direction", direction, ("apply", "remove"))
@@ -57,5 +64,10 @@ class OpenOptics_LensDistortion:
             zoom = crop(w, h, focal_mm, sensor_width_mm, k1, k2, k3, p1, p2)
         grid = distortion_grid.build_source_grid(
             w, h, focal_mm, sensor_width_mm, k1, k2, k3, p1, p2, direction, zoom)
-        grid_t = torch.tensor(grid, dtype=torch.float32).reshape(h, w, 2)
-        return (distortion_grid.sample_bilinear(image, grid_t, outside=outside),)
+        grid_t = torch.tensor(grid, dtype=torch.float32, device=device).reshape(h, w, 2)
+        outs = []
+        for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
+            out = distortion_grid.sample_bilinear(
+                image[start:stop].to(device), grid_t, outside=outside)
+            outs.append(out.cpu().to(torch.float32))
+        return (torch.cat(outs),)

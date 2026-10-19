@@ -46,6 +46,29 @@ class TestLensDistortionNode(unittest.TestCase):
             OpenOptics_LensDistortion().apply(_image(), direction="bogus")
         self.assertIn("direction", str(ctx.exception))
 
+    def test_chunk_frames_input(self):
+        spec = OpenOptics_LensDistortion.INPUT_TYPES()["required"]["chunk_frames"]
+        self.assertEqual(spec[0], "INT")
+        self.assertEqual(spec[1]["default"], 8)
+        self.assertEqual(spec[1]["min"], 1)
+
+    def test_chunk_frames_zero_raises(self):
+        with self.assertRaises(ValueError) as ctx:
+            OpenOptics_LensDistortion().apply(_image(), chunk_frames=0)
+        self.assertIn("chunk_frames", str(ctx.exception))
+
+    def test_chunk_sizes_match_full_and_output_on_cpu(self):
+        img = torch.rand(5, 8, 8, 3, generator=torch.Generator().manual_seed(5))
+        before = img.clone()
+        node = OpenOptics_LensDistortion()
+        (full,) = node.apply(img, k1=0.2, p1=0.01)
+        for size in (1, 3):
+            (out,) = node.apply(img, k1=0.2, p1=0.01, chunk_frames=size)
+            self.assertEqual(out.device.type, "cpu")
+            self.assertEqual(out.dtype, torch.float32)
+            self.assertLess(float((out - full).abs().max()), 1e-5)
+        self.assertTrue(torch.equal(img, before))
+
     def test_registration(self):
         self.assertIs(open_optics_nodes.NODE_CLASS_MAPPINGS["OpenOptics_LensDistortion"],
                       OpenOptics_LensDistortion)
