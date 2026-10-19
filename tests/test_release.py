@@ -129,6 +129,25 @@ class TestReadmeInstall(unittest.TestCase):
             self.assertIn(needle.lower(), section.lower(), f"README.md Install section does not mention '{needle}'")
 
 
+class TestReadmeNodes(unittest.TestCase):
+    def test_nodes_table_matches_registry(self):
+        from open_optics_nodes import NODE_DISPLAY_NAME_MAPPINGS
+
+        section = _readme_section("Nodes")
+        self.assertTrue(section, "README.md has no Nodes section")
+        rows = [
+            line for line in section.splitlines()
+            if line.strip().startswith("|") and "OpenOptics_" in line
+        ]
+        self.assertEqual(len(rows), len(NODE_CLASS_MAPPINGS), "README Nodes table row count differs from registry")
+        for key in NODE_CLASS_MAPPINGS:
+            name = NODE_DISPLAY_NAME_MAPPINGS[key]
+            self.assertTrue(
+                any(key in row and name in row for row in rows),
+                f"README Nodes table has no row with '{key}' and '{name}'",
+            )
+
+
 def _load_workflow():
     path = ROOT / "workflows" / "open_optics_demo.json"
     return json.loads(path.read_text(encoding="utf-8"))
