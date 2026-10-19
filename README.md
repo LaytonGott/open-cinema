@@ -50,7 +50,11 @@ Queue/Run produces a preview image.
 
 ## Tests
 
-TODO
+Run all tests with `npm test`. Run the GPU benchmarks with `npm run test:bench` (it sets `OPEN_OPTICS_BENCH=1`).
+
+The project uses a dedicated Python virtual environment (`.venv`) with CUDA-enabled torch. Set `OPEN_OPTICS_PYTHON` to use a different Python.
+
+Tests run on the CPU or the GPU, chosen with `OPEN_OPTICS_DEVICE` (`cpu`, `cuda` or `auto`).
 
 ## Licence
 
