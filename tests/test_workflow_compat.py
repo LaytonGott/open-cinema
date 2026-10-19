@@ -223,6 +223,34 @@ class AllCompatTest(unittest.TestCase):
         problems = all_compat_problems(fixture, NODE_CLASS_MAPPINGS)
         self.assertEqual(problems, [], "\n".join(problems))
 
+    def test_one_failure_does_not_hide_others(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            fixture = json.load(f)
+
+        def broken(base, name):
+            class Broken(base):
+                @classmethod
+                def INPUT_TYPES(cls):
+                    spec = copy.deepcopy(base.INPUT_TYPES())
+                    spec.setdefault("required", {})[name] = spec["optional"].pop(name)
+                    return spec
+            return Broken
+
+        nodes = dict(NODE_CLASS_MAPPINGS)
+        nodes["OpenOptics_DepthOfField"] = broken(
+            NODE_CLASS_MAPPINGS["OpenOptics_DepthOfField"], "max_layers")
+        nodes["OpenOptics_Vignette"] = broken(
+            NODE_CLASS_MAPPINGS["OpenOptics_Vignette"], "chunk_frames")
+        problems = all_compat_problems(fixture, nodes)
+        self.assertTrue(any("OpenOptics_DepthOfField" in p and "max_layers" in p
+                            and "make it optional with a default" in p
+                            for p in problems), problems)
+        self.assertTrue(any("OpenOptics_Vignette" in p and "chunk_frames" in p
+                            for p in problems), problems)
+        unrelated = [p for p in problems
+                     if "OpenOptics_DepthOfField" not in p and "OpenOptics_Vignette" not in p]
+        self.assertEqual(unrelated, [])
+
 
 class NodeSetProblemsTest(unittest.TestCase):
     def setUp(self):
