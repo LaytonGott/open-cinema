@@ -158,7 +158,7 @@ class TestReadmeLicence(unittest.TestCase):
     def test_licence_section_states_scan(self):
         section = _readme_section("Licence")
         self.assertTrue(section, "README.md has no Licence section")
-        for needle in ("comfy.model_management", "combined work"):
+        for needle in ("comfy.model_management", "combined work", "get_device", "device.py"):
             self.assertIn(needle.lower(), section.lower(), f"README.md Licence section does not mention '{needle}'")
 
     def test_licence_section_states_dependencies(self):
