@@ -6,6 +6,7 @@ import torch
 
 from open_optics.depth import metric_depth_coefficients, validate_depth_params
 from open_optics_nodes import common
+from open_optics_nodes.device import get_device
 
 
 def depth_percentile_range(depth, low_percentile, high_percentile):
@@ -54,6 +55,15 @@ def depth_to_metric_tensor(depth, near_m, far_m, inverse_depth, low_percentile, 
     """
     validate_depth_params(near_m, far_m, low_percentile, high_percentile)
     d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
+    return _map_to_metric(depth, d_lo, d_hi, near_m, far_m, inverse_depth)
+
+
+def _map_to_metric(depth, d_lo, d_hi, near_m, far_m, inverse_depth):
+    """Map a depth tensor to metres with an already fitted (d_lo, d_hi).
+
+    near_m and far_m are in metres; d_lo and d_hi are unitless depth values.
+    Returns a float32 tensor of the same shape and device in metres.
+    """
     a, b, reciprocal = metric_depth_coefficients(d_lo, d_hi, near_m, far_m, inverse_depth)
     d = depth.detach().to(torch.float64)
     d = torch.where(torch.isposinf(d), torch.full_like(d, d_hi), d)
@@ -78,6 +88,7 @@ class OpenOptics_DepthToMetric:
                 "inverse_depth": ("BOOLEAN", {"default": True}),
                 "low_percentile": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 100.0, "step": 0.1}),
                 "high_percentile": ("FLOAT", {"default": 98.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "chunk_frames": common.CHUNK_FRAMES_INPUT,
             },
             "optional": {
                 "depth_mask": ("MASK",),
@@ -91,18 +102,30 @@ class OpenOptics_DepthToMetric:
     CATEGORY = "Open Optics"
 
     def convert(self, near_m=0.5, far_m=10.0, inverse_depth=True, low_percentile=2.0,
-                high_percentile=98.0, depth_mask=None, depth_image=None):
+                high_percentile=98.0, depth_mask=None, depth_image=None, chunk_frames=8):
         """Convert relative depth to metres.
 
         near_m and far_m are in metres; percentiles are 0 to 100. Exactly one
-        of depth_mask or depth_image must be connected. Returns a 2-tuple:
+        of depth_mask or depth_image must be connected. The percentile fit uses
+        the whole batch once; chunk_frames (a count of frames, >= 1, default 8)
+        is how many frames are then converted at a time on get_device(), and
+        the result does not depend on it. Returns a 2-tuple of CPU tensors:
         depth_m, a float32 MASK [B, H, W] in metres, and preview, a float32
         IMAGE [B, H, W, 3] with (far_m - Z) / (far_m - near_m) clamped to 0..1.
         Raises ValueError for bad inputs.
         """
+        common.check_chunk_frames(chunk_frames)
         depth = common.resolve_depth(None, depth_mask, depth_image)
-        z = depth_to_metric_tensor(depth, near_m, far_m, inverse_depth,
-                                   low_percentile, high_percentile)
-        shade = torch.clamp((far_m - z) / (far_m - near_m), 0.0, 1.0)
-        preview = shade.unsqueeze(-1).repeat(1, 1, 1, 3).to(torch.float32)
-        return (z, preview)
+        validate_depth_params(near_m, far_m, low_percentile, high_percentile)
+        d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
+        device = get_device()
+        zs = []
+        previews = []
+        for start, stop in common.chunk_ranges(depth.shape[0], chunk_frames):
+            z = _map_to_metric(depth[start:stop].to(device), d_lo, d_hi,
+                               near_m, far_m, inverse_depth)
+            shade = torch.clamp((far_m - z) / (far_m - near_m), 0.0, 1.0)
+            preview = shade.unsqueeze(-1).repeat(1, 1, 1, 3)
+            zs.append(z.cpu().to(torch.float32))
+            previews.append(preview.cpu().to(torch.float32))
+        return (torch.cat(zs), torch.cat(previews))

@@ -176,6 +176,35 @@ class TestDepthToMetricDefaults(unittest.TestCase):
         self.assertEqual(req["low_percentile"][1]["default"], 2.0)
         self.assertEqual(req["high_percentile"][1]["default"], 98.0)
 
+    def test_chunk_frames_input(self):
+        req = OpenOptics_DepthToMetric.INPUT_TYPES()["required"]
+        self.assertEqual(req["chunk_frames"][0], "INT")
+        self.assertEqual(req["chunk_frames"][1]["default"], 8)
+        self.assertEqual(req["chunk_frames"][1]["min"], 1)
+
+    def test_chunk_frames_zero_raises(self):
+        with self.assertRaisesRegex(ValueError, "chunk_frames"):
+            OpenOptics_DepthToMetric().convert(depth_mask=torch.rand(1, 4, 4), chunk_frames=0)
+
+    def test_chunk_sizes_match_full(self):
+        g = torch.Generator().manual_seed(3)
+        d = torch.rand(5, 6, 7, generator=g)
+        before = d.clone()
+        node = OpenOptics_DepthToMetric()
+        z_full, p_full = node.convert(depth_mask=d, chunk_frames=5)
+        for size in (1, 3):
+            with self.subTest(chunk_frames=size):
+                z, p = node.convert(depth_mask=d, chunk_frames=size)
+                self.assertTrue(torch.allclose(z, z_full, atol=1e-5))
+                self.assertTrue(torch.allclose(p, p_full, atol=1e-5))
+        self.assertTrue(torch.equal(d, before))
+
+    def test_outputs_are_cpu_float32(self):
+        z, p = OpenOptics_DepthToMetric().convert(depth_mask=torch.rand(3, 4, 4), chunk_frames=2)
+        for t in (z, p):
+            self.assertEqual(t.device.type, "cpu")
+            self.assertEqual(t.dtype, torch.float32)
+
     def test_default_convert_on_ramp(self):
         # 101-value ramp: d_lo = 0.02, d_hi = 0.98 by hand.
         d = torch.tensor([[[i / 100.0 for i in range(101)]]])
