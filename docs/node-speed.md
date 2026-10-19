@@ -7,8 +7,8 @@ These numbers come from `npm run test:bench` on the RTX 3090 (NVIDIA GeForce RTX
 | OpenOptics_Anamorphic | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
 | OpenOptics_ChromaticAberration | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
 | OpenOptics_DepthOfField | 121 | 1280x704 | cuda | 8 | 2.7 | 0.64 |
-| OpenOptics_DepthTemporalSmooth | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
-| OpenOptics_DepthToMetric | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
+| OpenOptics_DepthTemporalSmooth | 121 | 1280x704 | cuda | 8 | 0.7 | not yet measured |
+| OpenOptics_DepthToMetric | 121 | 1280x704 | cuda | 8 | 1.1 | not yet measured |
 | OpenOptics_FocalCrop | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
 | OpenOptics_LensDistortion | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
 | OpenOptics_Vignette | 121 | 1280x704 | cuda | 8 | not yet measured | not yet measured |
@@ -25,11 +25,11 @@ Measured on the saved real clip (121 frames at 1280x704).
 
 | measure | measured | standalone limit | ComfyUI target |
 | --- | --- | --- | --- |
-| Depth to Metric (s) | not yet measured | 10 | |
-| Temporal Smooth (s) | not yet measured | 6 | 10 |
-| Depth of Field (s) | not yet measured | 20 | 30 |
-| Depth of Field layers (largest used) | not yet measured | | |
-| Peak GPU memory (GiB) | not yet measured | 8 | |
+| Depth to Metric (s) | 1.1 | 10 | |
+| Temporal Smooth (s) | 0.7 | 6 | 10 |
+| Depth of Field (s) | 2.8 | 20 | 30 |
+| Depth of Field layers (largest used) | 12 | | |
+| Peak GPU memory (GiB) | 0.64 | 8 | |
 
 ## Compared with video generation
 
