@@ -42,6 +42,55 @@ def first_release_problems(key, spec, expected):
     return problems
 
 
+def order_problems(key, spec, expected):
+    """Return a list of strings describing added inputs of node `key` that are misplaced.
+
+    `spec` is an INPUT_TYPES() dict and `expected` the fixture entry. An added input is one
+    whose name is not a first-release name. Added 'required' inputs are problems, and in
+    'optional' the first-release names must come first, in order. No units apply.
+    """
+    problems = []
+    old_names = {e[0] for s in ("required", "optional") for e in expected.get(s, [])}
+    for name in spec.get("required", {}):
+        if name not in old_names:
+            problems.append(
+                f"{key}: added input '{name}' is in 'required'; it must be optional")
+    want = [e[0] for e in expected.get("optional", [])]
+    current = list(spec.get("optional", {}))
+    for i, name in enumerate(current[:len(want)]):
+        if name not in old_names:
+            problems.append(
+                f"{key}: added input '{name}' comes before first-release input '{want[i]}'")
+    return problems
+
+
+class AddedInputOrderTest(unittest.TestCase):
+    def setUp(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            self.fixture = json.load(f)
+
+    def test_added_inputs_after_first_release(self):
+        problems = []
+        for key, expected in self.fixture.items():
+            spec = NODE_CLASS_MAPPINGS[key].INPUT_TYPES()
+            problems += order_problems(key, spec, expected)
+        self.assertEqual(problems, [], "\n".join(problems))
+
+    def test_added_before_first_release_is_reported(self):
+        key = "OpenOptics_DepthToMetric"
+        expected = self.fixture[key]
+        self.assertTrue(expected.get("optional"), "fixture needs first-release optional inputs")
+        spec = copy.deepcopy(NODE_CLASS_MAPPINGS[key].INPUT_TYPES())
+        spec["optional"] = {"zzz": ("FLOAT", {"default": 0.0}), **spec["optional"]}
+        problems = order_problems(key, spec, expected)
+        self.assertTrue(any(key in p and "zzz" in p for p in problems), problems)
+
+        spec = copy.deepcopy(NODE_CLASS_MAPPINGS[key].INPUT_TYPES())
+        spec["required"]["zzz"] = ("FLOAT", {"default": 0.0})
+        problems = order_problems(key, spec, expected)
+        self.assertTrue(any(key in p and "zzz" in p for p in problems), problems)
+
+
 class FirstReleaseInputsTest(unittest.TestCase):
     def setUp(self):
         with open(FIXTURE, encoding="utf-8") as f:
