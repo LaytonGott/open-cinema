@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from open_optics.depth import depth_to_metric
+from open_optics.depth import depth_to_metric, subject_metric_depth
 from open_optics_nodes.depth_of_field import OpenOptics_DepthOfField
 from open_optics_nodes.depth_to_metric import (
     OpenOptics_DepthToMetric, _subject_frame_depths, _subject_mask_region,
@@ -971,6 +971,50 @@ class TestEmptySubjectMask(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "subject mask is empty"):
             _convert(self._depth(), anchor_scope="frame",
                      subject_mask=self._half_empty_mask(), **self.KW)
+
+
+class TestSubjectNodeMatchesCore(unittest.TestCase):
+    KW = dict(
+        mode="subject", subject_m=2.0, near_m=0.5, far_m=10.0,
+        subject_x=0.5, subject_y=0.5, subject_radius_px=1,
+    )
+
+    def _frame(self):
+        d = torch.full((9, 9), 0.4)
+        d[3:6, 3:6] = 0.8
+        d[0, 0] = 1.6
+        d[8, 8] = 0.1
+        return d
+
+    def test_every_pixel_matches_core(self):
+        depth = self._frame().unsqueeze(0)
+        for inverse in (True, False):
+            with self.subTest(inverse_depth=inverse):
+                out, _ = OpenOptics_DepthToMetric().convert(
+                    depth_mask=depth, inverse_depth=inverse, **self.KW)
+                for r in range(9):
+                    for c in range(9):
+                        want = subject_metric_depth(
+                            float(depth[0, r, c]), 0.8, 2.0, 0.5, 10.0, inverse)
+                        self.assertAlmostEqual(float(out[0, r, c]), want, places=5)
+
+    def test_chunked_batch_uses_batch_median(self):
+        d0 = self._frame()
+        depth = torch.stack([d0, d0 * 0.5])
+        # The 3x3 window holds 0.8 in frame 0 and 0.4 in frame 1, so the
+        # median of the 18 values is (0.4 + 0.8) / 2 = 0.6 by hand.
+        for inverse in (True, False):
+            with self.subTest(inverse_depth=inverse):
+                out, _ = OpenOptics_DepthToMetric().convert(
+                    depth_mask=depth, inverse_depth=inverse,
+                    anchor_scope="batch", chunk_frames=1, **self.KW)
+                for i in range(2):
+                    for r in range(9):
+                        for c in range(9):
+                            want = subject_metric_depth(
+                                float(depth[i, r, c]), 0.6, 2.0, 0.5, 10.0, inverse)
+                            self.assertAlmostEqual(
+                                float(out[i, r, c]), want, places=5)
 
 
 if __name__ == "__main__":
