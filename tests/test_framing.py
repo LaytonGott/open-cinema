@@ -26,6 +26,21 @@ class TestFraming(unittest.TestCase):
         )
         self.assertAlmostEqual(value, 7.133333, places=6)
 
+    def test_subject_distance_m_hand_values(self):
+        cases = [
+            ((50, 24, 600, 1200), 7.133333333),
+            ((50, 19.8, 422.4, 704), 7.204882155),
+            ((24, 19.8, 422.4, 704), 3.458343434),
+            ((50, 24, 1200, 1200), 3.591666667),
+        ]
+        for args, expected in cases:
+            with self.subTest(args=args):
+                self.assertAlmostEqual(subject_distance_m(*args), expected, places=6)
+
+    def test_subject_distance_m_default_real_height(self):
+        self.assertEqual(subject_distance_m(50, 24, 600, 1200),
+                         subject_distance_m(50, 24, 600, 1200, 1.7))
+
     def test_subject_height_px_known_value(self):
         # h = 35 * 1700 / (5000 - 35) mm; * 704 / 24
         self.assertAlmostEqual(subject_height_px(35, 24, 704, 5.0), 351.527358, places=6)
@@ -40,6 +55,7 @@ class TestFraming(unittest.TestCase):
             subject_height_px(50, 24, 1080, 0.05)
         with self.assertRaisesRegex(ValueError, "distance_m"):
             subject_height_px(50, 24, 1080, 0)
+
     def test_subject_distance_m_rejects_bad_arguments(self):
         good = dict(focal_mm=50, sensor_height_mm=24, subject_height_px=600,
                     image_height_px=1200, real_height_m=1.7)
