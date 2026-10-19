@@ -5,7 +5,8 @@ import math
 import torch
 
 from open_optics.depth import (metric_depth_coefficients, subject_median, subject_pixel,
-                               validate_depth_params, validate_subject_params)
+                               validate_depth_params, validate_subject_depth,
+                               validate_subject_params)
 from open_optics_nodes import common
 from open_optics_nodes.device import get_device
 
@@ -142,6 +143,21 @@ def _subject_mask_region(subject_mask, depth_shape):
     return region
 
 
+def _subject_depth(values):
+    """Return the validated subject depth of a list of depth values.
+
+    values is a non-empty Python list of unitless depth values. Returns the
+    median from subject_median (unitless) as a float. Raises ValueError, from
+    validate_subject_depth, if any value or the median is not finite and > 0.
+    """
+    for v in values:
+        if not math.isfinite(v):
+            validate_subject_depth(v)
+    d_s = subject_median(values)
+    validate_subject_depth(d_s)
+    return d_s
+
+
 def _subject_frame_depths(depth, region):
     """Return the per-frame subject depth as a float64 tensor [B].
 
@@ -156,7 +172,7 @@ def _subject_frame_depths(depth, region):
         values = depth[b][region[b]].detach().to(torch.float64)
         if values.numel() == 0:
             raise ValueError(f"frame {b} has no subject pixel in region")
-        out.append(subject_median(values.tolist()))
+        out.append(_subject_depth(values.tolist()))
     return torch.tensor(out, dtype=torch.float64)
 
 
@@ -269,14 +285,9 @@ class OpenOptics_DepthToMetric:
                         if not bool(region[b].any()):
                             raise ValueError(f"subject mask is empty in frame {b}")
                 d_s = _subject_frame_depths(depth, region)
-                for v in d_s.tolist():
-                    if not math.isfinite(v) or not v > 0:
-                        raise ValueError(f"subject depth must be finite and > 0, got {v}")
             else:
                 values = depth.detach()[region].to(torch.float64)
-                d_s = subject_median(values.tolist())
-                if not math.isfinite(d_s) or not d_s > 0:
-                    raise ValueError(f"subject depth must be finite and > 0, got {d_s}")
+                d_s = _subject_depth(values.tolist())
         else:
             validate_depth_params(near_m, far_m, low_percentile, high_percentile)
             d_lo, d_hi = depth_percentile_range(depth, low_percentile, high_percentile)
