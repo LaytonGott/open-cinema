@@ -37,6 +37,15 @@ class TestFraming(unittest.TestCase):
             with self.subTest(args=args):
                 self.assertAlmostEqual(subject_distance_m(*args), expected, places=6)
 
+    def test_subject_distance_m_keywords_match_positional_and_default(self):
+        keyword = subject_distance_m(focal_mm=50, sensor_height_mm=24,
+                                     subject_height_px=600, image_height_px=1200)
+        self.assertAlmostEqual(keyword, subject_distance_m(50, 24, 600, 1200), places=6)
+        self.assertAlmostEqual(keyword, subject_distance_m(
+            focal_mm=50, sensor_height_mm=24, subject_height_px=600,
+            image_height_px=1200, real_height_m=1.7), places=6)
+        self.assertAlmostEqual(keyword, 7.133333, places=6)
+
     def test_subject_distance_m_default_real_height(self):
         self.assertEqual(subject_distance_m(50, 24, 600, 1200),
                          subject_distance_m(50, 24, 600, 1200, 1.7))
