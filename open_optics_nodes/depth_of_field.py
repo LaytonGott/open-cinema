@@ -1,6 +1,7 @@
 """Depth of Field node for the Open Optics pack (CPU torch tensors)."""
 
 import math
+import time
 
 import torch
 
@@ -58,6 +59,7 @@ class OpenOptics_DepthOfField:
         (a count of layers, an integer from 1 to 64, default 12) caps the
         number of blurred depth layers per frame.
         """
+        t0 = time.perf_counter()
         common.check_chunk_frames(chunk_frames)
         if (isinstance(max_layers, bool) or not isinstance(max_layers, int)
                 or not 1 <= max_layers <= 64):
@@ -72,9 +74,12 @@ class OpenOptics_DepthOfField:
         common.require_choice("quality", quality, list(_LAYERS))
         depth = common.resolve_depth(image, depth_mask, depth_image)
         if max_radius_px == 0:
-            return (common.finish(image.clone()),
-                    torch.zeros(image.shape[:3], dtype=torch.float32))
+            out = common.finish(image.clone())
+            common.log_call("OpenOptics_DepthOfField", image, image.shape[0], chunk_frames,
+                            time.perf_counter() - t0, layers=0)
+            return (out, torch.zeros(image.shape[:3], dtype=torch.float32))
         device = get_device()
+        stats = {}
         outs, cocs = [], []
         for start, stop in common.chunk_ranges(image.shape[0], chunk_frames):
             linear = common.to_linear(image[start:stop].to(device), colorspace)
@@ -82,7 +87,10 @@ class OpenOptics_DepthOfField:
             radius = coc_radius_map(depth_c, focal_mm, f_number, focus_m, sensor_width_mm,
                                     max_radius_px)
             result = composite_layers(linear, depth_c, radius, _LAYERS[quality], focus_m,
-                                       max_layers)
+                                       max_layers, stats)
+            used_device = result.device
             outs.append(common.finish(common.from_linear(result, colorspace)).cpu().to(torch.float32))
             cocs.append(common.finish(radius / float(max_radius_px)).cpu().to(torch.float32))
+        common.log_call("OpenOptics_DepthOfField", used_device, image.shape[0], chunk_frames,
+                        time.perf_counter() - t0, layers=stats.get('layers', 0))
         return (torch.cat(outs), torch.cat(cocs))
