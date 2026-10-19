@@ -481,5 +481,73 @@ class OutputProblemsTest(unittest.TestCase):
         self.assertEqual(output_problems("7", "Fake", (good,), nodes), [])
 
 
+def run_api_graph(graph, nodes=None, size=32, frames=3):
+    """Run the Open Optics nodes of an API-format graph and return {node_id: output tuple}.
+
+    `nodes` maps class_type to node class (default NODE_CLASS_MAPPINGS). Nodes run in
+    dependency order with exactly the workflow's inputs. A link to another Open Optics
+    node uses that node's output at the slot; a link to any other node becomes a
+    synthetic tensor from the declared type: IMAGE is float32 [frames, size, size, 3]
+    random in 0..1 (seeded), MASK is float32 [frames, size, size], a smooth 0..1 ramp.
+    Other nodes are never executed. Sizes are in pixels.
+    """
+    nodes = NODE_CLASS_MAPPINGS if nodes is None else nodes
+    results = {}
+
+    def synthetic(typ):
+        if typ == "IMAGE":
+            torch.manual_seed(0)
+            return torch.rand(frames, size, size, 3, dtype=torch.float32)
+        if typ == "MASK":
+            ramp = torch.linspace(0.0, 1.0, size, dtype=torch.float32)
+            return ramp.view(1, size, 1).expand(frames, size, size).contiguous()
+        raise ValueError(f"cannot synthesize a link of type {typ}")
+
+    def run(node_id, active):
+        if node_id in results:
+            return
+        if node_id in active:
+            raise ValueError(f"cycle at node {node_id}")
+        active.add(node_id)
+        entry = graph[node_id]
+        cls = nodes[entry["class_type"]]
+        spec = cls.INPUT_TYPES()
+        declared = {**spec.get("required", {}), **spec.get("optional", {})}
+        kwargs = {}
+        for name, value in entry.get("inputs", {}).items():
+            if _is_link(value):
+                src = graph.get(value[0])
+                if src is not None and src.get("class_type") in nodes:
+                    run(value[0], active)
+                    kwargs[name] = results[value[0]][value[1]]
+                else:
+                    kwargs[name] = synthetic(declared[name][0])
+            else:
+                kwargs[name] = value
+        results[node_id] = getattr(cls(), cls.FUNCTION)(**kwargs)
+        active.discard(node_id)
+
+    for node_id, entry in graph.items():
+        if entry.get("class_type") in nodes:
+            run(node_id, set())
+    return results
+
+
+class RunApiGraphTest(unittest.TestCase):
+    def test_load_image_to_vignette(self):
+        graph = {
+            "1": {"class_type": "LoadImage", "inputs": {"image": "a.png"}},
+            "2": {"class_type": "OpenOptics_Vignette",
+                  "inputs": {"image": ["1", 0], "focal_mm": 35.0, "sensor_width_mm": 36.0,
+                             "strength": 0.5, "colorspace": "srgb"}},
+        }
+        results = run_api_graph(graph)
+        self.assertEqual(list(results), ["2"])
+        out = results["2"][0]
+        self.assertTrue(torch.is_tensor(out))
+        self.assertEqual(out.dtype, torch.float32)
+        self.assertEqual(list(out.shape), [3, 32, 32, 3])
+
+
 if __name__ == "__main__":
     unittest.main()
