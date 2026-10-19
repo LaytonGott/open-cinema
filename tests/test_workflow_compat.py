@@ -149,6 +149,24 @@ def default_problems(key, cls, expected):
     return problems
 
 
+def return_problems(key, cls, expected):
+    """Return a list of strings describing first-release outputs of `cls` that changed.
+
+    `expected` is the fixture entry for `key`; its 'return_types' list holds the first-release
+    outputs. It is a problem if cls.RETURN_TYPES does not start with those types in order.
+    No units apply.
+    """
+    problems = []
+    got = list(cls.RETURN_TYPES)
+    for i, want in enumerate(expected.get("return_types", [])):
+        have = got[i] if i < len(got) else None
+        if have != want:
+            problems.append(
+                f"{key}: output {i} must be {want} (first release) but is {have}; "
+                "add new outputs only at the end")
+    return problems
+
+
 class _CleanNode:
     @classmethod
     def INPUT_TYPES(cls):
