@@ -16,6 +16,19 @@ class NodesCommonTest(unittest.TestCase):
         back = common.linear_to_srgb_t(common.srgb_to_linear_t(x))
         self.assertLess((back - x).abs().max().item(), 1e-5)
 
+    def test_log_call_message(self):
+        with self.assertLogs('open_optics_nodes', level='INFO') as cm:
+            common.log_call('dof', torch.zeros(1), 4, 2, 1.25)
+        self.assertEqual(cm.output, [
+            'INFO:open_optics_nodes:node=dof device=cpu frames=4 chunk_frames=2 seconds=1.250'])
+
+    def test_log_call_layers_and_seconds(self):
+        with self.assertLogs('open_optics_nodes', level='INFO') as cm:
+            common.log_call('dof', torch.device('cpu'), 3, 1, 0.5, layers=7)
+        self.assertEqual(cm.output, [
+            'INFO:open_optics_nodes:node=dof device=cpu frames=3 chunk_frames=1 '
+            'seconds=0.500 layers=7'])
+
     def test_check_image_rejects_3d(self):
         with self.assertRaises(ValueError):
             common.check_image(torch.zeros(4, 4, 3))

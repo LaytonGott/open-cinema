@@ -1,8 +1,11 @@
 """Shared image helpers for the Open Optics nodes (CPU torch tensors, [B, H, W, C], 0-1)."""
 
+import logging
 import math
 
 import torch
+
+LOGGER = logging.getLogger('open_optics_nodes')
 
 
 def check_image(image):
@@ -157,3 +160,23 @@ def resolve_depth(image, depth_mask=None, depth_image=None):
                 f"depth size {tuple(depth.shape[1:])} does not match image size "
                 f"{tuple(image.shape[1:3])}")
     return depth.contiguous()
+
+
+def log_call(node, tensor_or_device, frames, chunk_frames, seconds, layers=None):
+    """Log one INFO record for a node call to the logger 'open_optics_nodes'.
+
+    node is the node key; tensor_or_device is a torch.Tensor or torch.device
+    (a device without an index is shown with its index, e.g. the first GPU); frames and chunk_frames are
+    counts of frames; seconds is the elapsed time in seconds; layers is an
+    optional count of layers, appended only when not None. Returns None.
+    """
+    dev = tensor_or_device.device if isinstance(tensor_or_device, torch.Tensor) \
+        else tensor_or_device
+    dev = torch.device(dev)
+    if dev.type != "cpu" and dev.index is None:
+        dev = torch.empty(0, device=dev).device
+    msg = (f"node={node} device={dev} frames={frames} "
+           f"chunk_frames={chunk_frames} seconds={seconds:.3f}")
+    if layers is not None:
+        msg += f" layers={layers}"
+    LOGGER.info(msg)
