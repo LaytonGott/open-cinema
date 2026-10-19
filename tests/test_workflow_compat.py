@@ -167,6 +167,32 @@ def return_problems(key, cls, expected):
     return problems
 
 
+def node_set_problems(fixture, nodes):
+    """Return a list of strings, one per fixture key missing from the `nodes` class mapping.
+
+    `fixture` is the first-release inputs dict keyed by node key. No units apply.
+    """
+    return [
+        f"{key}: first-release node is not registered; restore it or re-register it "
+        "in NODE_CLASS_MAPPINGS, never rename or remove it"
+        for key in fixture if key not in nodes]
+
+
+class NodeSetProblemsTest(unittest.TestCase):
+    def setUp(self):
+        with open(FIXTURE, encoding="utf-8") as f:
+            self.fixture = json.load(f)
+
+    def test_registered_nodes_clean(self):
+        self.assertEqual(node_set_problems(self.fixture, NODE_CLASS_MAPPINGS), [])
+
+    def test_missing_node_is_reported(self):
+        key = sorted(self.fixture)[0]
+        nodes = {k: v for k, v in NODE_CLASS_MAPPINGS.items() if k != key}
+        problems = node_set_problems(self.fixture, nodes)
+        self.assertTrue(any(key in p for p in problems), problems)
+
+
 class _CleanNode:
     @classmethod
     def INPUT_TYPES(cls):
