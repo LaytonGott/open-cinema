@@ -268,6 +268,16 @@ class ShotRunner:
         self.update(record, current_version=n, status="done", progress=1.0,
                     message="Done")
 
+    async def run_reapply(self, shot_id, aperture):
+        """Re-apply the optics to shot `shot_id` at `aperture` (f-number).
+
+        Runs `run_optics` as the next version number (highest existing + 1,
+        or 1 if none). Returns None.
+        """
+        record = self.store.get(shot_id)
+        n = max((v["n"] for v in record.get("versions") or []), default=0) + 1
+        await self.run_optics(record, aperture, n)
+
     async def run_shot(self, shot_id):
         """Run one shot: generate the video, then apply the optics as version 1."""
         record = self.store.get(shot_id)
