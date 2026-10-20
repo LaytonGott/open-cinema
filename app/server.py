@@ -1,6 +1,7 @@
 """The aiohttp application for the Open Cinema director app."""
 
 import asyncio
+import sys
 from pathlib import Path
 
 from aiohttp import web
@@ -44,7 +45,10 @@ def create_app(comfyui_url, data_dir):
 
 
 async def _serve(args):
-    """Start the proxy (unless ``args.proxy_url`` is given) and the app, then serve until cancelled."""
+    """Start the proxy (unless ``args.proxy_url`` is given) and the app, then serve until cancelled.
+
+    Returns 1 if the port cannot be bound (after cleaning up); otherwise only returns by raising.
+    """
     proxy_runner = None
     runner = None
     try:
@@ -55,7 +59,16 @@ async def _serve(args):
             use_proxy(proxy_url)
         runner = web.AppRunner(create_app(args.comfyui, args.data_dir))
         await runner.setup()
-        await web.TCPSite(runner, args.host, args.port).start()
+        try:
+            await web.TCPSite(runner, args.host, args.port).start()
+        except OSError as exc:
+            reason = exc.strerror or str(exc)
+            print(
+                f"Open Cinema could not start: port {args.port} on {args.host} is not available ({reason}).",
+                file=sys.stderr,
+                flush=True,
+            )
+            return 1
         print(
             f"Open Cinema is running at http://{args.host}:{args.port} (ComfyUI at {args.comfyui})",
             flush=True,
@@ -71,11 +84,10 @@ async def _serve(args):
 def main(argv=None) -> int:
     """Run the director app until stopped. ``argv`` is a list of options (sys.argv when None).
 
-    Returns the process exit code: 0 after a KeyboardInterrupt.
+    Returns the process exit code: 0 after a KeyboardInterrupt, 1 if the port is not available.
     """
     args = parse_args(argv)
     try:
-        asyncio.run(_serve(args))
+        return asyncio.run(_serve(args))
     except KeyboardInterrupt:
-        pass
-    return 0
+        return 0

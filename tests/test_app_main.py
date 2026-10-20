@@ -33,6 +33,29 @@ class AppMainTest(unittest.TestCase):
                 proc.wait()
                 proc.stdout.close()
 
+    def test_port_in_use(self):
+        comfy = f"http://127.0.0.1:{_free_port()}"
+        with socket.socket() as blocker, tempfile.TemporaryDirectory() as tmp:
+            blocker.bind(("127.0.0.1", 0))
+            blocker.listen()
+            port = blocker.getsockname()[1]
+            proc = subprocess.Popen(
+                [sys.executable, "-m", "app", "--port", str(port), "--data-dir", tmp, "--comfyui", comfy],
+                cwd=ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                _, err = proc.communicate(timeout=30)
+            finally:
+                proc.kill()
+                proc.wait()
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("could not start", err)
+            self.assertIn(str(port), err)
+            self.assertNotIn("Traceback", err)
+
 
 if __name__ == "__main__":
     unittest.main()
