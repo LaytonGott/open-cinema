@@ -187,6 +187,45 @@ class OpticsGraphChangedNodesTests(unittest.TestCase):
         self.assertEqual(differing(base, distance), sorted([metric_id, dof_id]))
 
 
+def _single(graph, class_type):
+    found = [(k, n["inputs"]) for k, n in graph.items() if n["class_type"] == class_type]
+    assert len(found) == 1, class_type
+    return found[0]
+
+
+class OpticsGraphWiringTests(unittest.TestCase):
+    def setUp(self):
+        self.graph = build_optics_graph("clip.webm", 50, 2.8, 5.1005, "p/x")
+
+    def test_dof_and_smooth_links(self):
+        g = self.graph
+        components_id, _ = _single(g, "GetVideoComponents")
+        render_id, _ = _single(g, "DA3Render")
+        metric_id, metric = _single(g, "OpenOptics_DepthToMetric")
+        smooth_id, smooth = _single(g, "OpenOptics_DepthTemporalSmooth")
+        dof_id, dof = _single(g, "OpenOptics_DepthOfField")
+        self.assertEqual(dof["image"], [components_id, 0])
+        self.assertEqual(dof["depth_mask"], [smooth_id, 0])
+        self.assertEqual(smooth["depth"], [metric_id, 0])
+        self.assertEqual(metric["depth_image"], [render_id, 0])
+        self.assertEqual(
+            (components_id, smooth_id, metric_id, render_id, dof_id),
+            ("2", "7", "6", "5", "8"),
+        )
+
+    def test_video_links(self):
+        g = self.graph
+        components_id, _ = _single(g, "GetVideoComponents")
+        dof_id, _ = _single(g, "OpenOptics_DepthOfField")
+        create_id, create = _single(g, "CreateVideo")
+        _, save = _single(g, "SaveVideo")
+        self.assertEqual(create["images"], [dof_id, 0])
+        self.assertEqual(create["audio"], [components_id, 1])
+        self.assertEqual(create["fps"], [components_id, 2])
+        self.assertEqual(save["video"], [create_id, 0])
+        self.assertEqual(create_id, "9")
+
+
 class GenerationStageTests(unittest.TestCase):
     def test_stage_and_step_counts(self):
         g = build_generation_graph("a prompt", 7, "p/x")
