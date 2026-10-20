@@ -248,6 +248,27 @@ class ShotRunner:
         self._set_stage(record, "optics", "done")
         self.update(record, status="done", progress=1.0, message="Done")
 
+    async def cancel(self, shot_id):
+        """Cancel shot `shot_id`. Returns its record, or None if it is missing or not queued/generating/optics.
+
+        A queued item that has not started is cancelled at once. Otherwise
+        `cancel_requested` is set and the running job (if it is this shot's)
+        is cancelled; the worker finishes the run.
+        """
+        record = self.store.get(shot_id)
+        if record is None or record.get("status") not in ("queued", "generating", "optics"):
+            return None
+        item = self.items.get(shot_id)
+        if item is not None and not item["started"]:
+            item["cancelled"] = True
+            self._finish_cancel(record)
+            return record
+        self.cancel_requested = shot_id
+        current = self.current
+        if current is not None and current["shot_id"] == shot_id:
+            await asyncio.to_thread(current["job"].cancel)
+        return record
+
     async def run_optics(self, record, aperture, n):
         """Apply the optics to the shot `record`'s "before" video as version `n`.
 
