@@ -1,6 +1,7 @@
 """The aiohttp application for the Open Cinema director app."""
 
 import asyncio
+import json
 import logging
 import mimetypes
 import signal
@@ -27,6 +28,7 @@ mimetypes.add_type("video/webm", ".webm")
 mimetypes.add_type("video/mp4", ".mp4")
 
 STATIC_DIR = Path(__file__).parent / "static"
+KEEPALIVE_S = 15
 
 COMFYUI_URL = web.AppKey("comfyui_url", str)
 STORE = web.AppKey("store", ShotStore)
@@ -161,6 +163,51 @@ async def get_shot(request):
     return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
 
 
+async def shot_events(request):
+    """Stream server-sent events ``shot`` (the public record as JSON) for the shot in the path.
+
+    Sends the current record first, then each change (at most about 5 frames per second),
+    a ``: keep-alive`` comment every KEEPALIVE_S seconds, and closes once the shot is done,
+    failed or cancelled. Unknown id: 404 ``not_found``.
+    """
+    shot_id = request.match_info["id"]
+    store = request.app[STORE]
+    runner = request.app[RUNNER]
+    if store.get(shot_id) is None:
+        return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
+    resp = web.StreamResponse(
+        headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache"}
+    )
+    await resp.prepare(request)
+    event = runner.watch(shot_id)
+    last = None
+    try:
+        while True:
+            event.clear()
+            record = store.get(shot_id)
+            payload = json.dumps(public_record(record))
+            if payload != last:
+                await resp.write(f"event: shot\ndata: {payload}\n\n".encode())
+                last = payload
+            if record["status"] in ("done", "failed", "cancelled"):
+                break
+            try:
+                await asyncio.wait_for(event.wait(), KEEPALIVE_S)
+            except asyncio.TimeoutError:
+                await resp.write(b": keep-alive\n\n")
+                continue
+            await asyncio.sleep(0.2)
+    except ConnectionResetError:
+        pass
+    finally:
+        runner.unwatch(shot_id, event)
+    try:
+        await resp.write_eof()
+    except ConnectionResetError:
+        pass
+    return resp
+
+
 async def get_media(request):
     """Serve the file ``name`` from the folder of shot ``id`` (Range supported), or 404 ``not_found``."""
     shot_id = request.match_info["id"]
@@ -208,6 +255,7 @@ def create_app(comfyui_url, data_dir):
     app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
+    app.router.add_get("/api/shots/{id}/events", shot_events)
     app.router.add_get("/media/{id}/{name}", get_media)
     app.router.add_get("/", index)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
