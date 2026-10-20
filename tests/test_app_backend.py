@@ -86,5 +86,70 @@ class BackendTest(unittest.TestCase):
         self.assertEqual((status, body["error"]["code"]), (404, "not_found"))
 
 
+def _nodes(graph, class_type):
+    return [n for n in graph.values() if n.get("class_type") == class_type]
+
+
+class FullShotTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.fake = FakeComfy()
+        cls.harness = AppHarness(fake=cls.fake).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.harness.stop()
+        cls.fake.close()
+
+    def test_full_shot(self):
+        h = self.harness
+        body = {**SHOT, "seed": 123, "lens_mm": 50, "aperture": 2.8, "framing": "full-body"}
+        status, created = h.post("/api/shots", body)
+        self.assertEqual(status, 201)
+        sid = created["id"]
+        try:
+            record = h.wait_for_shot(sid, "done")
+        except AssertionError as e:
+            raise AssertionError(f"{e}\n{h.log()}") from None
+
+        self.assertRegex(record["before_url"], rf"^/media/{sid}/before\.\w+$")
+        self.assertEqual(len(record["versions"]), 1)
+        version = record["versions"][0]
+        self.assertEqual(version["n"], 1)
+        self.assertEqual(version["aperture"], 2.8)
+        self.assertRegex(version["url"], rf"^/media/{sid}/after_1\.\w+$")
+        self.assertTrue(version["created_at"])
+        self.assertEqual(record["current_version"], 1)
+        self.assertEqual(record["progress"], 1)
+        self.assertEqual(record["message"], "Done")
+
+        for url in (record["before_url"], version["url"]):
+            with urllib.request.urlopen(h.url + url, timeout=15) as r:
+                self.assertEqual(r.status, 200)
+                self.assertTrue(r.read())
+        folder = h.data_dir / "shots" / sid
+        self.assertTrue(list(folder.glob("before.*")))
+
+        derived = record["derived"]
+        prompts = list(self.fake.prompts)
+        generation = [
+            g for g in prompts
+            if any(n["inputs"].get("text") == derived["prompt"] for n in _nodes(g, "CLIPTextEncode"))
+            and any(n["inputs"].get("noise_seed") == 123 for n in _nodes(g, "RandomNoise"))
+            and any(n["inputs"].get("filename_prefix") == f"opencinema/{sid}/before" for n in _nodes(g, "SaveVideo"))
+        ]
+        self.assertEqual(len(generation), 1)
+        optics = [
+            g for g in prompts
+            if any(n["inputs"].get("filename_prefix") == f"opencinema/{sid}/after_1" for n in _nodes(g, "SaveVideo"))
+        ]
+        self.assertEqual(len(optics), 1)
+        dof = _nodes(optics[0], "OpenOptics_DepthOfField")
+        self.assertEqual(len(dof), 1)
+        self.assertEqual(dof[0]["inputs"]["focal_mm"], 50)
+        self.assertEqual(dof[0]["inputs"]["f_number"], 2.8)
+        self.assertAlmostEqual(dof[0]["inputs"]["focus_m"], derived["subject_distance_m"], places=3)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -19,10 +19,16 @@ class StubJob:
         self.result_calls += 1
 
 
+class StubWorkflows:
+    def from_json(self, graph):
+        return graph
+
+
 class StubClient:
     def __init__(self, job):
         self.job = job
         self.graphs = []
+        self.workflows = StubWorkflows()
 
     def submit(self, graph):
         self.graphs.append(graph)

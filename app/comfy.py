@@ -20,7 +20,7 @@ def submit_and_follow(client, graph, on_event, on_job=None):
     keys current_node, value, step and steps (current_node, step and steps may be
     None). Other event types are ignored. Exceptions propagate unchanged.
     """
-    job = client.submit(graph)
+    job = client.submit(client.workflows.from_json(graph))
     if on_job is not None:
         on_job(job)
     for ev in job.events():
