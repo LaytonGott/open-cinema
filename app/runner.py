@@ -3,6 +3,8 @@ import asyncio
 import logging
 import time
 
+from app import progress
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +48,42 @@ class ShotRunner:
         started = record.setdefault("_started", now)
         record["elapsed_s"] = round(now - started, 1)
         self.store.save(record)
+
+    def apply_event(self, record, stage, kind, data):
+        """Apply one `submit_and_follow` event to the shot `record` (loop thread).
+
+        `stage` is "generate" or "optics"; `kind` is "status" (`data` a str,
+        only `elapsed_s` is refreshed) or "progress" (`data` a dict with
+        `current_node`, `value` as a fraction 0 to 1, `step` and `steps`).
+        Progress never falls: the stage and overall values keep the larger of
+        old and new, and `message` comes from `message_for_node`. Returns None.
+        """
+        if kind != "progress":
+            self.update(record)
+            return
+        fraction = max(0.0, min(1.0, data["value"]))
+        if stage == "optics":
+            overall = progress.optics_progress(fraction)
+        else:
+            overall = progress.generation_progress(fraction)
+        stages = record.get("stages") or []
+        for entry in stages:
+            if entry.get("id") == stage:
+                entry["progress"] = progress.monotonic(
+                    entry.get("progress", 0.0), fraction)
+        self.update(
+            record,
+            progress=progress.monotonic(record.get("progress", 0.0), overall),
+            message=progress.message_for_node(
+                stage, data["current_node"], data["step"], data["steps"]),
+        )
+
+    def thread_callback(self, loop, record, stage):
+        """Return a function `(kind, data)` that, from any thread, schedules
+        `apply_event(record, stage, kind, data)` on `loop`."""
+        def callback(kind, data):
+            loop.call_soon_threadsafe(self.apply_event, record, stage, kind, data)
+        return callback
 
     async def _worker(self):
         while True:
