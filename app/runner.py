@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app import comfy, graphs, progress
+from app import comfy, errors, graphs, progress
 
 logger = logging.getLogger(__name__)
 
@@ -150,14 +150,20 @@ class ShotRunner:
                         self._finish_cancel(record)
             except asyncio.CancelledError:
                 raise
-            except Exception:
+            except Exception as exc:
                 record = self.store.get(shot_id)
                 if self.cancel_requested == shot_id:
                     if record is not None:
                         self._finish_cancel(record)
                     continue
                 logger.exception("run_shot failed for shot %s", shot_id)
-                if record is not None:
+                if record is not None and item["aperture"] is None:
+                    stage = self._active_stage(record)
+                    error = errors.map_error(exc, stage)
+                    self._set_stage(record, stage, "failed")
+                    self.update(record, status="failed", error=error,
+                                message=error["message"])
+                elif record is not None:
                     self.update(record, status="failed", error={
                         "code": "internal",
                         "message": "Something went wrong inside Open Cinema. "
@@ -223,6 +229,14 @@ class ShotRunner:
             record["derived"]["subject_distance_m"],
             f"opencinema/{shot_id}/after_{n}")
         return self.client, graph
+
+    @staticmethod
+    def _active_stage(record):
+        """Return the id of the stage of `record` whose state is 'active', else 'generate'."""
+        for entry in record.get("stages") or []:
+            if entry.get("state") == "active":
+                return entry.get("id")
+        return "generate"
 
     @staticmethod
     def _set_stage(record, stage, state, stage_progress=None):
