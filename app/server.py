@@ -1,10 +1,13 @@
 """The aiohttp application for the Open Cinema director app."""
 
+import asyncio
 from pathlib import Path
 
 from aiohttp import web
 
+from app.cli import parse_args
 from app.comfy_health import check_health
+from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.store import ShotStore
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -38,3 +41,41 @@ def create_app(comfyui_url, data_dir):
     app.router.add_get("/", index)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
     return app
+
+
+async def _serve(args):
+    """Start the proxy (unless ``args.proxy_url`` is given) and the app, then serve until cancelled."""
+    proxy_runner = None
+    runner = None
+    try:
+        if args.proxy_url:
+            use_proxy(args.proxy_url)
+        else:
+            proxy_runner, proxy_url = await start_proxy(args.comfyui, args.proxy_port)
+            use_proxy(proxy_url)
+        runner = web.AppRunner(create_app(args.comfyui, args.data_dir))
+        await runner.setup()
+        await web.TCPSite(runner, args.host, args.port).start()
+        print(
+            f"Open Cinema is running at http://{args.host}:{args.port} (ComfyUI at {args.comfyui})",
+            flush=True,
+        )
+        await asyncio.Event().wait()
+    finally:
+        if runner is not None:
+            await runner.cleanup()
+        if proxy_runner is not None:
+            await stop_proxy(proxy_runner)
+
+
+def main(argv=None) -> int:
+    """Run the director app until stopped. ``argv`` is a list of options (sys.argv when None).
+
+    Returns the process exit code: 0 after a KeyboardInterrupt.
+    """
+    args = parse_args(argv)
+    try:
+        asyncio.run(_serve(args))
+    except KeyboardInterrupt:
+        pass
+    return 0
