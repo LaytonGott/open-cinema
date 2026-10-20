@@ -289,7 +289,7 @@ def create_app(comfyui_url, data_dir):
     store = ShotStore(data_dir)
     store.load_all()
     app[STORE] = store
-    runner = ShotRunner(store)
+    runner = ShotRunner(store, comfyui_url)
     app[RUNNER] = runner
 
     async def start_runner(app):

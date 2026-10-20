@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 class ShotRunner:
     """Runs queued shots one at a time, in the order they were enqueued."""
 
-    def __init__(self, store):
+    def __init__(self, store, comfyui_url=None):
         self.store = store
+        self.comfyui_url = comfyui_url
         self.queue = None
         self.task = None
         self.client = None
