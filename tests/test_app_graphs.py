@@ -232,6 +232,14 @@ class GenerationGraphSeedTests(unittest.TestCase):
         self.assertEqual(differing, noise)
         self.assertEqual(a, build_generation_graph(PROMPT, 1, PREFIX))
 
+    def test_prompt_and_prefix_only_change_their_nodes(self):
+        a = build_generation_graph(PROMPT, SEED, PREFIX)
+        b = build_generation_graph("A static wide shot of a desert road", SEED, "opencinema/test/after")
+        self.assertEqual(set(a), set(b))
+        differing = {k for k in a if a[k] != b[k]}
+        text = {k for k, n in a.items() if n["class_type"] == "CLIPTextEncode"}
+        self.assertEqual(differing, text | {GENERATION_OUTPUT_NODE})
+
 
 if __name__ == "__main__":
     unittest.main()
