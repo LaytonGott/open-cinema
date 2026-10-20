@@ -163,6 +163,39 @@ class FullShotTest(unittest.TestCase):
         self.assertEqual(dof[0]["inputs"]["f_number"], 2.8)
         self.assertAlmostEqual(dof[0]["inputs"]["focus_m"], derived["subject_distance_m"], places=3)
 
+    def test_progress_never_decreases(self):
+        h = self.harness
+        status, created = h.post("/api/shots", SHOT)
+        self.assertEqual(status, 201)
+        seen = []
+
+        def finished(record):
+            seen.append(record["progress"])
+            return record["status"] == "done"
+
+        try:
+            record = h.wait_until(created["id"], finished, timeout=60, what="the shot finishing")
+        except AssertionError as e:
+            raise AssertionError(f"{e}\n{h.log()}") from None
+
+        self.assertEqual(seen, sorted(seen), f"progress decreased: {seen}")
+        self.assertLess(seen[0], 0.85 + 0.0001)
+        self.assertEqual(record["progress"], 1)
+        states = {s["id"]: s["state"] for s in record["stages"]}
+        self.assertEqual(states["generate"], "done")
+        self.assertEqual(states["optics"], "done")
+        self.assertGreater(record["elapsed_s"], 0)
+        self.assertEqual(record["message"], "Done")
+
+    def test_health_and_index(self):
+        status, body = self.harness.get("/api/health")
+        self.assertEqual(status, 200)
+        self.assertTrue(body["comfyui"]["reachable"])
+        status, body = self.harness.get("/")
+        self.assertEqual(status, 200)
+        text = body.decode("utf-8") if isinstance(body, bytes) else str(body)
+        self.assertIn("<title>Open Cinema</title>", text)
+
 
 if __name__ == "__main__":
     unittest.main()
