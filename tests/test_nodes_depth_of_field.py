@@ -285,6 +285,82 @@ class TestDepthOfFieldLayers(unittest.TestCase):
         self.assertGreater(_LAYERS["normal"], _LAYERS["draft"])
 
 
+class TestDepthOfFieldSoftDepthGap(unittest.TestCase):
+    """A thin background gap inside a sharp subject stays light with soft depth.
+
+    Regression for the street clip (v5): the strip of street between the
+    subject's arm and torso turned dark. DA3's depth edge is soft over 2-3 px,
+    so coat pixels beside the strip got background-side depth, were blurred as
+    background and outweighed the light strip. In v6 a fixed 2 px growth of
+    the in-focus region halved it, but frames where the subject is closer have
+    softer edges (3-4 px) and kept it.
+    """
+
+    SUBJECT, BACKGROUND = 0.1, 0.8
+
+    @staticmethod
+    def _soften(sharp_depth, box_px):
+        """Box-blur depth across the columns, box_px wide, as DA3's soft edges."""
+        return torch.nn.functional.avg_pool2d(
+            sharp_depth[:, None], (1, box_px), stride=1, padding=(0, box_px // 2),
+            count_include_pad=False)[:, 0]
+
+    @staticmethod
+    def _apply(img, depth, quality):
+        return OpenOptics_DepthOfField().apply(
+            img, focal_mm=85.0, f_number=1.4, focus_m=2.0, sensor_width_mm=8.0,
+            max_radius_px=16, quality=quality, colorspace="linear", depth_mask=depth)
+
+    def _check_gap(self, box_px):
+        img = torch.full((1, 64, 64, 3), self.BACKGROUND)
+        img[:, :, 8:56] = self.SUBJECT
+        img[:, :, 31:33] = self.BACKGROUND
+        sharp_depth = torch.full((1, 64, 64), 20.0)
+        sharp_depth[:, :, 8:56] = 2.0
+        sharp_depth[:, :, 31:33] = 20.0
+        depth = self._soften(sharp_depth, box_px)
+        for quality in ("draft", "normal"):
+            out, coc_px = self._apply(img, depth, quality)
+            # 85^2 / (1.4 * 1915) * (20 - 2) / 20 = 2.4255 mm; * 64 / 8 / 2 = 9.70 px.
+            self.assertAlmostEqual(float(coc_px[0, 32, 0]) * 16, 9.70, delta=0.01)
+            gap = out[:, :, 31:33]
+            self.assertGreaterEqual(float(gap.min()), self.BACKGROUND - 0.05, quality)
+            for cols in (slice(12, 27), slice(37, 52)):
+                interior = (out[:, :, cols] - img[:, :, cols]).abs().max()
+                self.assertLessEqual(float(interior), 1e-4, quality)
+
+    def test_gap_stays_light_and_subject_interior_unchanged(self):
+        # A 5 px box: the edge is soft over 2 px on each side.
+        self._check_gap(5)
+
+    def test_gap_stays_light_with_4_px_soft_edges(self):
+        # A 9 px box: soft over 4 px on each side. The 6 coat columns beside the
+        # gap (28-30, 33-35) then have exactly the gap's depth, so no depth-only
+        # rule tells them apart; a fixed 2 px growth leaves 29-30 and 33-34 to
+        # be blurred into the gap.
+        self._check_gap(9)
+
+    def test_soft_edge_keeps_subject_sharp_without_a_sharp_background_ring(self):
+        # Dark subject in columns 16..47 on a light textured background, depth
+        # soft over 4 px. The subject's own edge pixels must stay sharp, and
+        # the background just outside it must still be blurred, not kept
+        # sharp by growing the in-focus region past the subject.
+        g = torch.Generator().manual_seed(11)
+        img = 0.6 + 0.3 * torch.rand(1, 64, 64, 3, generator=g)
+        img[:, :, 16:48] = self.SUBJECT
+        sharp_depth = torch.full((1, 64, 64), 20.0)
+        sharp_depth[:, :, 16:48] = 2.0
+        depth = self._soften(sharp_depth, 9)
+        for quality in ("draft", "normal"):
+            out, _ = self._apply(img, depth, quality)
+            subject = (out[:, :, 16:48] - img[:, :, 16:48]).abs().max()
+            self.assertLessEqual(float(subject), 1e-4, quality)
+            for cols in (slice(12, 16), slice(48, 52)):
+                ring = (out[:, :, cols] - img[:, :, cols]).abs().mean(dim=-1)
+                self.assertGreater(float(ring.min()), 0.0, quality)
+                self.assertGreater(float(ring.mean()), 0.03, quality)
+
+
 class TestDepthOfFieldChunking(unittest.TestCase):
     def test_input_types(self):
         spec = OpenOptics_DepthOfField.INPUT_TYPES()["optional"]["chunk_frames"]
