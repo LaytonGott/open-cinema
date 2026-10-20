@@ -113,6 +113,40 @@ class OpticsGraphValuesTests(unittest.TestCase):
         self._check("other.webm", 35, 8, 3.2, "p/x")
 
 
+class OpticsGraphSettingsTests(unittest.TestCase):
+    def setUp(self):
+        self.graph = build_optics_graph("clip.webm", 50, 2.8, 5.1005, "p/x")
+
+    def _inputs(self, class_type):
+        return _nodes(self.graph, class_type)[0]["inputs"]
+
+    def _check(self, class_type, expected):
+        inputs = self._inputs(class_type)
+        for key, value in expected.items():
+            self.assertEqual(inputs[key], value, f"{class_type}.{key}")
+
+    def test_load_model(self):
+        self._check("LoadDA3Model", {"model_name": "depth_anything_3_mono_large.safetensors", "weight_dtype": "default"})
+
+    def test_inference(self):
+        self._check("DA3Inference", {"resolution": 504, "resize_method": "upper_bound_resize", "mode": "mono"})
+
+    def test_render(self):
+        self._check("DA3Render", {"output": "depth", "output.normalization": "raw", "output.apply_sky_clip": False})
+
+    def test_depth_to_metric(self):
+        self._check("OpenOptics_DepthToMetric", {
+            "mode": "subject", "subject_x": 0.5, "subject_y": 0.5, "near_m": 0.3, "far_m": 80,
+            "low_percentile": 2, "high_percentile": 98, "inverse_depth": False})
+
+    def test_temporal_smooth(self):
+        self._check("OpenOptics_DepthTemporalSmooth", {"strength": 0.7})
+
+    def test_depth_of_field(self):
+        self._check("OpenOptics_DepthOfField", {
+            "sensor_width_mm": 36, "max_radius_px": 24, "quality": "normal", "colorspace": "srgb"})
+
+
 class OpticsGraphCacheTests(unittest.TestCase):
     def setUp(self):
         self.g1 = build_optics_graph("clip.webm", 50, 2.8, 5.1005, "opencinema/test/after_1")
