@@ -125,7 +125,7 @@ async def estimate(request):
 
 
 async def create_shot(request):
-    """Create a shot from the JSON body and return its public record with status 201 (400 ``invalid_shot`` if invalid)."""
+    """Create a shot from the JSON body and return its public record with status 201 (400 ``invalid_shot`` if invalid, 503 ``comfy_unreachable`` if ComfyUI is down)."""
     try:
         data = await request.json()
     except ValueError:
@@ -136,6 +136,9 @@ async def create_shot(request):
         params = validate_shot(data)
     except ShotError as exc:
         return error_response(400, "invalid_shot", exc.message, exc.field)
+    comfy = await check_health(request.app[COMFYUI_URL])
+    if not comfy["reachable"]:
+        return error_response(503, "comfy_unreachable", comfy["message"])
     store = request.app[STORE]
     record = new_record(new_shot_id({r["id"] for r in store.list()}), params)
     store.add(record)

@@ -71,8 +71,26 @@ class ServerTest(unittest.IsolatedAsyncioTestCase):
         resp = await client.get("/static/index.html")
         self.assertEqual(resp.status, 200)
 
-    async def test_create_shot_enqueues_on_runner(self):
+    async def test_create_shot_unreachable_comfy_gives_503(self):
         client = await self._client("http://127.0.0.1:1")
+        runner = client.server.app[RUNNER]
+        resp = await client.post("/api/shots", json=VALID_SHOT)
+        self.assertEqual(resp.status, 503)
+        self.assertEqual((await resp.json())["error"]["code"], "comfy_unreachable")
+        self.assertEqual(runner.queue.qsize(), 0)
+        resp = await client.get("/api/shots")
+        self.assertEqual((await resp.json())["shots"], [])
+
+    async def test_create_shot_enqueues_on_runner(self):
+        async def stats(request):
+            return web.json_response({"devices": [{"name": "RTX Test"}]})
+
+        fake = web.Application()
+        fake.router.add_get("/system_stats", stats)
+        fake_server = TestServer(fake)
+        await fake_server.start_server()
+        self.addAsyncCleanup(fake_server.close)
+        client = await self._client(f"http://127.0.0.1:{fake_server.port}")
         runner = client.server.app[RUNNER]
         self.assertIsNotNone(runner.task)
         ran = []
