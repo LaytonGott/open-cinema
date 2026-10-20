@@ -37,6 +37,11 @@ def submit_and_follow(client, graph, on_event, on_job=None):
     return job
 
 
+def upload_video(client, path):
+    """Return client.assets.from_file(path), the Asset used as the LoadVideo `file` value."""
+    return client.assets.from_file(path)
+
+
 def download_output(job, node_id, dest_dir, stem):
     """Save the output of node_id from job into dest_dir as stem + extension; return the Path.
 

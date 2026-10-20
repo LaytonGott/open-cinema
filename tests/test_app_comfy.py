@@ -3,7 +3,7 @@ from pathlib import Path
 
 from comfy_sdk import events
 
-from app.comfy import download_output, submit_and_follow
+from app.comfy import download_output, submit_and_follow, upload_video
 
 
 class StubJob:
@@ -84,6 +84,30 @@ class DownloadOutputTest(unittest.TestCase):
     def test_unknown_node_raises(self):
         with self.assertRaises(LookupError):
             download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", "dest", "s")
+
+
+class StubAssets:
+    def __init__(self, result):
+        self.result = result
+        self.calls = []
+
+    def from_file(self, path):
+        self.calls.append(path)
+        return self.result
+
+
+class StubAssetsClient:
+    def __init__(self, assets):
+        self.assets = assets
+
+
+class UploadVideoTest(unittest.TestCase):
+    def test_returns_asset_from_file(self):
+        sentinel = object()
+        assets = StubAssets(sentinel)
+        result = upload_video(StubAssetsClient(assets), "clip.mp4")
+        self.assertIs(result, sentinel)
+        self.assertEqual(assets.calls, ["clip.mp4"])
 
 
 if __name__ == "__main__":
