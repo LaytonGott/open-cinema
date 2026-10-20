@@ -56,6 +56,15 @@ class SubjectDistanceTests(unittest.TestCase):
                         shot.subject_distance(lens, framing), value, delta=0.00006)
 
 
+class SubjectDistanceRejectTests(unittest.TestCase):
+    def test_bad_lens_or_framing(self):
+        for lens, framing in [(28, "wide"), (50, "head"), ("50", "wide"), (True, "wide")]:
+            with self.subTest(lens=lens, framing=framing):
+                with self.assertRaises(ValueError) as ctx:
+                    shot.subject_distance(lens, framing)
+                self.assertTrue(str(ctx.exception))
+
+
 class ValidateValidTests(unittest.TestCase):
     def make(self, **changes):
         data = {"description": "A woman walks.", "camera": "static", "lens_mm": 50,

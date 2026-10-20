@@ -41,8 +41,14 @@ def subject_distance(lens_mm, framing):
 
     lens_mm is the focal length in millimetres; framing is a key of
     SUBJECT_HEIGHT_FRACTION. Uses a 36 mm wide sensor, a 1280 x 704 image and
-    a 1.7 m tall subject.
+    a 1.7 m tall subject. Raises ValueError if lens_mm is not an int in LENSES
+    or framing is not a key of SUBJECT_HEIGHT_FRACTION.
     """
+    if type(lens_mm) is not int or lens_mm not in LENSES:
+        raise ValueError(f"lens_mm must be one of {LENSES} mm, got {lens_mm!r}")
+    if not isinstance(framing, str) or framing not in SUBJECT_HEIGHT_FRACTION:
+        raise ValueError(
+            f"framing must be one of {list(SUBJECT_HEIGHT_FRACTION)}, got {framing!r}")
     sensor_h = framing_helpers.sensor_height_mm(36, 1280, 704)
     return framing_helpers.subject_distance_m(
         lens_mm, sensor_h, SUBJECT_HEIGHT_FRACTION[framing] * 704, 704, 1.7)
