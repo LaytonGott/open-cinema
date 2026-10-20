@@ -57,6 +57,22 @@ class BuildGenerationGraphTests(unittest.TestCase):
     def test_deterministic(self):
         self.assertEqual(self.graph, build_generation_graph(PROMPT, SEED, PREFIX))
 
+    def test_generation_inputs_acceptance(self):
+        prompt = "A slow dolly shot through a rainy neon street"
+        prefix = "opencinema/test/before"
+        graph = build_generation_graph(prompt, 1234, prefix)
+        encoders = _nodes(graph, "CLIPTextEncode")
+        self.assertEqual(len(encoders), 1)
+        self.assertEqual(encoders[0]["inputs"]["text"], prompt)
+        noises = _nodes(graph, "RandomNoise")
+        self.assertEqual(len(noises), 2)
+        self.assertEqual({n["inputs"]["noise_seed"] for n in noises}, {1234, 1612})
+        self.assertIn(GENERATION_OUTPUT_NODE, graph)
+        out = graph[GENERATION_OUTPUT_NODE]
+        self.assertEqual(out["class_type"], "SaveVideo")
+        self.assertEqual(out["inputs"]["filename_prefix"], prefix)
+        self.assertEqual(len(_nodes(graph, "SaveVideo")), 1)
+
 
 OPTICS_PREFIX = "opencinema/test/after_1"
 OPTICS_CLASS_TYPES = [
