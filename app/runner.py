@@ -18,6 +18,7 @@ class ShotRunner:
         self.queue = None
         self.task = None
         self.client = None
+        self._watchers = {}
 
     def start(self):
         """Create the queue and the worker task; call inside a running loop."""
@@ -39,6 +40,21 @@ class ShotRunner:
         """Put a shot id on the queue; the worker runs it after earlier ids."""
         self.queue.put_nowait(shot_id)
 
+    def watch(self, shot_id):
+        """Return a new asyncio.Event that `update` sets whenever it saves shot `shot_id`."""
+        event = asyncio.Event()
+        self._watchers.setdefault(shot_id, set()).add(event)
+        return event
+
+    def unwatch(self, shot_id, event):
+        """Stop setting `event` (from `watch(shot_id)`) on updates; unknown events are ignored. Returns None."""
+        events = self._watchers.get(shot_id)
+        if events is None:
+            return
+        events.discard(event)
+        if not events:
+            del self._watchers[shot_id]
+
     def update(self, record, **changes):
         """Set `changes` on the shot `record`, refresh `elapsed_s` and save it.
 
@@ -51,6 +67,8 @@ class ShotRunner:
         started = record.setdefault("_started", now)
         record["elapsed_s"] = round(now - started, 1)
         self.store.save(record)
+        for event in list(self._watchers.get(record["id"], ())):
+            event.set()
 
     def apply_event(self, record, stage, kind, data):
         """Apply one `submit_and_follow` event to the shot `record` (loop thread).
