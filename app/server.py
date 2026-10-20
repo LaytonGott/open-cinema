@@ -1,6 +1,7 @@
 """The aiohttp application for the Open Cinema director app."""
 
 import asyncio
+import logging
 import signal
 import sys
 from pathlib import Path
@@ -12,10 +13,51 @@ from app.comfy_health import check_health
 from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.store import ShotStore
 
+log = logging.getLogger("app")
+
 STATIC_DIR = Path(__file__).parent / "static"
 
 COMFYUI_URL = web.AppKey("comfyui_url", str)
 STORE = web.AppKey("store", ShotStore)
+
+
+def error_response(status, code, message, field=None):
+    """Return a JSON response ``{"error": {"code", "message", "field"}}`` with HTTP ``status``."""
+    return web.json_response(
+        {"error": {"code": code, "message": message, "field": field}}, status=status
+    )
+
+
+@web.middleware
+async def error_middleware(request, handler):
+    """Turn HTTP errors and unexpected exceptions into JSON error responses (no tracebacks in bodies)."""
+    try:
+        response = await handler(request)
+        # Newer aiohttp checks a FileResponse's file only when it is sent, so look first.
+        if isinstance(response, web.FileResponse) and not Path(response._path).is_file():
+            raise web.HTTPNotFound()
+        return response
+    except web.HTTPNotFound:
+        return error_response(404, "not_found", f"Nothing exists at {request.path}.")
+    except web.HTTPMethodNotAllowed:
+        return error_response(
+            405, "method_not_allowed", f"{request.method} is not allowed at {request.path}."
+        )
+    except web.HTTPException as exc:
+        if exc.status < 400:
+            raise
+        return error_response(
+            exc.status, "http_error", f"The request failed with status {exc.status} ({exc.reason})."
+        )
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        log.exception("Unhandled error handling %s %s", request.method, request.path)
+        return error_response(
+            500,
+            "internal",
+            "Something went wrong inside Open Cinema. Check the console for details.",
+        )
 
 
 async def health(request):
@@ -34,7 +76,7 @@ def create_app(comfyui_url, data_dir):
 
     Returns the configured ``aiohttp.web.Application``.
     """
-    app = web.Application()
+    app = web.Application(middlewares=[error_middleware])
     app[COMFYUI_URL] = comfyui_url
     store = ShotStore(data_dir)
     store.load_all()
