@@ -116,6 +116,28 @@ class ValidateMissingTests(unittest.TestCase):
                 self.assertGreater(len(ctx.exception.message), 12)
 
 
+class ValidateDescriptionTests(unittest.TestCase):
+    def make(self, **changes):
+        data = {"description": "A woman walks.", "camera": "static", "lens_mm": 50,
+                "aperture": 2.8, "framing": "waist-up"}
+        data.update(changes)
+        return data
+
+    def test_bad_descriptions(self):
+        for value in ["ab", "   ", "a" * 1001, 5, None, " " * 1000 + "ab"]:
+            with self.subTest(description=value if not isinstance(value, str) else len(value)):
+                with self.assertRaises(shot.ShotError) as ctx:
+                    shot.validate_shot(self.make(description=value))
+                self.assertEqual(ctx.exception.field, "description")
+                self.assertGreater(len(ctx.exception.message), 12)
+
+    def test_description_limits(self):
+        for value in ["abc", "a" * 1000]:
+            with self.subTest(length=len(value)):
+                self.assertEqual(shot.validate_shot(self.make(description=value))["description"], value)
+        self.assertEqual(shot.validate_shot(self.make(description=" abc "))["description"], "abc")
+
+
 class BuildPromptTests(unittest.TestCase):
     FRAMING = {
         "close-up": "Close-up shot of the subject's face and shoulders",
