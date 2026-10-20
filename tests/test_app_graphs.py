@@ -92,5 +92,26 @@ class BuildOpticsGraphTests(unittest.TestCase):
         self.assertEqual(out["inputs"]["filename_prefix"], OPTICS_PREFIX)
 
 
+class OpticsGraphValuesTests(unittest.TestCase):
+    def _check(self, video, focal, f_number, subject, prefix):
+        graph = build_optics_graph(video, focal, f_number, subject, prefix)
+        self.assertEqual(_nodes(graph, "LoadVideo")[0]["inputs"]["file"], video)
+        dof = _nodes(graph, "OpenOptics_DepthOfField")[0]["inputs"]
+        self.assertEqual(dof["focal_mm"], focal)
+        self.assertEqual(dof["f_number"], f_number)
+        self.assertEqual(dof["focus_m"], subject)
+        metric = _nodes(graph, "OpenOptics_DepthToMetric")[0]["inputs"]
+        self.assertEqual(metric["subject_m"], subject)
+        out = graph[OPTICS_OUTPUT_NODE]
+        self.assertEqual(out["class_type"], "SaveVideo")
+        self.assertEqual(out["inputs"]["filename_prefix"], prefix)
+
+    def test_first_values(self):
+        self._check("clip.webm", 50.0, 2.8, 5.1005, "opencinema/test/after_1")
+
+    def test_other_values(self):
+        self._check("other.webm", 35, 8, 3.2, "p/x")
+
+
 if __name__ == "__main__":
     unittest.main()
