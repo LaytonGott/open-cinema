@@ -1,7 +1,10 @@
 import asyncio
+import json
 import tempfile
 import time
 import unittest
+from pathlib import Path
+from unittest import mock
 
 from app.record import public_record
 from app.runner import ShotRunner
@@ -95,6 +98,35 @@ class ShotRunnerTest(unittest.TestCase):
             asyncio.run(main())
             self.assertAlmostEqual(record["progress"], 0.85, places=6)
             self.assertEqual(record["message"], "Generating video")
+
+    def test_run_generation_downloads_before(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ShotStore(tmp)
+            record = store.add({
+                "id": "s1", "status": "queued", "progress": 0.0, "message": "",
+                "params": {"seed": 7}, "derived": {"prompt": "a cat"},
+                "stages": [{"id": "generate", "state": "pending", "progress": 0.0}]})
+            runner = ShotRunner(store)
+            runner.client = object()
+            seen = {}
+
+            def fake_submit(client, graph, on_event, on_job=None):
+                seen["graph"] = graph
+                return "job"
+
+            def fake_download(job, node_id, dest_dir, stem):
+                path = Path(dest_dir) / (stem + ".webm")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"x")
+                return path
+
+            with mock.patch("app.comfy.submit_and_follow", fake_submit), \
+                    mock.patch("app.comfy.download_output", fake_download):
+                asyncio.run(runner.run_generation(record))
+            self.assertEqual(record["before_url"], "/media/s1/before.webm")
+            self.assertEqual(record["stages"][0]["state"], "done")
+            self.assertAlmostEqual(record["progress"], 0.85, places=6)
+            self.assertIn("opencinema/s1/before", json.dumps(seen["graph"]))
 
     def test_internal_error_marks_failed_and_continues(self):
         class FailingFirst(RecordingRunner):

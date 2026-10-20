@@ -3,7 +3,7 @@ import asyncio
 import logging
 import time
 
-from app import progress
+from app import comfy, graphs, progress
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ class ShotRunner:
         self.store = store
         self.queue = None
         self.task = None
+        self.client = None
 
     def start(self):
         """Create the queue and the worker task; call inside a running loop."""
@@ -105,5 +106,45 @@ class ShotRunner:
             finally:
                 self.queue.task_done()
 
+    async def run_generation(self, record):
+        """Generate the "before" video of the shot `record` in ComfyUI.
+
+        Sets status 'generating' and the generate stage 'active', submits the
+        generation graph, downloads its output to the shot folder as
+        `before<ext>`, then sets `before_url`, the generate stage 'done'
+        (progress 1.0) and the overall progress to at least 0.85. Errors
+        propagate. Returns None.
+        """
+        shot_id = record["id"]
+        self._set_stage(record, "generate", "active")
+        self.update(record, status="generating", message="Waiting for ComfyUI")
+        graph = graphs.build_generation_graph(
+            record["derived"]["prompt"], record["params"]["seed"],
+            f"opencinema/{shot_id}/before")
+        loop = asyncio.get_running_loop()
+        if self.client is None:
+            self.client = comfy.make_client()
+        job = await asyncio.to_thread(
+            comfy.submit_and_follow, self.client, graph,
+            self.thread_callback(loop, record, "generate"))
+        path = await asyncio.to_thread(
+            comfy.download_output, job, graphs.GENERATION_OUTPUT_NODE,
+            self.store.shot_dir(shot_id), "before")
+        self._set_stage(record, "generate", "done", 1.0)
+        self.update(
+            record,
+            before_url=f"/media/{shot_id}/before{path.suffix}",
+            progress=progress.monotonic(record.get("progress", 0.0), 0.85))
+
+    @staticmethod
+    def _set_stage(record, stage, state, stage_progress=None):
+        for entry in record.get("stages") or []:
+            if entry.get("id") == stage:
+                entry["state"] = state
+                if stage_progress is not None:
+                    entry["progress"] = stage_progress
+
     async def run_shot(self, shot_id):
-        """Run one shot; does nothing yet."""
+        """Run one shot: load its record and generate the video."""
+        record = self.store.get(shot_id)
+        await self.run_generation(record)
