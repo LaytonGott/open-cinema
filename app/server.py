@@ -14,7 +14,11 @@ from app.comfy_health import check_health
 from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.record import new_record, public_record
 from app.runner import ShotRunner
-from app.shot import APERTURES, CAMERAS, FRAMINGS, LENSES, ShotError, validate_shot
+from app.shot import (
+    APERTURES, CAMERAS, FRAMINGS, LENSES, SUBJECT_HEIGHT_FRACTION, ShotError,
+    subject_distance, validate_shot,
+)
+from open_optics.framing import sensor_height_mm
 from app.store import ShotStore, new_shot_id
 
 log = logging.getLogger("app")
@@ -88,6 +92,34 @@ async def options(request):
                 "aperture": 2.8,
                 "framing": "full-body",
             },
+        }
+    )
+
+
+async def estimate(request):
+    """Return JSON subject_distance_m (metres), sensor_height_mm, subject_height_fraction and real_height_m (metres) for query ``lens_mm`` and ``framing`` (400 ``invalid_shot`` if invalid)."""
+    lens_message = "The lens must be one of: 24, 35, 50, 85 mm."
+    framing_message = f"The framing must be one of: {', '.join(SUBJECT_HEIGHT_FRACTION)}."
+    raw_lens = request.query.get("lens_mm")
+    try:
+        lens_mm = int(raw_lens)
+    except (TypeError, ValueError):
+        return error_response(400, "invalid_shot", lens_message, "lens_mm")
+    if lens_mm not in LENSES:
+        return error_response(400, "invalid_shot", lens_message, "lens_mm")
+    framing = request.query.get("framing")
+    if framing not in SUBJECT_HEIGHT_FRACTION:
+        return error_response(400, "invalid_shot", framing_message, "framing")
+    try:
+        distance = subject_distance(lens_mm, framing)
+    except ValueError:
+        return error_response(400, "invalid_shot", lens_message, "lens_mm")
+    return web.json_response(
+        {
+            "subject_distance_m": round(distance, 4),
+            "sensor_height_mm": sensor_height_mm(36, 1280, 704),
+            "subject_height_fraction": SUBJECT_HEIGHT_FRACTION[framing],
+            "real_height_m": 1.7,
         }
     )
 
@@ -169,6 +201,7 @@ def create_app(comfyui_url, data_dir):
     app.on_cleanup.append(stop_runner)
     app.router.add_get("/api/health", health)
     app.router.add_get("/api/options", options)
+    app.router.add_get("/api/estimate", estimate)
     app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
