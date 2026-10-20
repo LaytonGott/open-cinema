@@ -12,6 +12,7 @@ from app.cli import parse_args
 from app.comfy_health import check_health
 from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.record import new_record, public_record
+from app.runner import ShotRunner
 from app.shot import ShotError, validate_shot
 from app.store import ShotStore, new_shot_id
 
@@ -21,6 +22,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 COMFYUI_URL = web.AppKey("comfyui_url", str)
 STORE = web.AppKey("store", ShotStore)
+RUNNER = web.AppKey("runner", ShotRunner)
 
 
 def error_response(status, code, message, field=None):
@@ -83,6 +85,7 @@ async def create_shot(request):
     store = request.app[STORE]
     record = new_record(new_shot_id({r["id"] for r in store.list()}), params)
     store.add(record)
+    request.app[RUNNER].enqueue(record["id"])
     return web.json_response(public_record(record), status=201)
 
 
@@ -116,6 +119,17 @@ def create_app(comfyui_url, data_dir):
     store = ShotStore(data_dir)
     store.load_all()
     app[STORE] = store
+    runner = ShotRunner(store)
+    app[RUNNER] = runner
+
+    async def start_runner(app):
+        runner.start()
+
+    async def stop_runner(app):
+        await runner.stop()
+
+    app.on_startup.append(start_runner)
+    app.on_cleanup.append(stop_runner)
     app.router.add_get("/api/health", health)
     app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/api/shots", list_shots)

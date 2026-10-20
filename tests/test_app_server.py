@@ -1,3 +1,4 @@
+import asyncio
 import socket
 import tempfile
 import time
@@ -6,7 +7,15 @@ import unittest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from app.server import create_app
+from app.server import RUNNER, create_app
+
+VALID_SHOT = {
+    "description": "A woman walks along a rainy street",
+    "camera": "static",
+    "lens_mm": 50,
+    "aperture": 2.8,
+    "framing": "waist-up",
+}
 
 
 class ServerTest(unittest.IsolatedAsyncioTestCase):
@@ -61,6 +70,30 @@ class ServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("<title>Open Cinema</title>", await resp.text())
         resp = await client.get("/static/index.html")
         self.assertEqual(resp.status, 200)
+
+    async def test_create_shot_enqueues_on_runner(self):
+        client = await self._client("http://127.0.0.1:1")
+        runner = client.server.app[RUNNER]
+        self.assertIsNotNone(runner.task)
+        ran = []
+
+        async def record_run(shot_id):
+            ran.append(shot_id)
+
+        runner.run_shot = record_run
+        resp = await client.post("/api/shots", json=VALID_SHOT)
+        self.assertEqual(resp.status, 201)
+        shot_id = (await resp.json())["id"]
+        await asyncio.wait_for(runner.queue.join(), 5)
+        self.assertEqual(ran, [shot_id])
+
+    async def test_runner_stops_on_cleanup(self):
+        client = await self._client("http://127.0.0.1:1")
+        runner = client.server.app[RUNNER]
+        task = runner.task
+        await client.close()
+        self.assertIsNone(runner.task)
+        self.assertTrue(task.done())
 
 
 if __name__ == "__main__":
