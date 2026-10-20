@@ -1,5 +1,6 @@
 """Sequential shot runner: a queue of shot ids and one worker task."""
 import asyncio
+import time
 
 
 class ShotRunner:
@@ -29,6 +30,19 @@ class ShotRunner:
     def enqueue(self, shot_id):
         """Put a shot id on the queue; the worker runs it after earlier ids."""
         self.queue.put_nowait(shot_id)
+
+    def update(self, record, **changes):
+        """Set `changes` on the shot `record`, refresh `elapsed_s` and save it.
+
+        `elapsed_s` is the seconds since `record['_started']` (a
+        `time.monotonic()` value, set now if missing), rounded to 1 decimal.
+        Returns None.
+        """
+        record.update(changes)
+        now = time.monotonic()
+        started = record.setdefault("_started", now)
+        record["elapsed_s"] = round(now - started, 1)
+        self.store.save(record)
 
     async def _worker(self):
         while True:

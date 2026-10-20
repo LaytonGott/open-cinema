@@ -1,8 +1,11 @@
 import asyncio
+import tempfile
 import time
 import unittest
 
+from app.record import public_record
 from app.runner import ShotRunner
+from app.store import ShotStore
 
 
 class RecordingRunner(ShotRunner):
@@ -28,6 +31,23 @@ class ShotRunnerTest(unittest.TestCase):
             return runner.ran
 
         self.assertEqual(asyncio.run(main()), ["a", "b", "c"])
+
+    def test_update_applies_and_saves(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ShotStore(tmp)
+            record = store.add({"id": "s1", "message": ""})
+            runner = ShotRunner(store)
+            runner.update(record, message="x")
+            self.assertEqual(record["message"], "x")
+            self.assertGreaterEqual(record["elapsed_s"], 0)
+            self.assertIn("_started", record)
+            other = ShotStore(tmp)
+            other.load_all()
+            self.assertEqual(other.get("s1")["message"], "x")
+            self.assertEqual(other.get("s1")["elapsed_s"], record["elapsed_s"])
+            public = public_record(record)
+            self.assertNotIn("_started", public)
+            self.assertEqual(public["message"], "x")
 
 
 if __name__ == "__main__":
