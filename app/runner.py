@@ -201,7 +201,15 @@ class ShotRunner:
                                 message=error["message"])
                 elif record is not None:
                     error = errors.map_error(exc, "optics")
-                    self.update(record, status="failed", error=error)
+                    if record.get("versions"):
+                        record.pop("_reapply", None)
+                        self._set_stage(record, "optics", "done")
+                        self.update(record, status="done", progress=1.0,
+                                    message="Done", reapply_error=error)
+                    else:
+                        self._set_stage(record, "optics", "failed")
+                        self.update(record, status="failed", error=error,
+                                    message=error["message"])
             finally:
                 self.cancel_requested = None
                 self.current = None
@@ -361,7 +369,7 @@ class ShotRunner:
         self._set_stage(record, "optics", "done", 1.0)
         record.pop("_reapply", None)
         self.update(record, current_version=n, status="done", progress=1.0,
-                    message="Done")
+                    message="Done", error=None, reapply_error=None)
 
     async def run_reapply(self, shot_id, aperture):
         """Re-apply the optics to shot `shot_id` at `aperture` (f-number).
