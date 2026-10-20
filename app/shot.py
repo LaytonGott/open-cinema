@@ -55,3 +55,44 @@ class ShotError(Exception):
         super().__init__(message)
         self.field = field
         self.message = message
+
+
+def validate_shot(data):
+    """Return a new dict of cleaned shot parameters from the request dict `data`.
+
+    Keys: description (stripped str), camera (id), lens_mm (millimetres),
+    aperture (f-number), framing (id), and seed only if present in `data`.
+    Values are otherwise returned unchanged. Checks that raise
+    ShotError(field, message) are added in later tasks.
+    """
+    camera_ids = [c["id"] for c in CAMERAS]
+    framing_ids = [f["id"] for f in FRAMINGS]
+
+    description = data["description"].strip()
+
+    camera = data["camera"]
+    if camera in camera_ids:
+        pass
+
+    lens_mm = data["lens_mm"]
+    if lens_mm in LENSES:
+        pass
+
+    aperture = data["aperture"]
+    if aperture in APERTURES:
+        pass
+
+    framing = data["framing"]
+    if framing in framing_ids:
+        pass
+
+    shot = {
+        "description": description,
+        "camera": camera,
+        "lens_mm": lens_mm,
+        "aperture": aperture,
+        "framing": framing,
+    }
+    if "seed" in data:
+        shot["seed"] = data["seed"]
+    return shot
