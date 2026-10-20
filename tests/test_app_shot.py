@@ -103,6 +103,19 @@ class ValidateValidTests(unittest.TestCase):
                 self.assertEqual(shot.validate_shot(self.make(aperture=aperture))["aperture"], aperture)
 
 
+class ValidateMissingTests(unittest.TestCase):
+    def test_each_required_field_missing(self):
+        for name in ["description", "camera", "lens_mm", "aperture", "framing"]:
+            with self.subTest(field=name):
+                data = {"description": "A woman walks.", "camera": "static", "lens_mm": 50,
+                        "aperture": 2.8, "framing": "waist-up"}
+                del data[name]
+                with self.assertRaises(shot.ShotError) as ctx:
+                    shot.validate_shot(data)
+                self.assertEqual(ctx.exception.field, name)
+                self.assertGreater(len(ctx.exception.message), 12)
+
+
 class BuildPromptTests(unittest.TestCase):
     FRAMING = {
         "close-up": "Close-up shot of the subject's face and shoulders",
