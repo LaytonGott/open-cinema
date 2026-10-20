@@ -19,6 +19,7 @@ class ShotRunner:
         self.task = None
         self.client = None
         self._watchers = {}
+        self.items = {}
 
     def start(self):
         """Create the queue and the worker task; call inside a running loop."""
@@ -36,9 +37,17 @@ class ShotRunner:
         except asyncio.CancelledError:
             pass
 
-    def enqueue(self, shot_id):
-        """Put a shot id on the queue; the worker runs it after earlier ids."""
-        self.queue.put_nowait(shot_id)
+    def enqueue(self, shot_id, aperture=None):
+        """Queue shot `shot_id`; the worker runs it after earlier items.
+
+        `aperture` is None for a full run (`run_shot`) or an f-number for a
+        re-apply (`run_reapply`). The item dict is kept in `self.items` until
+        the worker finishes with it. Returns None.
+        """
+        item = {"shot_id": shot_id, "aperture": aperture,
+                "cancelled": False, "started": False}
+        self.items[shot_id] = item
+        self.queue.put_nowait(item)
 
     def watch(self, shot_id):
         """Return a new asyncio.Event that `update` sets whenever it saves shot `shot_id`."""
@@ -107,10 +116,18 @@ class ShotRunner:
         return callback
 
     async def _worker(self):
+        """Take items off the queue one at a time and run them. Never returns."""
         while True:
-            shot_id = await self.queue.get()
+            item = await self.queue.get()
+            shot_id = item["shot_id"]
             try:
-                await self.run_shot(shot_id)
+                if item["cancelled"]:
+                    continue
+                item["started"] = True
+                if item["aperture"] is None:
+                    await self.run_shot(shot_id)
+                else:
+                    await self.run_reapply(shot_id, item["aperture"])
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -124,6 +141,8 @@ class ShotRunner:
                         "stage": "generate",
                     })
             finally:
+                if self.items.get(shot_id) is item:
+                    del self.items[shot_id]
                 self.queue.task_done()
 
     async def run_generation(self, record):
