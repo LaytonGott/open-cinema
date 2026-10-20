@@ -4,6 +4,8 @@ See docs/app-spec.md section 2. Lens focal lengths are in millimetres,
 apertures are f-numbers. Standard library only.
 """
 
+import random
+
 from open_optics import framing as framing_helpers
 
 # Camera moves offered in the UI, in display order.
@@ -104,7 +106,8 @@ def validate_shot(data):
     """Return a new dict of cleaned shot parameters from the request dict `data`.
 
     Keys: description (stripped str), camera (id), lens_mm (millimetres),
-    aperture (f-number), framing (id), and seed only if present in `data`.
+    aperture (f-number), framing (id), and seed (always returned: a random int from 0 to 2147483647 when absent
+    from `data`).
     Values are otherwise returned unchanged. Checks that raise
     ShotError(field, message) are added in later tasks. Before any other
     check, raises ShotError(name, "The <name> is required.") for the first of
@@ -166,6 +169,13 @@ def validate_shot(data):
         "aperture": aperture,
         "framing": framing,
     }
-    if "seed" in data:
-        shot["seed"] = data["seed"]
+    if "seed" not in data:
+        shot["seed"] = random.randint(0, 2147483647)
+    else:
+        seed = data["seed"]
+        if type(seed) is not int or not 0 <= seed <= 2147483647:
+            raise ShotError(
+                "seed", "The seed must be a whole number from 0 to 2147483647."
+            )
+        shot["seed"] = seed
     return shot
