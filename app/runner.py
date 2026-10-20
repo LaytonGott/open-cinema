@@ -1,6 +1,9 @@
 """Sequential shot runner: a queue of shot ids and one worker task."""
 import asyncio
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class ShotRunner:
@@ -52,7 +55,15 @@ class ShotRunner:
             except asyncio.CancelledError:
                 raise
             except Exception:
-                pass
+                logger.exception("run_shot failed for shot %s", shot_id)
+                record = self.store.get(shot_id)
+                if record is not None:
+                    self.update(record, status="failed", error={
+                        "code": "internal",
+                        "message": "Something went wrong inside Open Cinema. "
+                                   "Check the console for details.",
+                        "stage": "generate",
+                    })
             finally:
                 self.queue.task_done()
 
