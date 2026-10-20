@@ -273,5 +273,35 @@ class BuildPromptTests(unittest.TestCase):
         self.assertIn("shoulders. A man waits. Slow tilt up.", got)
 
 
+class PromptEndingTests(unittest.TestCase):
+    def prompt(self, description):
+        return shot.build_prompt({"description": description, "camera": "static",
+                                  "lens_mm": 85, "aperture": 2.8, "framing": "wide"})
+
+    def test_full_stop_added(self):
+        self.assertIn("A man waits at a bus stop. The camera",
+                      self.prompt("A man waits at a bus stop"))
+
+    def test_question_unchanged(self):
+        got = self.prompt("Is it raining?")
+        self.assertIn("Is it raining? The camera", got)
+        self.assertNotIn("?.", got)
+
+    def test_exclamation_unchanged(self):
+        got = self.prompt("He runs!")
+        self.assertIn("He runs! The camera", got)
+        self.assertNotIn("!.", got)
+
+    def test_full_stop_unchanged(self):
+        got = self.prompt("Quiet harbour.")
+        self.assertIn("Quiet harbour. The camera", got)
+        self.assertNotIn("..", got)
+
+    def test_padded_description(self):
+        got = self.prompt("   Quiet harbour.   ")
+        self.assertIn("Quiet harbour. The camera", got)
+        self.assertNotIn("  ", got)
+
+
 if __name__ == "__main__":
     unittest.main()
