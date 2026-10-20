@@ -154,6 +154,41 @@ class ShotRunnerTest(unittest.TestCase):
             self.assertIn("2.8", text)
             self.assertIn("opencinema/s1/after_1", text)
 
+    def test_run_shot_runs_generation_then_optics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ShotStore(tmp)
+            store.add({
+                "id": "s1", "status": "queued", "progress": 0.0, "message": "",
+                "params": {"seed": 7, "lens_mm": 50, "aperture": 2.8},
+                "derived": {"prompt": "a cat", "subject_distance_m": 3.0},
+                "stages": [{"id": "generate", "state": "pending", "progress": 0.0},
+                           {"id": "optics", "state": "pending", "progress": 0.0}]})
+            runner = ShotRunner(store)
+
+            def fake_download(job, node_id, dest_dir, stem):
+                path = Path(dest_dir) / (stem + ".mp4")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"x")
+                return path
+
+            with mock.patch("app.comfy.make_client", lambda: "client"), \
+                    mock.patch("app.comfy.upload_video", lambda c, p: "up.mp4"), \
+                    mock.patch("app.comfy.submit_and_follow",
+                               lambda client, graph, on_event, on_job=None: "job"), \
+                    mock.patch("app.comfy.download_output", fake_download):
+                asyncio.run(runner.run_shot("s1"))
+            record = store.get("s1")
+            self.assertEqual(len(record["versions"]), 1)
+            version = record["versions"][0]
+            self.assertEqual(version["n"], 1)
+            self.assertEqual(version["aperture"], 2.8)
+            self.assertEqual(version["url"], "/media/s1/after_1.mp4")
+            self.assertTrue(version["created_at"].endswith("Z"))
+            self.assertEqual(record["current_version"], 1)
+            self.assertEqual(record["status"], "done")
+            self.assertEqual(record["progress"], 1.0)
+            self.assertEqual(record["message"], "Done")
+
     def test_internal_error_marks_failed_and_continues(self):
         class FailingFirst(RecordingRunner):
             async def run_shot(self, shot_id):

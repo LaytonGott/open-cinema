@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app import comfy, graphs, progress
@@ -164,7 +165,39 @@ class ShotRunner:
                 if stage_progress is not None:
                     entry["progress"] = stage_progress
 
+    async def run_optics(self, record, aperture, n):
+        """Apply the optics to the shot `record`'s "before" video as version `n`.
+
+        `aperture` is the f-number. Sets status 'optics' and the optics stage
+        'active', runs the optics graph in ComfyUI, downloads its output as
+        `after_<n><ext>`, appends the version (`n`, `aperture`, `url`,
+        `created_at` in UTC ISO ending in 'Z') to `versions`, sets
+        `current_version`, the optics stage 'done', status 'done', progress
+        1.0 and message 'Done'. Errors propagate. Returns None.
+        """
+        shot_id = record["id"]
+        self._set_stage(record, "optics", "active")
+        self.update(record, status="optics", message="Estimating depth")
+        loop = asyncio.get_running_loop()
+        client, graph = await asyncio.to_thread(
+            self.prepare_optics, record, aperture, n)
+        job = await asyncio.to_thread(
+            comfy.submit_and_follow, client, graph,
+            self.thread_callback(loop, record, "optics"))
+        path = await asyncio.to_thread(
+            comfy.download_output, job, graphs.OPTICS_OUTPUT_NODE,
+            self.store.shot_dir(shot_id), f"after_{n}")
+        created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        record.setdefault("versions", []).append({
+            "n": n, "aperture": aperture,
+            "url": f"/media/{shot_id}/after_{n}{path.suffix}",
+            "created_at": created})
+        self._set_stage(record, "optics", "done", 1.0)
+        self.update(record, current_version=n, status="done", progress=1.0,
+                    message="Done")
+
     async def run_shot(self, shot_id):
-        """Run one shot: load its record and generate the video."""
+        """Run one shot: generate the video, then apply the optics as version 1."""
         record = self.store.get(shot_id)
         await self.run_generation(record)
+        await self.run_optics(record, record["params"]["aperture"], 1)
