@@ -199,6 +199,16 @@ class GenerationStageTests(unittest.TestCase):
         self.assertEqual(g["24"]["inputs"]["sigmas"], ["22", 0])
         self.assertEqual(len(g["22"]["inputs"]["sigmas"].split(",")), 4)
 
+    def test_stage_two_uses_upsampled_latent(self):
+        g = build_generation_graph("a prompt", 7, "p/x")
+        self.assertEqual(g["24"]["inputs"]["latent_image"], ["19", 0])
+        self.assertEqual(g["19"]["class_type"], "LTXVConcatAVLatent")
+        self.assertEqual(g["19"]["inputs"]["video_latent"], ["18", 0])
+        self.assertEqual(g["18"]["class_type"], "LTXVLatentUpsampler")
+        self.assertEqual(g["18"]["inputs"]["samples"], ["16", 0])
+        self.assertEqual(g["16"]["class_type"], "LTXVSeparateAVLatent")
+        self.assertEqual(g["16"]["inputs"]["av_latent"], ["15", 1])
+
 
 if __name__ == "__main__":
     unittest.main()
