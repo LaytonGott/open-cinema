@@ -94,5 +94,59 @@ class ValidateValidTests(unittest.TestCase):
                 self.assertEqual(shot.validate_shot(self.make(aperture=aperture))["aperture"], aperture)
 
 
+class BuildPromptTests(unittest.TestCase):
+    FRAMING = {
+        "close-up": "Close-up shot of the subject's face and shoulders",
+        "waist-up": "Waist-up medium shot",
+        "full-body": "Full-body shot, the whole figure visible head to toe",
+        "wide": "Wide establishing shot, the figure small in a large scene",
+    }
+    CAMERA = {
+        "static": "The camera is locked off and does not move",
+        "dolly-in": "Slow dolly-in toward the subject",
+        "dolly-out": "Slow dolly-out away from the subject",
+        "pan-left": "Smooth pan to the left",
+        "pan-right": "Smooth pan to the right",
+        "tilt-up": "Slow tilt up",
+        "orbit": "The camera orbits slowly around the subject",
+        "handheld": "Handheld camera with subtle natural movement",
+    }
+    TAIL = ("85 mm lens look, deep focus with everything sharp from the foreground "
+            "to the far background, cinematic lighting, 35mm film.")
+
+    def params(self, camera, framing, description):
+        return {"description": description, "camera": camera, "lens_mm": 85,
+                "aperture": 2.8, "framing": framing}
+
+    def test_all_32_pairs(self):
+        count = 0
+        for cam in shot.CAMERAS:
+            for fr in shot.FRAMINGS:
+                expected = (f"{self.FRAMING[fr['id']]}. A man waits at a bus stop. "
+                            f"{self.CAMERA[cam['id']]}. {self.TAIL}")
+                got = shot.build_prompt(
+                    self.params(cam["id"], fr["id"], "A man waits at a bus stop"))
+                self.assertEqual(got, expected)
+                count += 1
+        self.assertEqual(count, 32)
+
+    def test_example_string(self):
+        self.assertEqual(
+            shot.build_prompt(self.params("static", "waist-up", "A man waits at a bus stop")),
+            "Waist-up medium shot. A man waits at a bus stop. The camera is locked off "
+            "and does not move. 85 mm lens look, deep focus with everything sharp from "
+            "the foreground to the far background, cinematic lighting, 35mm film.")
+
+    def test_no_extra_period(self):
+        for end in (".", "!", "?"):
+            with self.subTest(end=end):
+                got = shot.build_prompt(self.params("orbit", "wide", "A man waits" + end))
+                self.assertIn("A man waits" + end + " The camera orbits", got)
+
+    def test_spaces_trimmed(self):
+        got = shot.build_prompt(self.params("tilt-up", "close-up", "   A man waits  "))
+        self.assertIn("shoulders. A man waits. Slow tilt up.", got)
+
+
 if __name__ == "__main__":
     unittest.main()
