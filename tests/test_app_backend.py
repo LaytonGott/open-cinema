@@ -86,6 +86,19 @@ class BackendTest(unittest.TestCase):
         self.assertEqual((status, body["error"]["code"]), (404, "not_found"))
 
 
+class RestartReloadTest(unittest.TestCase):
+    def test_shots_survive_restart_in_order(self):
+        harness = AppHarness(fake=FakeComfy()).start()
+        self.addCleanup(harness.stop)
+        ids = [harness.post("/api/shots", SHOT)[1]["id"] for _ in range(2)]
+        before = harness.get("/api/shots")[1]
+        harness.restart_app()
+        status, after = harness.get("/api/shots")
+        self.assertEqual(status, 200)
+        self.assertEqual([s["id"] for s in after["shots"]], ids[::-1])
+        self.assertEqual([s["id"] for s in after["shots"]], [s["id"] for s in before["shots"]])
+
+
 def _nodes(graph, class_type):
     return [n for n in graph.values() if n.get("class_type") == class_type]
 

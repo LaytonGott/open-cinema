@@ -35,6 +35,8 @@ class ShotStoreTests(unittest.TestCase):
         fresh = ShotStore(self.dir)
         fresh.load_all()
         self.assertEqual([r["id"] for r in fresh.list()], ids)
+        for shot_id in ids:
+            self.assertEqual(fresh.get(shot_id), store.get(shot_id))
 
     def test_corrupt_shot_json_skipped_with_warning(self):
         store = ShotStore(self.dir)
