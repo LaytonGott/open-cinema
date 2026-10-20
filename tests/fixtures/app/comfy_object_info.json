@@ -1,0 +1,3313 @@
+{
+ "CFGGuider": {
+  "api_node": false,
+  "category": "model/sampling/guiders",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "CFG Guider",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "cfg": [
+     "FLOAT",
+     {
+      "default": 8.0,
+      "max": 100.0,
+      "min": 0.0,
+      "round": 0.01,
+      "step": 0.1
+     }
+    ],
+    "model": [
+     "MODEL",
+     {}
+    ],
+    "negative": [
+     "CONDITIONING",
+     {}
+    ],
+    "positive": [
+     "CONDITIONING",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "model",
+    "positive",
+    "negative",
+    "cfg"
+   ]
+  },
+  "is_input_list": false,
+  "name": "CFGGuider",
+  "output": [
+   "GUIDER"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "GUIDER"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_custom_sampler",
+  "search_aliases": null
+ },
+ "CLIPTextEncode": {
+  "category": "model/conditioning",
+  "display_name": "CLIP Text Encode (Prompt)",
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "clip": [
+     "CLIP",
+     {
+      "tooltip": "The CLIP model used for encoding the text."
+     }
+    ],
+    "text": [
+     "STRING",
+     {
+      "dynamicPrompts": true,
+      "multiline": true,
+      "tooltip": "The text to be encoded."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "text",
+    "clip"
+   ]
+  },
+  "is_input_list": false,
+  "name": "CLIPTextEncode",
+  "output": [
+   "CONDITIONING"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "CONDITIONING"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   "A conditioning containing the embedded text used to guide the diffusion model."
+  ],
+  "python_module": "nodes",
+  "search_aliases": [
+   "text",
+   "prompt",
+   "text prompt",
+   "positive prompt",
+   "negative prompt",
+   "encode text",
+   "text encoder",
+   "encode prompt"
+  ]
+ },
+ "CreateVideo": {
+  "api_node": false,
+  "category": "video",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Create Video",
+  "essentials_category": "Video Tools",
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "audio": [
+     "AUDIO",
+     {
+      "tooltip": "The audio to add to the video."
+     }
+    ],
+    "bit_depth": [
+     "COMBO",
+     {
+      "default": "auto",
+      "multiselect": false,
+      "options": [
+       "auto",
+       8,
+       10
+      ],
+      "tooltip": "Auto uses 8-bit for sRGB and 10-bit for HDR. Explicit 8-bit and 10-bit choices are independent of colorspace."
+     }
+    ],
+    "codec": [
+     "COMBO",
+     {
+      "advanced": true,
+      "default": "none",
+      "multiselect": false,
+      "options": [
+       "none",
+       "auto",
+       "h264",
+       "av1"
+      ],
+      "tooltip": "Optionally encode the video immediately. None keeps the images in tensor form; Auto uses H.264."
+     }
+    ],
+    "color_space": [
+     "COMBO",
+     {
+      "default": "sRGB",
+      "multiselect": false,
+      "options": [
+       "sRGB",
+       "HDR",
+       "HDR PQ"
+      ],
+      "tooltip": "Colorspace of the input images. HDR selects BT.2020/HLG and HDR PQ selects BT.2020/PQ."
+     }
+    ]
+   },
+   "required": {
+    "fps": [
+     "FLOAT",
+     {
+      "default": 30.0,
+      "max": 120.0,
+      "min": 1.0,
+      "step": 1.0
+     }
+    ],
+    "images": [
+     "IMAGE",
+     {
+      "tooltip": "The images to create a video from."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "audio",
+    "bit_depth",
+    "color_space",
+    "codec"
+   ],
+   "required": [
+    "images",
+    "fps"
+   ]
+  },
+  "is_input_list": false,
+  "name": "CreateVideo",
+  "output": [
+   "VIDEO"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "VIDEO"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_video",
+  "search_aliases": [
+   "images to video"
+  ]
+ },
+ "DA3Inference": {
+  "api_node": false,
+  "category": "image/geometry estimation",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Run Depth Anything 3",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "da3_model": [
+     "DA3_MODEL",
+     {}
+    ],
+    "image": [
+     "IMAGE",
+     {}
+    ],
+    "mode": [
+     "COMFY_DYNAMICCOMBO_V3",
+     {
+      "options": [
+       {
+        "inputs": {
+         "required": {}
+        },
+        "key": "mono"
+       },
+       {
+        "inputs": {
+         "required": {
+          "pose_method": [
+           "COMBO",
+           {
+            "default": "cam_dec",
+            "multiselect": false,
+            "options": [
+             "cam_dec",
+             "ray_pose"
+            ],
+            "tooltip": "How the camera field-of-view is estimated (for Small/Base models only).\n- cam_dec: learned from image features.\n- ray_pose: derived geometrically from the model's 3D ray output.\nAffects perspective correctness of the 3D output. Try both if results look distorted."
+           }
+          ],
+          "ref_view_strategy": [
+           "COMBO",
+           {
+            "default": "saddle_balanced",
+            "multiselect": false,
+            "options": [
+             "saddle_balanced",
+             "saddle_sim_range",
+             "first",
+             "middle"
+            ],
+            "tooltip": "Which view acts as the geometric anchor.\n- saddle_balanced: the view most 'average' across all others (best general choice).\n- saddle_sim_range: the view most visually distinct from the others.\n- first / middle: fixed positional picks."
+           }
+          ]
+         }
+        },
+        "key": "multiview"
+       }
+      ],
+      "tooltip": "mono: single view image (works with any model variant).\nmultiview: all images processed together for geometric consistency + camera pose (for Small/Base models only)."
+     }
+    ],
+    "resize_method": [
+     "COMBO",
+     {
+      "default": "upper_bound_resize",
+      "multiselect": false,
+      "options": [
+       "upper_bound_resize",
+       "lower_bound_resize"
+      ],
+      "tooltip": "upper_bound_resize: scale so the longest side = resolution (caps memory, default).\nlower_bound_resize: scale so the shortest side = resolution (preserves more detail on tall/wide images, uses more memory)."
+     }
+    ],
+    "resolution": [
+     "INT",
+     {
+      "default": 504,
+      "max": 2520,
+      "min": 140,
+      "step": 14,
+      "tooltip": "Resolution the model runs at (longest side, multiple of 14).\nLower = faster / less VRAM.\nHigher = more detail.\nOutput is upsampled back to the original size."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "da3_model",
+    "image",
+    "resolution",
+    "resize_method",
+    "mode"
+   ]
+  },
+  "is_input_list": false,
+  "name": "DA3Inference",
+  "output": [
+   "DA3_GEOMETRY"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "da3_geometry"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   "Dictionary of non-normalized tensors.\nAlways has the keys: depth, image, mode.\nOptional keys: sky (for Mono/Metric), confidence (for Small/Base), extrinsics + intrinsics (for multi-view)."
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_depth_anything_3",
+  "search_aliases": [
+   "depth",
+   "geometry",
+   "da3",
+   "depth anything",
+   "monocular",
+   "pointmap",
+   "sky",
+   "3d",
+   "metric depth",
+   "disparity"
+  ]
+ },
+ "DA3Render": {
+  "api_node": false,
+  "category": "image/geometry estimation",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Render Depth Anything 3",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "da3_geometry": [
+     "DA3_GEOMETRY",
+     {}
+    ],
+    "output": [
+     "COMFY_DYNAMICCOMBO_V3",
+     {
+      "options": [
+       {
+        "inputs": {
+         "required": {
+          "apply_sky_clip": [
+           "BOOLEAN",
+           {
+            "default": false,
+            "tooltip": "Clip sky-region depth to the 99th percentile of foreground depth before normalisation. Requires a sky key in the da3_geometry input (for Mono/Metric models only)."
+           }
+          ],
+          "normalization": [
+           "COMBO",
+           {
+            "default": "v2_style",
+            "multiselect": false,
+            "options": [
+             "v2_style",
+             "min_max",
+             "raw"
+            ],
+            "tooltip": "- v2_style: mean/std normalisation for perceptually balanced results (default).\n- min_max: stretches the full depth range to [0, 1] for maximum contrast.\n- raw: no scaling,preserves metric units for Metric model."
+           }
+          ]
+         }
+        },
+        "key": "depth"
+       },
+       {
+        "inputs": {
+         "required": {
+          "apply_sky_clip": [
+           "BOOLEAN",
+           {
+            "default": false,
+            "tooltip": "Clip sky-region depth to the 99th percentile of foreground depth before normalisation. Requires a sky key in the da3_geometry input (for Mono/Metric models only)."
+           }
+          ],
+          "normalization": [
+           "COMBO",
+           {
+            "default": "v2_style",
+            "multiselect": false,
+            "options": [
+             "v2_style",
+             "min_max",
+             "raw"
+            ],
+            "tooltip": "- v2_style: mean/std normalisation for perceptually balanced results (default).\n- min_max: stretches the full depth range to [0, 1] for maximum contrast.\n- raw: no scaling,preserves metric units for Metric model."
+           }
+          ]
+         }
+        },
+        "key": "depth_colored"
+       },
+       {
+        "inputs": {
+         "required": {
+          "colored": [
+           "BOOLEAN",
+           {
+            "default": false,
+            "tooltip": "Apply the Turbo colormap to the sky mask."
+           }
+          ]
+         }
+        },
+        "key": "sky_mask"
+       },
+       {
+        "inputs": {
+         "required": {
+          "colored": [
+           "BOOLEAN",
+           {
+            "default": false,
+            "tooltip": "Apply the Turbo colormap to the confidence map."
+           }
+          ]
+         }
+        },
+        "key": "confidence"
+       }
+      ],
+      "tooltip": "- depth: normalised greyscale depth image.\n- depth_colored: depth mapped through the Turbo colormap.\n- sky_mask: sky probability in [0, 1] (for Mono/Metric models only).\n- confidence: normalised depth confidence (for Small/Base models only)."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "da3_geometry",
+    "output"
+   ]
+  },
+  "is_input_list": false,
+  "name": "DA3Render",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_depth_anything_3",
+  "search_aliases": null
+ },
+ "EmptyLTXVLatentVideo": {
+  "api_node": false,
+  "category": "model/latent/ltxv",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Empty LTXV Latent Video",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "batch_size": [
+     "INT",
+     {
+      "default": 1,
+      "max": 4096,
+      "min": 1
+     }
+    ],
+    "height": [
+     "INT",
+     {
+      "default": 512,
+      "max": 16384,
+      "min": 64,
+      "step": 32
+     }
+    ],
+    "length": [
+     "INT",
+     {
+      "default": 97,
+      "max": 16384,
+      "min": 1,
+      "step": 8
+     }
+    ],
+    "width": [
+     "INT",
+     {
+      "default": 768,
+      "max": 16384,
+      "min": 64,
+      "step": 32
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "width",
+    "height",
+    "length",
+    "batch_size"
+   ]
+  },
+  "is_input_list": false,
+  "name": "EmptyLTXVLatentVideo",
+  "output": [
+   "LATENT"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "LATENT"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt",
+  "search_aliases": null
+ },
+ "GetVideoComponents": {
+  "api_node": false,
+  "category": "video",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Get Video Components",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "video": [
+     "VIDEO",
+     {
+      "tooltip": "The video to extract components from."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "video"
+   ]
+  },
+  "is_input_list": false,
+  "name": "GetVideoComponents",
+  "output": [
+   "IMAGE",
+   "AUDIO",
+   "FLOAT",
+   "COMBO",
+   "COMBO"
+  ],
+  "output_is_list": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "images",
+   "audio",
+   "fps",
+   "bit_depth",
+   "color_space"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_video",
+  "search_aliases": [
+   "extract frames",
+   "split video",
+   "video to images",
+   "demux"
+  ]
+ },
+ "ImageFromBatch": {
+  "api_node": false,
+  "category": "image/batch",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Get Image from Batch",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "batch_index": [
+     "INT",
+     {
+      "default": 0,
+      "max": 16384,
+      "min": -16384
+     }
+    ],
+    "image": [
+     "IMAGE",
+     {}
+    ],
+    "length": [
+     "INT",
+     {
+      "default": 1,
+      "max": 4096,
+      "min": 1
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "image",
+    "batch_index",
+    "length"
+   ]
+  },
+  "is_input_list": false,
+  "name": "ImageFromBatch",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_images",
+  "search_aliases": [
+   "select image",
+   "pick from batch",
+   "extract image"
+  ]
+ },
+ "ImageToMask": {
+  "api_node": false,
+  "category": "image/mask",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Convert Image to Mask",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "channel": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "red",
+       "green",
+       "blue",
+       "alpha"
+      ]
+     }
+    ],
+    "image": [
+     "IMAGE",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "image",
+    "channel"
+   ]
+  },
+  "is_input_list": false,
+  "name": "ImageToMask",
+  "output": [
+   "MASK"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "MASK"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_mask",
+  "search_aliases": [
+   "extract channel",
+   "channel to mask"
+  ]
+ },
+ "KSamplerSelect": {
+  "api_node": false,
+  "category": "model/sampling/samplers",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": null,
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "sampler_name": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "euler",
+       "euler_cfg_pp",
+       "euler_ancestral",
+       "euler_ancestral_cfg_pp",
+       "heun",
+       "heunpp2",
+       "exp_heun_2_x0",
+       "exp_heun_2_x0_sde",
+       "dpm_2",
+       "dpm_2_ancestral",
+       "lms",
+       "dpm_fast",
+       "dpm_adaptive",
+       "dpmpp_2s_ancestral",
+       "dpmpp_2s_ancestral_cfg_pp",
+       "dpmpp_sde",
+       "dpmpp_sde_gpu",
+       "dpmpp_2m",
+       "dpmpp_2m_cfg_pp",
+       "dpmpp_2m_sde",
+       "dpmpp_2m_sde_gpu",
+       "dpmpp_2m_sde_heun",
+       "dpmpp_2m_sde_heun_gpu",
+       "dpmpp_3m_sde",
+       "dpmpp_3m_sde_gpu",
+       "ddpm",
+       "lcm",
+       "ipndm",
+       "ipndm_v",
+       "deis",
+       "cfgpp_ud10_ab",
+       "res_multistep",
+       "res_multistep_cfg_pp",
+       "res_multistep_ancestral",
+       "res_multistep_ancestral_cfg_pp",
+       "gradient_estimation",
+       "gradient_estimation_cfg_pp",
+       "er_sde",
+       "seeds_2",
+       "seeds_3",
+       "sa_solver",
+       "sa_solver_pece",
+       "ddim",
+       "uni_pc",
+       "uni_pc_bh2"
+      ]
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "sampler_name"
+   ]
+  },
+  "is_input_list": false,
+  "name": "KSamplerSelect",
+  "output": [
+   "SAMPLER"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "SAMPLER"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_custom_sampler",
+  "search_aliases": null
+ },
+ "LTXAVTextEncoderLoader": {
+  "api_node": false,
+  "category": "model/loaders",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Load LTXV Audio Text Encoder",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "ckpt_name": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "LTX2_audio_vae_bf16.safetensors",
+       "ltx-2-19b-embeddings_connector_distill_bf16.safetensors",
+       "ltxv-13b-0.9.8-distilled-fp8.safetensors"
+      ]
+     }
+    ],
+    "device": [
+     "COMBO",
+     {
+      "advanced": true,
+      "multiselect": false,
+      "options": [
+       "default",
+       "cpu"
+      ]
+     }
+    ],
+    "text_encoder": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "gemma_3_12B_it_fp8_scaled.safetensors",
+       "t5xxl_fp16.safetensors"
+      ]
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "text_encoder",
+    "ckpt_name",
+    "device"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXAVTextEncoderLoader",
+  "output": [
+   "CLIP"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "CLIP"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt_audio",
+  "search_aliases": null
+ },
+ "LTXVAudioVAEDecode": {
+  "api_node": false,
+  "category": "model/latent/ltxv",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "LTXV Audio VAE Decode",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "audio_vae": [
+     "VAE",
+     {
+      "display_name": "Audio VAE",
+      "tooltip": "The Audio VAE model used for decoding the latent."
+     }
+    ],
+    "samples": [
+     "LATENT",
+     {
+      "tooltip": "The latent to be decoded."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "samples",
+    "audio_vae"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXVAudioVAEDecode",
+  "output": [
+   "AUDIO"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "Audio"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt_audio",
+  "search_aliases": null
+ },
+ "LTXVAudioVAELoader": {
+  "api_node": false,
+  "category": "model/loaders",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Load LTXV Audio VAE",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "ckpt_name": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "LTX2_audio_vae_bf16.safetensors",
+       "ltx-2-19b-embeddings_connector_distill_bf16.safetensors",
+       "ltxv-13b-0.9.8-distilled-fp8.safetensors"
+      ],
+      "tooltip": "Audio VAE checkpoint to load."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "ckpt_name"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXVAudioVAELoader",
+  "output": [
+   "VAE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "Audio VAE"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt_audio",
+  "search_aliases": null
+ },
+ "LTXVConcatAVLatent": {
+  "api_node": false,
+  "category": "model/latent/ltxv",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Concat AV Latent",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "audio_latent": [
+     "LATENT",
+     {}
+    ],
+    "video_latent": [
+     "LATENT",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "video_latent",
+    "audio_latent"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXVConcatAVLatent",
+  "output": [
+   "LATENT"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "latent"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt",
+  "search_aliases": null
+ },
+ "LTXVConditioning": {
+  "api_node": false,
+  "category": "model/conditioning/ltxv",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": null,
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "frame_rate": [
+     "FLOAT",
+     {
+      "default": 25.0,
+      "max": 1000.0,
+      "min": 0.0,
+      "step": 0.01
+     }
+    ],
+    "negative": [
+     "CONDITIONING",
+     {}
+    ],
+    "positive": [
+     "CONDITIONING",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "positive",
+    "negative",
+    "frame_rate"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXVConditioning",
+  "output": [
+   "CONDITIONING",
+   "CONDITIONING"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "positive",
+   "negative"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null,
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt",
+  "search_aliases": null
+ },
+ "LTXVEmptyLatentAudio": {
+  "api_node": false,
+  "category": "model/latent/ltxv",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Empty LTXV Latent Audio",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "audio_vae": [
+     "VAE",
+     {
+      "display_name": "Audio VAE",
+      "tooltip": "The Audio VAE model to get configuration from."
+     }
+    ],
+    "batch_size": [
+     "INT",
+     {
+      "default": 1,
+      "display": "number",
+      "max": 4096,
+      "min": 1,
+      "tooltip": "The number of latent audio samples in the batch."
+     }
+    ],
+    "frame_rate": [
+     "FLOAT,INT",
+     {
+      "default": 25.0,
+      "display": "number",
+      "max": 1000.0,
+      "min": 1.0,
+      "step": 0.01,
+      "tooltip": "Number of frames per second.",
+      "widgetType": "FLOAT"
+     }
+    ],
+    "frames_number": [
+     "INT",
+     {
+      "default": 97,
+      "display": "number",
+      "max": 1000,
+      "min": 1,
+      "step": 1,
+      "tooltip": "Number of frames."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "frames_number",
+    "frame_rate",
+    "batch_size",
+    "audio_vae"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXVEmptyLatentAudio",
+  "output": [
+   "LATENT"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "Latent"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt_audio",
+  "search_aliases": null
+ },
+ "LTXVLatentUpsampler": {
+  "api_node": false,
+  "category": "model/latent/ltxv",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": null,
+  "essentials_category": null,
+  "experimental": true,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "samples": [
+     "LATENT",
+     {}
+    ],
+    "upscale_model": [
+     "LATENT_UPSCALE_MODEL",
+     {}
+    ],
+    "vae": [
+     "VAE",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "samples",
+    "upscale_model",
+    "vae"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXVLatentUpsampler",
+  "output": [
+   "LATENT"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "LATENT"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt_upsampler",
+  "search_aliases": null
+ },
+ "LTXVSeparateAVLatent": {
+  "api_node": false,
+  "category": "model/latent/ltxv",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Separate AV Latent",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "av_latent": [
+     "LATENT",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "av_latent"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LTXVSeparateAVLatent",
+  "output": [
+   "LATENT",
+   "LATENT"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "video_latent",
+   "audio_latent"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null,
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_lt",
+  "search_aliases": null
+ },
+ "LatentUpscaleModelLoader": {
+  "api_node": false,
+  "category": "model/loaders",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Load Latent Upscale Model",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "model_name": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "ltx-2-spatial-upscaler-x2-1.0.safetensors"
+      ]
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "model_name"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LatentUpscaleModelLoader",
+  "output": [
+   "LATENT_UPSCALE_MODEL"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "LATENT_UPSCALE_MODEL"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_hunyuan",
+  "search_aliases": null
+ },
+ "LoadDA3Model": {
+  "api_node": false,
+  "category": "model/loaders",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Load Depth Anything 3",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "model_name": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "depth_anything_3_mono_large.safetensors"
+      ]
+     }
+    ],
+    "weight_dtype": [
+     "COMBO",
+     {
+      "default": "default",
+      "multiselect": false,
+      "options": [
+       "default",
+       "fp16",
+       "bf16",
+       "fp32"
+      ]
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "model_name",
+    "weight_dtype"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LoadDA3Model",
+  "output": [
+   "DA3_MODEL"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "DA3_MODEL"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_depth_anything_3",
+  "search_aliases": null
+ },
+ "LoadImage": {
+  "category": "image",
+  "display_name": "Load Image",
+  "essentials_category": "Basics",
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "image": [
+     [
+      "example.png"
+     ],
+     {
+      "image_upload": true
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "image"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LoadImage",
+  "output": [
+   "IMAGE",
+   "MASK"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_name": [
+   "IMAGE",
+   "MASK"
+  ],
+  "output_node": false,
+  "python_module": "nodes",
+  "search_aliases": [
+   "load image",
+   "open image",
+   "import image",
+   "image input",
+   "upload image",
+   "read image",
+   "image loader"
+  ]
+ },
+ "LoadVideo": {
+  "api_node": false,
+  "category": "video",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Load Video",
+  "essentials_category": "Basics",
+  "experimental": false,
+  "has_intermediate_output": true,
+  "input": {
+   "required": {
+    "file": [
+     "COMBO",
+     {
+      "multiselect": false,
+      "options": [
+       "openoptics_before.mp4"
+      ],
+      "video_upload": true
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "file"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LoadVideo",
+  "output": [
+   "VIDEO"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "VIDEO"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_video",
+  "search_aliases": [
+   "import video",
+   "open video",
+   "video file"
+  ]
+ },
+ "ManualSigmas": {
+  "api_node": false,
+  "category": "model/sampling/sigmas",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": null,
+  "essentials_category": null,
+  "experimental": true,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "sigmas": [
+     "STRING",
+     {
+      "default": "1, 0.5",
+      "multiline": false
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "sigmas"
+   ]
+  },
+  "is_input_list": false,
+  "name": "ManualSigmas",
+  "output": [
+   "SIGMAS"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "SIGMAS"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_custom_sampler",
+  "search_aliases": [
+   "custom noise schedule",
+   "define sigmas"
+  ]
+ },
+ "MaskToImage": {
+  "api_node": false,
+  "category": "image/mask",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Convert Mask to Image",
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "mask": [
+     "MASK",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "mask"
+   ]
+  },
+  "is_input_list": false,
+  "name": "MaskToImage",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_mask",
+  "search_aliases": [
+   "convert mask"
+  ]
+ },
+ "OpenOptics_Anamorphic": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Anamorphic Squeeze",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ]
+   },
+   "required": {
+    "image": [
+     "IMAGE"
+    ],
+    "keep_width": [
+     "BOOLEAN",
+     {
+      "default": false
+     }
+    ],
+    "mode": [
+     [
+      "desqueeze",
+      "squeeze"
+     ],
+     {
+      "default": "desqueeze"
+     }
+    ],
+    "squeeze": [
+     "FLOAT",
+     {
+      "default": 1.33,
+      "max": 4.0,
+      "min": 1.0,
+      "step": 0.01
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "chunk_frames"
+   ],
+   "required": [
+    "image",
+    "squeeze",
+    "mode",
+    "keep_width"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_Anamorphic",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "OpenOptics_ChromaticAberration": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Chromatic Aberration",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ]
+   },
+   "required": {
+    "ca_b": [
+     "FLOAT",
+     {
+      "default": 0.0,
+      "max": 0.1,
+      "min": -0.1,
+      "step": 0.0001
+     }
+    ],
+    "ca_r": [
+     "FLOAT",
+     {
+      "default": 0.0,
+      "max": 0.1,
+      "min": -0.1,
+      "step": 0.0001
+     }
+    ],
+    "image": [
+     "IMAGE"
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "chunk_frames"
+   ],
+   "required": [
+    "image",
+    "ca_r",
+    "ca_b"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_ChromaticAberration",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "OpenOptics_DepthOfField": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Depth of Field",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ],
+    "depth_image": [
+     "IMAGE"
+    ],
+    "depth_mask": [
+     "MASK"
+    ],
+    "max_layers": [
+     "INT",
+     {
+      "default": 12,
+      "max": 64,
+      "min": 1,
+      "step": 1
+     }
+    ]
+   },
+   "required": {
+    "colorspace": [
+     [
+      "srgb",
+      "linear"
+     ],
+     {
+      "default": "srgb"
+     }
+    ],
+    "f_number": [
+     "FLOAT",
+     {
+      "default": 2.8,
+      "max": 64.0,
+      "min": 0.5,
+      "step": 0.1
+     }
+    ],
+    "focal_mm": [
+     "FLOAT",
+     {
+      "default": 50.0,
+      "max": 1000.0,
+      "min": 1.0,
+      "step": 0.1
+     }
+    ],
+    "focus_m": [
+     "FLOAT",
+     {
+      "default": 3.0,
+      "max": 100000.0,
+      "min": 0.01,
+      "step": 0.1
+     }
+    ],
+    "image": [
+     "IMAGE"
+    ],
+    "max_radius_px": [
+     "INT",
+     {
+      "default": 16,
+      "max": 256,
+      "min": 0,
+      "step": 1
+     }
+    ],
+    "quality": [
+     [
+      "draft",
+      "normal"
+     ],
+     {
+      "default": "normal"
+     }
+    ],
+    "sensor_width_mm": [
+     "FLOAT",
+     {
+      "default": 36.0,
+      "max": 100.0,
+      "min": 1.0,
+      "step": 0.1
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "depth_mask",
+    "depth_image",
+    "chunk_frames",
+    "max_layers"
+   ],
+   "required": [
+    "image",
+    "focal_mm",
+    "f_number",
+    "focus_m",
+    "sensor_width_mm",
+    "quality",
+    "max_radius_px",
+    "colorspace"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_DepthOfField",
+  "output": [
+   "IMAGE",
+   "MASK"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_name": [
+   "image",
+   "coc_px"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "OpenOptics_DepthTemporalSmooth": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Depth Temporal Smooth",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ]
+   },
+   "required": {
+    "depth": [
+     "MASK"
+    ],
+    "strength": [
+     "FLOAT",
+     {
+      "default": 0.7,
+      "max": 1.0,
+      "min": 0.0,
+      "step": 0.01
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "chunk_frames"
+   ],
+   "required": [
+    "depth",
+    "strength"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_DepthTemporalSmooth",
+  "output": [
+   "MASK"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "depth_m"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "OpenOptics_DepthToMetric": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Depth to Metric",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "anchor_scope": [
+     [
+      "batch",
+      "frame"
+     ],
+     {
+      "default": "batch",
+      "tooltip": "batch = one scale for all frames, frame = per-frame scale"
+     }
+    ],
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ],
+    "depth_image": [
+     "IMAGE"
+    ],
+    "depth_mask": [
+     "MASK"
+    ],
+    "mode": [
+     [
+      "near_far",
+      "subject"
+     ],
+     {
+      "default": "near_far",
+      "tooltip": "near_far maps onto near_m..far_m; subject scales from the subject distance"
+     }
+    ],
+    "subject_m": [
+     "FLOAT",
+     {
+      "default": 3.0,
+      "max": 100000.0,
+      "min": 0.001,
+      "step": 0.1,
+      "tooltip": "Distance of the subject in metres; the subject region maps to this value. Must be within near_m..far_m."
+     }
+    ],
+    "subject_mask": [
+     "MASK",
+     {
+      "default": null,
+      "tooltip": "Optional MASK in 0..1, pixels above 0.5 are the subject; overrides the point"
+     }
+    ],
+    "subject_radius_px": [
+     "INT",
+     {
+      "default": 4,
+      "max": 10000,
+      "min": 0,
+      "tooltip": "Half-size in pixels of the square window around the point"
+     }
+    ],
+    "subject_x": [
+     "FLOAT",
+     {
+      "default": 0.5,
+      "max": 1.0,
+      "min": 0.0,
+      "step": 0.01,
+      "tooltip": "Subject point as a fraction (0 to 1) of image width"
+     }
+    ],
+    "subject_y": [
+     "FLOAT",
+     {
+      "default": 0.5,
+      "max": 1.0,
+      "min": 0.0,
+      "step": 0.01,
+      "tooltip": "Subject point as a fraction (0 to 1) of image height"
+     }
+    ]
+   },
+   "required": {
+    "far_m": [
+     "FLOAT",
+     {
+      "default": 10.0,
+      "max": 100000.0,
+      "min": 0.001,
+      "step": 0.1
+     }
+    ],
+    "high_percentile": [
+     "FLOAT",
+     {
+      "default": 98.0,
+      "max": 100.0,
+      "min": 0.0,
+      "step": 0.1
+     }
+    ],
+    "inverse_depth": [
+     "BOOLEAN",
+     {
+      "default": true
+     }
+    ],
+    "low_percentile": [
+     "FLOAT",
+     {
+      "default": 2.0,
+      "max": 100.0,
+      "min": 0.0,
+      "step": 0.1
+     }
+    ],
+    "near_m": [
+     "FLOAT",
+     {
+      "default": 0.5,
+      "max": 100000.0,
+      "min": 0.001,
+      "step": 0.1
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "depth_mask",
+    "depth_image",
+    "chunk_frames",
+    "mode",
+    "subject_m",
+    "subject_x",
+    "subject_y",
+    "subject_radius_px",
+    "anchor_scope",
+    "subject_mask"
+   ],
+   "required": [
+    "near_m",
+    "far_m",
+    "inverse_depth",
+    "low_percentile",
+    "high_percentile"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_DepthToMetric",
+  "output": [
+   "MASK",
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_name": [
+   "depth_m",
+   "preview"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "OpenOptics_FocalCrop": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Focal Crop",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ]
+   },
+   "required": {
+    "image": [
+     "IMAGE"
+    ],
+    "output_size": [
+     [
+      "original",
+      "cropped"
+     ],
+     {
+      "default": "original"
+     }
+    ],
+    "source_focal_mm": [
+     "FLOAT",
+     {
+      "default": 24.0,
+      "max": 2000.0,
+      "min": 0.1,
+      "step": 0.1
+     }
+    ],
+    "target_focal_mm": [
+     "FLOAT",
+     {
+      "default": 50.0,
+      "max": 2000.0,
+      "min": 0.1,
+      "step": 0.1
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "chunk_frames"
+   ],
+   "required": [
+    "image",
+    "source_focal_mm",
+    "target_focal_mm",
+    "output_size"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_FocalCrop",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "OpenOptics_LensDistortion": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Lens Distortion",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ]
+   },
+   "required": {
+    "direction": [
+     [
+      "apply",
+      "remove"
+     ],
+     {
+      "default": "apply"
+     }
+    ],
+    "fit": [
+     [
+      "keep",
+      "crop"
+     ],
+     {
+      "default": "keep"
+     }
+    ],
+    "focal_mm": [
+     "FLOAT",
+     {
+      "default": 35.0,
+      "max": 2000.0,
+      "min": 0.1,
+      "step": 0.1
+     }
+    ],
+    "image": [
+     "IMAGE"
+    ],
+    "k1": [
+     "FLOAT",
+     {
+      "default": 0.0,
+      "max": 10.0,
+      "min": -10.0,
+      "step": 0.001
+     }
+    ],
+    "k2": [
+     "FLOAT",
+     {
+      "default": 0.0,
+      "max": 10.0,
+      "min": -10.0,
+      "step": 0.001
+     }
+    ],
+    "k3": [
+     "FLOAT",
+     {
+      "default": 0.0,
+      "max": 10.0,
+      "min": -10.0,
+      "step": 0.001
+     }
+    ],
+    "p1": [
+     "FLOAT",
+     {
+      "default": 0.0,
+      "max": 10.0,
+      "min": -10.0,
+      "step": 0.001
+     }
+    ],
+    "p2": [
+     "FLOAT",
+     {
+      "default": 0.0,
+      "max": 10.0,
+      "min": -10.0,
+      "step": 0.001
+     }
+    ],
+    "sensor_width_mm": [
+     "FLOAT",
+     {
+      "default": 36.0,
+      "max": 200.0,
+      "min": 0.1,
+      "step": 0.1
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "chunk_frames"
+   ],
+   "required": [
+    "image",
+    "focal_mm",
+    "sensor_width_mm",
+    "k1",
+    "k2",
+    "k3",
+    "p1",
+    "p2",
+    "direction",
+    "fit"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_LensDistortion",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "OpenOptics_Vignette": {
+  "category": "Open Optics",
+  "display_name": "Open Optics: Vignette",
+  "has_intermediate_output": false,
+  "input": {
+   "optional": {
+    "chunk_frames": [
+     "INT",
+     {
+      "default": 8,
+      "max": 4096,
+      "min": 1,
+      "step": 1
+     }
+    ]
+   },
+   "required": {
+    "colorspace": [
+     [
+      "srgb",
+      "linear"
+     ],
+     {
+      "default": "srgb"
+     }
+    ],
+    "focal_mm": [
+     "FLOAT",
+     {
+      "default": 35.0,
+      "max": 2000.0,
+      "min": 0.1,
+      "step": 0.1
+     }
+    ],
+    "image": [
+     "IMAGE"
+    ],
+    "sensor_width_mm": [
+     "FLOAT",
+     {
+      "default": 36.0,
+      "max": 200.0,
+      "min": 0.1,
+      "step": 0.1
+     }
+    ],
+    "strength": [
+     "FLOAT",
+     {
+      "default": 1.0,
+      "max": 1.0,
+      "min": 0.0,
+      "step": 0.01
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "optional": [
+    "chunk_frames"
+   ],
+   "required": [
+    "image",
+    "focal_mm",
+    "sensor_width_mm",
+    "strength",
+    "colorspace"
+   ]
+  },
+  "is_input_list": false,
+  "name": "OpenOptics_Vignette",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-OpenOptics",
+  "search_aliases": []
+ },
+ "PreviewImage": {
+  "category": "image",
+  "display_name": "Preview Image",
+  "essentials_category": "Basics",
+  "has_intermediate_output": false,
+  "input": {
+   "hidden": {
+    "extra_pnginfo": "EXTRA_PNGINFO",
+    "prompt": "PROMPT"
+   },
+   "required": {
+    "images": [
+     "IMAGE"
+    ]
+   }
+  },
+  "input_order": {
+   "hidden": [
+    "prompt",
+    "extra_pnginfo"
+   ],
+   "required": [
+    "images"
+   ]
+  },
+  "is_input_list": false,
+  "name": "PreviewImage",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "images"
+  ],
+  "output_node": true,
+  "python_module": "nodes",
+  "search_aliases": [
+   "preview",
+   "preview image",
+   "show image",
+   "view image",
+   "display image",
+   "image viewer"
+  ]
+ },
+ "RandomNoise": {
+  "api_node": false,
+  "category": "model/sampling/noise",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": null,
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "noise_seed": [
+     "INT",
+     {
+      "control_after_generate": true,
+      "default": 0,
+      "max": 18446744073709551615,
+      "min": 0
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "noise_seed"
+   ]
+  },
+  "is_input_list": false,
+  "name": "RandomNoise",
+  "output": [
+   "NOISE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "NOISE"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_custom_sampler",
+  "search_aliases": null
+ },
+ "SamplerCustomAdvanced": {
+  "api_node": false,
+  "category": "model/sampling/custom",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": null,
+  "essentials_category": null,
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "guider": [
+     "GUIDER",
+     {}
+    ],
+    "latent_image": [
+     "LATENT",
+     {}
+    ],
+    "noise": [
+     "NOISE",
+     {}
+    ],
+    "sampler": [
+     "SAMPLER",
+     {}
+    ],
+    "sigmas": [
+     "SIGMAS",
+     {}
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "noise",
+    "guider",
+    "sampler",
+    "sigmas",
+    "latent_image"
+   ]
+  },
+  "is_input_list": false,
+  "name": "SamplerCustomAdvanced",
+  "output": [
+   "LATENT",
+   "LATENT"
+  ],
+  "output_is_list": [
+   false,
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "output",
+   "denoised_output"
+  ],
+  "output_node": false,
+  "output_tooltips": [
+   null,
+   null
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_custom_sampler",
+  "search_aliases": null
+ },
+ "SaveImage": {
+  "category": "image",
+  "display_name": "Save Image",
+  "essentials_category": "Basics",
+  "has_intermediate_output": false,
+  "input": {
+   "hidden": {
+    "extra_pnginfo": "EXTRA_PNGINFO",
+    "prompt": "PROMPT"
+   },
+   "required": {
+    "filename_prefix": [
+     "STRING",
+     {
+      "default": "ComfyUI",
+      "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes."
+     }
+    ],
+    "images": [
+     "IMAGE",
+     {
+      "tooltip": "The images to save."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "hidden": [
+    "prompt",
+    "extra_pnginfo"
+   ],
+   "required": [
+    "images",
+    "filename_prefix"
+   ]
+  },
+  "is_input_list": false,
+  "name": "SaveImage",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "images"
+  ],
+  "output_node": true,
+  "python_module": "nodes",
+  "search_aliases": [
+   "save",
+   "save image",
+   "export image",
+   "output image",
+   "write image",
+   "download"
+  ]
+ },
+ "SaveVideo": {
+  "api_node": false,
+  "category": "video",
+  "deprecated": false,
+  "dev_only": false,
+  "display_name": "Save Video",
+  "essentials_category": "Basics",
+  "experimental": false,
+  "has_intermediate_output": false,
+  "input": {
+   "hidden": {
+    "extra_pnginfo": [
+     "EXTRA_PNGINFO"
+    ],
+    "prompt": [
+     "PROMPT"
+    ]
+   },
+   "optional": {
+    "codec": [
+     "COMFY_DYNAMICCOMBO_V3",
+     {
+      "hidden": true,
+      "options": [
+       {
+        "inputs": {
+         "required": {}
+        },
+        "key": "auto"
+       },
+       {
+        "inputs": {
+         "optional": {
+          "encoding": [
+           "COMFY_DYNAMICCOMBO_V3",
+           {
+            "display_name": "encoding mode",
+            "options": [
+             {
+              "inputs": {
+               "required": {}
+              },
+              "key": "auto"
+             },
+             {
+              "inputs": {
+               "required": {
+                "crf": [
+                 "FLOAT",
+                 {
+                  "default": 18.0,
+                  "max": 51.0,
+                  "min": 0.0,
+                  "step": 1.0,
+                  "tooltip": "Lower values produce higher quality and larger files."
+                 }
+                ]
+               }
+              },
+              "key": "re-encode"
+             }
+            ],
+            "tooltip": "Automatic preserves compatible H.264 streams. Re-encode applies custom encoding options."
+           }
+          ]
+         },
+         "required": {}
+        },
+        "key": "h264"
+       },
+       {
+        "inputs": {
+         "optional": {
+          "encoding": [
+           "COMFY_DYNAMICCOMBO_V3",
+           {
+            "display_name": "encoding mode",
+            "options": [
+             {
+              "inputs": {
+               "required": {}
+              },
+              "key": "auto"
+             },
+             {
+              "inputs": {
+               "required": {
+                "crf": [
+                 "FLOAT",
+                 {
+                  "default": 24.0,
+                  "max": 63.0,
+                  "min": 0.0,
+                  "step": 1.0,
+                  "tooltip": "Lower values produce higher quality and larger files."
+                 }
+                ]
+               }
+              },
+              "key": "re-encode"
+             }
+            ],
+            "tooltip": "Automatic preserves compatible AV1 streams. Re-encode applies custom encoding options."
+           }
+          ]
+         },
+         "required": {}
+        },
+        "key": "av1"
+       }
+      ],
+      "tooltip": "The output video codec. Auto preserves a compatible source stream. H.264 and AV1 re-encoding support SDR, HDR (HLG), and HDR PQ."
+     }
+    ]
+   },
+   "required": {
+    "filename_prefix": [
+     "STRING",
+     {
+      "default": "video/ComfyUI",
+      "multiline": false,
+      "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes."
+     }
+    ],
+    "format": [
+     "COMFY_DYNAMICCOMBO_V3",
+     {
+      "options": [
+       {
+        "inputs": {
+         "required": {
+          "codec": [
+           "COMFY_DYNAMICCOMBO_V3",
+           {
+            "options": [
+             {
+              "inputs": {
+               "required": {}
+              },
+              "key": "auto"
+             },
+             {
+              "inputs": {
+               "optional": {
+                "encoding": [
+                 "COMFY_DYNAMICCOMBO_V3",
+                 {
+                  "display_name": "encoding mode",
+                  "options": [
+                   {
+                    "inputs": {
+                     "required": {}
+                    },
+                    "key": "auto"
+                   },
+                   {
+                    "inputs": {
+                     "required": {
+                      "crf": [
+                       "FLOAT",
+                       {
+                        "default": 18.0,
+                        "max": 51.0,
+                        "min": 0.0,
+                        "step": 1.0,
+                        "tooltip": "Lower values produce higher quality and larger files."
+                       }
+                      ]
+                     }
+                    },
+                    "key": "re-encode"
+                   }
+                  ],
+                  "tooltip": "Automatic preserves compatible H.264 streams. Re-encode applies custom encoding options."
+                 }
+                ]
+               },
+               "required": {}
+              },
+              "key": "h264"
+             },
+             {
+              "inputs": {
+               "optional": {
+                "encoding": [
+                 "COMFY_DYNAMICCOMBO_V3",
+                 {
+                  "display_name": "encoding mode",
+                  "options": [
+                   {
+                    "inputs": {
+                     "required": {}
+                    },
+                    "key": "auto"
+                   },
+                   {
+                    "inputs": {
+                     "required": {
+                      "crf": [
+                       "FLOAT",
+                       {
+                        "default": 24.0,
+                        "max": 63.0,
+                        "min": 0.0,
+                        "step": 1.0,
+                        "tooltip": "Lower values produce higher quality and larger files."
+                       }
+                      ]
+                     }
+                    },
+                    "key": "re-encode"
+                   }
+                  ],
+                  "tooltip": "Automatic preserves compatible AV1 streams. Re-encode applies custom encoding options."
+                 }
+                ]
+               },
+               "required": {}
+              },
+              "key": "av1"
+             }
+            ],
+            "tooltip": "The output video codec. Auto preserves a compatible source stream. H.264 and AV1 re-encoding support SDR, HDR (HLG), and HDR PQ."
+           }
+          ]
+         }
+        },
+        "key": "auto"
+       },
+       {
+        "inputs": {
+         "required": {
+          "codec": [
+           "COMFY_DYNAMICCOMBO_V3",
+           {
+            "options": [
+             {
+              "inputs": {
+               "required": {}
+              },
+              "key": "auto"
+             },
+             {
+              "inputs": {
+               "optional": {
+                "encoding": [
+                 "COMFY_DYNAMICCOMBO_V3",
+                 {
+                  "display_name": "encoding mode",
+                  "options": [
+                   {
+                    "inputs": {
+                     "required": {}
+                    },
+                    "key": "auto"
+                   },
+                   {
+                    "inputs": {
+                     "required": {
+                      "crf": [
+                       "FLOAT",
+                       {
+                        "default": 18.0,
+                        "max": 51.0,
+                        "min": 0.0,
+                        "step": 1.0,
+                        "tooltip": "Lower values produce higher quality and larger files."
+                       }
+                      ]
+                     }
+                    },
+                    "key": "re-encode"
+                   }
+                  ],
+                  "tooltip": "Automatic preserves compatible H.264 streams. Re-encode applies custom encoding options."
+                 }
+                ]
+               },
+               "required": {}
+              },
+              "key": "h264"
+             },
+             {
+              "inputs": {
+               "optional": {
+                "encoding": [
+                 "COMFY_DYNAMICCOMBO_V3",
+                 {
+                  "display_name": "encoding mode",
+                  "options": [
+                   {
+                    "inputs": {
+                     "required": {}
+                    },
+                    "key": "auto"
+                   },
+                   {
+                    "inputs": {
+                     "required": {
+                      "crf": [
+                       "FLOAT",
+                       {
+                        "default": 24.0,
+                        "max": 63.0,
+                        "min": 0.0,
+                        "step": 1.0,
+                        "tooltip": "Lower values produce higher quality and larger files."
+                       }
+                      ]
+                     }
+                    },
+                    "key": "re-encode"
+                   }
+                  ],
+                  "tooltip": "Automatic preserves compatible AV1 streams. Re-encode applies custom encoding options."
+                 }
+                ]
+               },
+               "required": {}
+              },
+              "key": "av1"
+             }
+            ],
+            "tooltip": "The output video codec. Auto preserves a compatible source stream. H.264 and AV1 re-encoding support SDR, HDR (HLG), and HDR PQ."
+           }
+          ]
+         }
+        },
+        "key": "mp4"
+       },
+       {
+        "inputs": {
+         "required": {
+          "codec": [
+           "COMFY_DYNAMICCOMBO_V3",
+           {
+            "options": [
+             {
+              "inputs": {
+               "required": {}
+              },
+              "key": "auto"
+             },
+             {
+              "inputs": {
+               "optional": {
+                "encoding": [
+                 "COMFY_DYNAMICCOMBO_V3",
+                 {
+                  "display_name": "encoding mode",
+                  "options": [
+                   {
+                    "inputs": {
+                     "required": {}
+                    },
+                    "key": "auto"
+                   },
+                   {
+                    "inputs": {
+                     "required": {
+                      "crf": [
+                       "FLOAT",
+                       {
+                        "default": 18.0,
+                        "max": 51.0,
+                        "min": 0.0,
+                        "step": 1.0,
+                        "tooltip": "Lower values produce higher quality and larger files."
+                       }
+                      ]
+                     }
+                    },
+                    "key": "re-encode"
+                   }
+                  ],
+                  "tooltip": "Automatic preserves compatible H.264 streams. Re-encode applies custom encoding options."
+                 }
+                ]
+               },
+               "required": {}
+              },
+              "key": "h264"
+             },
+             {
+              "inputs": {
+               "optional": {
+                "encoding": [
+                 "COMFY_DYNAMICCOMBO_V3",
+                 {
+                  "display_name": "encoding mode",
+                  "options": [
+                   {
+                    "inputs": {
+                     "required": {}
+                    },
+                    "key": "auto"
+                   },
+                   {
+                    "inputs": {
+                     "required": {
+                      "crf": [
+                       "FLOAT",
+                       {
+                        "default": 24.0,
+                        "max": 63.0,
+                        "min": 0.0,
+                        "step": 1.0,
+                        "tooltip": "Lower values produce higher quality and larger files."
+                       }
+                      ]
+                     }
+                    },
+                    "key": "re-encode"
+                   }
+                  ],
+                  "tooltip": "Automatic preserves compatible AV1 streams. Re-encode applies custom encoding options."
+                 }
+                ]
+               },
+               "required": {}
+              },
+              "key": "av1"
+             }
+            ],
+            "tooltip": "The output video codec. Auto preserves a compatible source stream. H.264 and AV1 re-encoding support SDR, HDR (HLG), and HDR PQ."
+           }
+          ]
+         }
+        },
+        "key": "mkv"
+       },
+       {
+        "inputs": {
+         "required": {
+          "codec": [
+           "COMFY_DYNAMICCOMBO_V3",
+           {
+            "options": [
+             {
+              "inputs": {
+               "required": {}
+              },
+              "key": "auto"
+             },
+             {
+              "inputs": {
+               "optional": {
+                "encoding": [
+                 "COMFY_DYNAMICCOMBO_V3",
+                 {
+                  "display_name": "encoding mode",
+                  "options": [
+                   {
+                    "inputs": {
+                     "required": {}
+                    },
+                    "key": "auto"
+                   },
+                   {
+                    "inputs": {
+                     "required": {
+                      "crf": [
+                       "FLOAT",
+                       {
+                        "default": 24.0,
+                        "max": 63.0,
+                        "min": 0.0,
+                        "step": 1.0,
+                        "tooltip": "Lower values produce higher quality and larger files."
+                       }
+                      ]
+                     }
+                    },
+                    "key": "re-encode"
+                   }
+                  ],
+                  "tooltip": "Automatic preserves compatible AV1 streams. Re-encode applies custom encoding options."
+                 }
+                ]
+               },
+               "required": {}
+              },
+              "key": "av1"
+             }
+            ],
+            "tooltip": "The output video codec. Auto preserves a compatible source stream. H.264 and AV1 re-encoding support SDR, HDR (HLG), and HDR PQ."
+           }
+          ]
+         }
+        },
+        "key": "webm"
+       }
+      ],
+      "tooltip": "The output container. Auto uses MP4 for Auto/H.264 and WebM for AV1. MP4, MKV, and WebM select a specific container."
+     }
+    ],
+    "video": [
+     "VIDEO",
+     {
+      "tooltip": "The video to save."
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "hidden": [
+    "prompt",
+    "extra_pnginfo"
+   ],
+   "optional": [
+    "codec"
+   ],
+   "required": [
+    "video",
+    "filename_prefix",
+    "format"
+   ]
+  },
+  "is_input_list": false,
+  "name": "SaveVideo",
+  "output": [
+   "VIDEO"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_matchtypes": null,
+  "output_name": [
+   "video"
+  ],
+  "output_node": true,
+  "output_tooltips": [
+   "The input video, unchanged."
+  ],
+  "price_badge": null,
+  "python_module": "comfy_extras.nodes_video",
+  "search_aliases": [
+   "export video"
+  ]
+ },
+ "UnetLoaderGGUF": {
+  "category": "bootleg",
+  "display_name": "Unet Loader (GGUF)",
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "unet_name": [
+     [
+      "ltx-2-19b-distilled_Q4_K_M.gguf"
+     ]
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "unet_name"
+   ]
+  },
+  "is_input_list": false,
+  "name": "UnetLoaderGGUF",
+  "output": [
+   "MODEL"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "MODEL"
+  ],
+  "output_node": false,
+  "python_module": "custom_nodes.ComfyUI-GGUF",
+  "search_aliases": []
+ },
+ "VAEDecodeTiled": {
+  "category": "model/latent",
+  "display_name": "VAE Decode (Tiled)",
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "overlap": [
+     "INT",
+     {
+      "advanced": true,
+      "default": 64,
+      "max": 4096,
+      "min": 0,
+      "step": 32
+     }
+    ],
+    "samples": [
+     "LATENT"
+    ],
+    "temporal_overlap": [
+     "INT",
+     {
+      "advanced": true,
+      "default": 8,
+      "max": 4096,
+      "min": 4,
+      "step": 4,
+      "tooltip": "Only used for video VAEs: Amount of frames to overlap."
+     }
+    ],
+    "temporal_size": [
+     "INT",
+     {
+      "advanced": true,
+      "default": 64,
+      "max": 4096,
+      "min": 8,
+      "step": 4,
+      "tooltip": "Only used for video VAEs: Amount of frames to decode at a time."
+     }
+    ],
+    "tile_size": [
+     "INT",
+     {
+      "advanced": true,
+      "default": 512,
+      "max": 4096,
+      "min": 64,
+      "step": 32
+     }
+    ],
+    "vae": [
+     "VAE"
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "samples",
+    "vae",
+    "tile_size",
+    "overlap",
+    "temporal_size",
+    "temporal_overlap"
+   ]
+  },
+  "is_input_list": false,
+  "name": "VAEDecodeTiled",
+  "output": [
+   "IMAGE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "IMAGE"
+  ],
+  "output_node": false,
+  "python_module": "nodes",
+  "search_aliases": []
+ },
+ "VAELoader": {
+  "category": "model/loaders",
+  "display_name": "Load VAE",
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "vae_name": [
+     [
+      "LTX2_video_vae_bf16.safetensors",
+      "taesdxl",
+      "taesd",
+      "taef1",
+      "pixel_space"
+     ]
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "vae_name"
+   ]
+  },
+  "is_input_list": false,
+  "name": "VAELoader",
+  "output": [
+   "VAE"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "VAE"
+  ],
+  "output_node": false,
+  "python_module": "nodes",
+  "search_aliases": []
+ }
+}

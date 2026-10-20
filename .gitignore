@@ -4,3 +4,6 @@ __pycache__/
 node_modules/
 bench/out/
 bench/results/*.samples.jsonl
+app/data/
+app/screenshots/
+test-results/
