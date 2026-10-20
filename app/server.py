@@ -239,7 +239,7 @@ async def _serve(args):
         else:
             proxy_runner, proxy_url = await start_proxy(args.comfyui, args.proxy_port)
             use_proxy(proxy_url)
-        runner = web.AppRunner(create_app(args.comfyui, args.data_dir))
+        runner = web.AppRunner(create_app(args.comfyui, args.data_dir), shutdown_timeout=1.0)
         await runner.setup()
         try:
             await web.TCPSite(runner, args.host, args.port).start()

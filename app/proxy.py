@@ -13,7 +13,7 @@ async def start_proxy(comfyui_url, port=0):
     ``(runner, url)``: the ``aiohttp.web.AppRunner`` and the base URL
     ``http://127.0.0.1:<actual port>`` read from the bound socket.
     """
-    runner = web.AppRunner(make_app(comfyui_url))
+    runner = web.AppRunner(make_app(comfyui_url), shutdown_timeout=1.0)
     await runner.setup()
     try:
         site = web.TCPSite(runner, "127.0.0.1", port)
