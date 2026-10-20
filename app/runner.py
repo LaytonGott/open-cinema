@@ -224,11 +224,11 @@ class ShotRunner:
         if self.client is None:
             self.client = comfy.make_client()
         try:
-            job = await asyncio.to_thread(
+            job = await self._call(
                 comfy.submit_and_follow, self.client, graph,
                 self.thread_callback(loop, record, "generate"),
                 self.on_job_for(record))
-            path = await asyncio.to_thread(
+            path = await self._call(
                 comfy.download_output, job, graphs.GENERATION_OUTPUT_NODE,
                 self.store.shot_dir(shot_id), "before")
         finally:
@@ -337,14 +337,14 @@ class ShotRunner:
         self._set_stage(record, "optics", "active")
         self.update(record, status="optics", message="Estimating depth")
         loop = asyncio.get_running_loop()
-        client, graph = await asyncio.to_thread(
+        client, graph = await self._call(
             self.prepare_optics, record, aperture, n)
         try:
-            job = await asyncio.to_thread(
+            job = await self._call(
                 comfy.submit_and_follow, client, graph,
                 self.thread_callback(loop, record, "optics"),
                 self.on_job_for(record))
-            path = await asyncio.to_thread(
+            path = await self._call(
                 comfy.download_output, job, graphs.OPTICS_OUTPUT_NODE,
                 self.store.shot_dir(shot_id), f"after_{n}")
         finally:
