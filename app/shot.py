@@ -134,20 +134,30 @@ def validate_shot(data):
         )
 
     camera = data["camera"]
-    if camera in camera_ids:
-        pass
+    if not isinstance(camera, str) or camera not in camera_ids:
+        raise ShotError(
+            "camera", f"The camera must be one of: {', '.join(camera_ids)}."
+        )
 
     lens_mm = data["lens_mm"]
-    if lens_mm in LENSES:
-        pass
+    if type(lens_mm) is not int or lens_mm not in LENSES:
+        raise ShotError(
+            "lens_mm",
+            f"The lens must be one of: {', '.join(str(l) for l in LENSES)} mm.",
+        )
 
     aperture = data["aperture"]
-    if aperture in APERTURES:
-        pass
+    if type(aperture) not in (int, float) or aperture not in APERTURES:
+        raise ShotError(
+            "aperture",
+            f"The aperture must be one of: {', '.join(str(a) for a in APERTURES)}.",
+        )
 
     framing = data["framing"]
-    if framing in framing_ids:
-        pass
+    if not isinstance(framing, str) or framing not in framing_ids:
+        raise ShotError(
+            "framing", f"The framing must be one of: {', '.join(framing_ids)}."
+        )
 
     shot = {
         "description": description,
