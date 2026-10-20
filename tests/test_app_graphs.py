@@ -113,5 +113,27 @@ class OpticsGraphValuesTests(unittest.TestCase):
         self._check("other.webm", 35, 8, 3.2, "p/x")
 
 
+class OpticsGraphCacheTests(unittest.TestCase):
+    def setUp(self):
+        self.g1 = build_optics_graph("clip.webm", 50, 2.8, 5.1005, "opencinema/test/after_1")
+        self.g2 = build_optics_graph("clip.webm", 50, 8, 5.1005, "opencinema/test/after_2")
+
+    def test_only_expected_nodes_change(self):
+        self.assertEqual(set(self.g1), set(self.g2))
+        changed = {
+            self.g1[k]["class_type"] for k in self.g1 if self.g1[k] != self.g2[k]
+        }
+        self.assertLessEqual(changed, {"OpenOptics_DepthOfField", "CreateVideo", "SaveVideo"})
+        self.assertIn("OpenOptics_DepthOfField", changed)
+
+    def test_same_arguments_equal_graphs(self):
+        again = build_optics_graph("clip.webm", 50, 2.8, 5.1005, "opencinema/test/after_1")
+        self.assertEqual(self.g1, again)
+
+    def test_both_graphs_valid(self):
+        for graph in (self.g1, self.g2):
+            self.assertEqual(validate_prompt(graph, input_files=["clip.webm"]), [])
+
+
 if __name__ == "__main__":
     unittest.main()
