@@ -1,5 +1,7 @@
 import json
+import re
 import unittest
+from pathlib import Path
 
 from app.graphs import (
     GENERATION_OUTPUT_NODE,
@@ -278,6 +280,17 @@ class GenerationGraphSeedTests(unittest.TestCase):
         differing = {k for k in a if a[k] != b[k]}
         text = {k for k, n in a.items() if n["class_type"] == "CLIPTextEncode"}
         self.assertEqual(differing, text | {GENERATION_OUTPUT_NODE})
+
+
+class NoBenchImportTests(unittest.TestCase):
+    def test_app_does_not_import_bench(self):
+        app_dir = Path(__file__).resolve().parent.parent / "app"
+        for path in app_dir.rglob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            self.assertIsNone(
+                re.search(r"^\s*(from|import)\s+bench\b", text, re.M),
+                f"{path.name} imports bench",
+            )
 
 
 if __name__ == "__main__":
