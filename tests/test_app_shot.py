@@ -183,6 +183,42 @@ class ValidateSeedTests(unittest.TestCase):
                 self.assertGreater(len(ctx.exception.message), 12)
 
 
+class ShotErrorMessageTests(unittest.TestCase):
+    REQUIRED = ["description", "camera", "lens_mm", "aperture", "framing"]
+
+    def base(self):
+        return {"description": "A woman walks.", "camera": "static", "lens_mm": 50,
+                "aperture": 2.8, "framing": "waist-up"}
+
+    def cases(self):
+        bad = [("description", "ab"), ("description", "a" * 1001), ("description", 5),
+               ("camera", "zoom"), ("lens_mm", 28), ("aperture", 3),
+               ("framing", "head"), ("seed", -1)]
+        for field, value in bad:
+            data = self.base()
+            data[field] = value
+            yield field, data
+        for name in self.REQUIRED:
+            data = self.base()
+            del data[name]
+            yield name, data
+
+    def test_errors_are_readable(self):
+        for field, data in self.cases():
+            with self.subTest(field=field, data=data.get(field)):
+                with self.assertRaises(shot.ShotError) as ctx:
+                    shot.validate_shot(data)
+                err = ctx.exception
+                self.assertIsInstance(err, shot.ShotError)
+                self.assertIsInstance(err.field, str)
+                self.assertTrue(err.field)
+                self.assertEqual(err.field, field)
+                self.assertIsInstance(err.message, str)
+                self.assertGreater(len(err.message), 12)
+                self.assertTrue(err.message.endswith("."))
+                self.assertEqual(str(err), err.message)
+
+
 class BuildPromptTests(unittest.TestCase):
     FRAMING = {
         "close-up": "Close-up shot of the subject's face and shoulders",
