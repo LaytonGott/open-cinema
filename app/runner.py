@@ -5,13 +5,15 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app import comfy, errors, graphs, progress
+from app import comfy, comfy_health, errors, graphs, progress
 
 logger = logging.getLogger(__name__)
 
 
 class ShotRunner:
     """Runs queued shots one at a time, in the order they were enqueued."""
+
+    watch_interval = 2.0
 
     def __init__(self, store, comfyui_url=None):
         self.store = store
@@ -23,6 +25,31 @@ class ShotRunner:
         self.items = {}
         self.current = None
         self.cancel_requested = None
+
+    async def _call(self, func, *args):
+        """Run `func(*args)` in a thread and return its result.
+
+        While it runs, ComfyUI is health-checked every `watch_interval`
+        seconds; after 3 failed checks in a row the thread is abandoned and
+        `errors.ComfyUnreachable` is raised. A successful check resets the
+        count. Without `comfyui_url` the thread is just awaited.
+        """
+        task = asyncio.ensure_future(asyncio.to_thread(func, *args))
+        if self.comfyui_url is None:
+            return await task
+        failures = 0
+        try:
+            while True:
+                done, _ = await asyncio.wait({task}, timeout=self.watch_interval)
+                if done:
+                    return task.result()
+                health = await comfy_health.check_health(self.comfyui_url)
+                failures = 0 if health.get("reachable") else failures + 1
+                if failures >= 3:
+                    raise errors.ComfyUnreachable("ComfyUI stopped answering")
+        except BaseException:
+            task.add_done_callback(lambda t: t.cancelled() or t.exception())
+            raise
 
     def on_job_for(self, record):
         """Return the `on_job` callback for the shot `record` (called in a worker thread).
