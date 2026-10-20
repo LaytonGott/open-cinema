@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import mimetypes
 import signal
 import sys
 from pathlib import Path
@@ -17,6 +18,9 @@ from app.shot import ShotError, validate_shot
 from app.store import ShotStore, new_shot_id
 
 log = logging.getLogger("app")
+
+mimetypes.add_type("video/webm", ".webm")
+mimetypes.add_type("video/mp4", ".mp4")
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -104,6 +108,21 @@ async def get_shot(request):
     return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
 
 
+async def get_media(request):
+    """Serve the file ``name`` from the folder of shot ``id`` (Range supported), or 404 ``not_found``."""
+    shot_id = request.match_info["id"]
+    name = request.match_info["name"]
+    message = f"There is no media {name} for shot {shot_id}."
+    if not name or "/" in name or "\\" in name or ".." in name:
+        return error_response(404, "not_found", message)
+    if request.app[STORE].get(shot_id) is None:
+        return error_response(404, "not_found", message)
+    path = request.app[STORE].shot_dir(shot_id) / name
+    if not path.is_file():
+        return error_response(404, "not_found", message)
+    return web.FileResponse(path)
+
+
 async def index(request):
     """Return the frontend page ``app/static/index.html``."""
     return web.FileResponse(STATIC_DIR / "index.html")
@@ -134,6 +153,7 @@ def create_app(comfyui_url, data_dir):
     app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
+    app.router.add_get("/media/{id}/{name}", get_media)
     app.router.add_get("/", index)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
     return app

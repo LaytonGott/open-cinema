@@ -1,4 +1,5 @@
 import unittest
+import urllib.request
 
 from tests.app_harness import SHOT, AppHarness
 from tests.fake_comfy import FakeComfy
@@ -60,6 +61,29 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertEqual(body["error"]["code"], "not_found")
         self.assertNotIn("Traceback", str(body))
+
+    def test_media_range(self):
+        created = self.harness.post("/api/shots", SHOT)[1]
+        folder = self.harness.data_dir / "shots" / created["id"]
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "clip.webm").write_bytes(b"0123456789")
+        url = f"{self.harness.url}/media/{created['id']}/clip.webm"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            self.assertEqual(r.status, 200)
+            self.assertEqual(r.headers["Content-Type"], "video/webm")
+            self.assertEqual(r.read(), b"0123456789")
+        req = urllib.request.Request(url, headers={"Range": "bytes=0-3"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            self.assertEqual(r.status, 206)
+            self.assertEqual(r.read(), b"0123")
+        status, body = self.harness.get(f"/media/{created['id']}/missing.webm")
+        self.assertEqual((status, body["error"]["code"]), (404, "not_found"))
+        status, body = self.harness.get(f"/media/{created['id']}/..%2Frecord.json")
+        self.assertEqual((status, body["error"]["code"]), (404, "not_found"))
+        status, body = self.harness.get(f"/media/{created['id']}/..")
+        self.assertEqual((status, body["error"]["code"]), (404, "not_found"))
+        status, body = self.harness.get("/media/19990101-000000-abcd/clip.webm")
+        self.assertEqual((status, body["error"]["code"]), (404, "not_found"))
 
 
 if __name__ == "__main__":
