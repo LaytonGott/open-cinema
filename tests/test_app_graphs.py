@@ -221,5 +221,17 @@ class GenerationStageTests(unittest.TestCase):
         self.assertEqual(g[second]["inputs"]["noise_seed"], 385)
 
 
+class GenerationGraphSeedTests(unittest.TestCase):
+    def test_seed_only_changes_noise_nodes(self):
+        a = build_generation_graph(PROMPT, 1, PREFIX)
+        b = build_generation_graph(PROMPT, 2, PREFIX)
+        self.assertEqual(set(a), set(b))
+        differing = {k for k in a if a[k] != b[k]}
+        noise = {k for k, n in a.items() if n["class_type"] == "RandomNoise"}
+        self.assertEqual(len(noise), 2)
+        self.assertEqual(differing, noise)
+        self.assertEqual(a, build_generation_graph(PROMPT, 1, PREFIX))
+
+
 if __name__ == "__main__":
     unittest.main()
