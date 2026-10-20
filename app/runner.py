@@ -1,0 +1,46 @@
+"""Sequential shot runner: a queue of shot ids and one worker task."""
+import asyncio
+
+
+class ShotRunner:
+    """Runs queued shots one at a time, in the order they were enqueued."""
+
+    def __init__(self, store):
+        self.store = store
+        self.queue = None
+        self.task = None
+
+    def start(self):
+        """Create the queue and the worker task; call inside a running loop."""
+        self.queue = asyncio.Queue()
+        self.task = asyncio.get_running_loop().create_task(self._worker())
+
+    async def stop(self):
+        """Cancel the worker task and wait for it (nothing is cancelled in ComfyUI)."""
+        task, self.task = self.task, None
+        if task is None:
+            return
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+    def enqueue(self, shot_id):
+        """Put a shot id on the queue; the worker runs it after earlier ids."""
+        self.queue.put_nowait(shot_id)
+
+    async def _worker(self):
+        while True:
+            shot_id = await self.queue.get()
+            try:
+                await self.run_shot(shot_id)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                pass
+            finally:
+                self.queue.task_done()
+
+    async def run_shot(self, shot_id):
+        """Run one shot; does nothing yet."""
