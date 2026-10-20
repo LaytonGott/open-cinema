@@ -128,6 +128,32 @@ class ShotRunnerTest(unittest.TestCase):
             self.assertAlmostEqual(record["progress"], 0.85, places=6)
             self.assertIn("opencinema/s1/before", json.dumps(seen["graph"]))
 
+    def test_prepare_optics_uploads_and_builds_graph(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ShotStore(tmp)
+            record = store.add({
+                "id": "s1", "before_url": "/media/s1/before.mp4",
+                "params": {"lens_mm": 50}, "derived": {"subject_distance_m": 3.0}})
+            shot_dir = Path(store.shot_dir("s1"))
+            shot_dir.mkdir(parents=True, exist_ok=True)
+            (shot_dir / "before.mp4").write_bytes(b"x")
+            runner = ShotRunner(store)
+            uploaded = []
+
+            def fake_upload(client, path):
+                uploaded.append(Path(path))
+                return "uploaded.mp4"
+
+            with mock.patch("app.comfy.make_client", lambda: "client"), \
+                    mock.patch("app.comfy.upload_video", fake_upload):
+                client, graph = runner.prepare_optics(record, 2.8, 1)
+            self.assertEqual(client, "client")
+            self.assertEqual(uploaded, [shot_dir / "before.mp4"])
+            self.assertEqual(graph["1"]["inputs"]["file"], "uploaded.mp4")
+            text = json.dumps(graph)
+            self.assertIn("2.8", text)
+            self.assertIn("opencinema/s1/after_1", text)
+
     def test_internal_error_marks_failed_and_continues(self):
         class FailingFirst(RecordingRunner):
             async def run_shot(self, shot_id):

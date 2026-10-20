@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import time
+from pathlib import Path
 
 from app import comfy, graphs, progress
 
@@ -135,6 +136,25 @@ class ShotRunner:
             record,
             before_url=f"/media/{shot_id}/before{path.suffix}",
             progress=progress.monotonic(record.get("progress", 0.0), 0.85))
+
+    def prepare_optics(self, record, aperture, n):
+        """Upload the shot's "before" video and build its optics graph (blocking).
+
+        `aperture` is the f-number and `n` the optics run number (the output
+        prefix is `opencinema/<id>/after_<n>`). Creates the runner's client on
+        first use. Returns `(client, graph)`.
+        """
+        shot_id = record["id"]
+        if self.client is None:
+            self.client = comfy.make_client()
+        suffix = Path(record["before_url"]).suffix
+        path = self.store.shot_dir(shot_id) / f"before{suffix}"
+        uploaded = comfy.upload_video(self.client, path)
+        graph = graphs.build_optics_graph(
+            uploaded, record["params"]["lens_mm"], aperture,
+            record["derived"]["subject_distance_m"],
+            f"opencinema/{shot_id}/after_{n}")
+        return self.client, graph
 
     @staticmethod
     def _set_stage(record, stage, state, stage_progress=None):
