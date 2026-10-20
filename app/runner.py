@@ -233,6 +233,21 @@ class ShotRunner:
         self.update(record, status="optics", progress=0.0,
                     message="Estimating depth")
 
+    def _finish_cancel(self, record):
+        """Finish a cancelled shot `record` and save it. Returns None.
+
+        Without versions the status becomes 'cancelled' with message
+        'Cancelled.'. With versions (a cancelled re-apply) the shot goes back
+        to status 'done', progress 1.0, message 'Done', `_reapply` is removed
+        and the optics stage is 'done'.
+        """
+        if not record.get("versions"):
+            self.update(record, status="cancelled", message="Cancelled.")
+            return
+        record.pop("_reapply", None)
+        self._set_stage(record, "optics", "done")
+        self.update(record, status="done", progress=1.0, message="Done")
+
     async def run_optics(self, record, aperture, n):
         """Apply the optics to the shot `record`'s "before" video as version `n`.
 
