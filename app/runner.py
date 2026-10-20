@@ -106,7 +106,9 @@ class ShotRunner:
             self.update(record)
             return
         fraction = max(0.0, min(1.0, data["value"]))
-        if stage == "optics":
+        if stage == "optics" and record.get("_reapply"):
+            overall = fraction
+        elif stage == "optics":
             overall = progress.optics_progress(fraction)
         else:
             overall = progress.generation_progress(fraction)
@@ -301,6 +303,7 @@ class ShotRunner:
             "url": f"/media/{shot_id}/after_{n}{path.suffix}",
             "created_at": created})
         self._set_stage(record, "optics", "done", 1.0)
+        record.pop("_reapply", None)
         self.update(record, current_version=n, status="done", progress=1.0,
                     message="Done")
 
