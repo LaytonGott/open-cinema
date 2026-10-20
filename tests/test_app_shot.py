@@ -39,5 +39,22 @@ class OptionListTests(unittest.TestCase):
         )
 
 
+class SubjectDistanceTests(unittest.TestCase):
+    def test_table(self):
+        # Hand-checked table from docs/app-spec.md section 2.1, in metres.
+        framings = ["close-up", "waist-up", "full-body", "wide"]
+        table = {
+            24: [0.7599, 1.3119, 2.4482, 5.9114],
+            35: [1.1082, 1.9132, 3.5704, 8.6209],
+            50: [1.5832, 2.7331, 5.1005, 12.3155],
+            85: [2.6914, 4.6462, 8.6709, 20.9364],
+        }
+        for lens, expected in table.items():
+            for framing, value in zip(framings, expected):
+                with self.subTest(lens=lens, framing=framing):
+                    self.assertAlmostEqual(
+                        shot.subject_distance(lens, framing), value, delta=0.00006)
+
+
 if __name__ == "__main__":
     unittest.main()
