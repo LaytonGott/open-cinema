@@ -106,8 +106,15 @@ def validate_shot(data):
     Keys: description (stripped str), camera (id), lens_mm (millimetres),
     aperture (f-number), framing (id), and seed only if present in `data`.
     Values are otherwise returned unchanged. Checks that raise
-    ShotError(field, message) are added in later tasks.
+    ShotError(field, message) are added in later tasks. Before any other
+    check, raises ShotError(name, "The <name> is required.") for the first of
+    description, camera, lens_mm, aperture, framing (in that order) that is
+    not a key of `data`.
     """
+    for name in ("description", "camera", "lens_mm", "aperture", "framing"):
+        if name not in data:
+            raise ShotError(name, f"The {name} is required.")
+
     camera_ids = [c["id"] for c in CAMERAS]
     framing_ids = [f["id"] for f in FRAMINGS]
 
