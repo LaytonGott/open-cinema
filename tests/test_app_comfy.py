@@ -1,8 +1,9 @@
 import unittest
+from pathlib import Path
 
 from comfy_sdk import events
 
-from app.comfy import submit_and_follow
+from app.comfy import download_output, submit_and_follow
 
 
 class StubJob:
@@ -46,6 +47,43 @@ class SubmitAndFollowTest(unittest.TestCase):
     def test_on_job_optional(self):
         job = StubJob()
         self.assertIs(submit_and_follow(StubClient(job), {}, lambda *a: None), job)
+
+
+class StubOutput:
+    def __init__(self, node_id, name):
+        self.node_id = node_id
+        self.name = name
+        self.saved = []
+
+    def to_file(self, path):
+        self.saved.append(path)
+        return path
+
+
+class StubOutputsJob:
+    def __init__(self, outputs):
+        self.outputs = outputs
+
+
+class DownloadOutputTest(unittest.TestCase):
+    def test_path_uses_extension_of_name(self):
+        other = StubOutput("1", "a.png")
+        out = StubOutput("2", "x.webm")
+        path = download_output(StubOutputsJob([other, out]), "2", "dest", "before")
+        self.assertEqual(path, Path("dest") / "before.webm")
+        self.assertEqual(path.name, "before.webm")
+        self.assertEqual(out.saved, [path])
+        self.assertEqual(other.saved, [])
+
+    def test_default_extension(self):
+        out = StubOutput("2", "noext")
+        path = download_output(StubOutputsJob([out]), "2", "dest", "after")
+        self.assertEqual(path.name, "after.mp4")
+        self.assertEqual(out.saved, [path])
+
+    def test_unknown_node_raises(self):
+        with self.assertRaises(LookupError):
+            download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", "dest", "s")
 
 
 if __name__ == "__main__":

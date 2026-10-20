@@ -1,5 +1,7 @@
 """The only app module that imports comfy_sdk: blocking helpers, call them in threads."""
 
+from pathlib import Path
+
 import comfy_sdk
 from comfy_sdk import events
 
@@ -33,3 +35,17 @@ def submit_and_follow(client, graph, on_event, on_job=None):
             })
     job.result()
     return job
+
+
+def download_output(job, node_id, dest_dir, stem):
+    """Save the output of node_id from job into dest_dir as stem + extension; return the Path.
+
+    The extension comes from the output's name ('.mp4' when it has none).
+    Raises LookupError if job.outputs has no entry for node_id.
+    """
+    for output in job.outputs:
+        if output.node_id == node_id:
+            path = Path(dest_dir) / (stem + (Path(output.name).suffix or ".mp4"))
+            output.to_file(path)
+            return path
+    raise LookupError(f"no output for node {node_id}")
