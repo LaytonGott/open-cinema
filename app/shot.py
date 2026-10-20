@@ -48,6 +48,43 @@ def subject_distance(lens_mm, framing):
         lens_mm, sensor_h, SUBJECT_HEIGHT_FRACTION[framing] * 704, 704, 1.7)
 
 
+FRAMING_PHRASES = {
+    "close-up": "Close-up shot of the subject's face and shoulders",
+    "waist-up": "Waist-up medium shot",
+    "full-body": "Full-body shot, the whole figure visible head to toe",
+    "wide": "Wide establishing shot, the figure small in a large scene",
+}
+
+CAMERA_PHRASES = {
+    "static": "The camera is locked off and does not move",
+    "dolly-in": "Slow dolly-in toward the subject",
+    "dolly-out": "Slow dolly-out away from the subject",
+    "pan-left": "Smooth pan to the left",
+    "pan-right": "Smooth pan to the right",
+    "tilt-up": "Slow tilt up",
+    "orbit": "The camera orbits slowly around the subject",
+    "handheld": "Handheld camera with subtle natural movement",
+}
+
+
+def build_prompt(params):
+    """Return the LTX-2 text prompt (str) for the shot dict `params`.
+
+    params has description, camera (id), lens_mm (millimetres) and framing (id).
+    The description is stripped and gets a final '.' unless it already ends in
+    '.', '!' or '?'.
+    """
+    description = params["description"].strip()
+    if not description.endswith((".", "!", "?")):
+        description += "."
+    return (
+        f"{FRAMING_PHRASES[params['framing']]}. {description} "
+        f"{CAMERA_PHRASES[params['camera']]}. {params['lens_mm']} mm lens look, "
+        "deep focus with everything sharp from the foreground to the far background, "
+        "cinematic lighting, 35mm film."
+    )
+
+
 class ShotError(Exception):
     """An invalid shot parameter: `field` names the JSON field, `message` says what is wrong."""
 
