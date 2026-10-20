@@ -56,5 +56,43 @@ class SubjectDistanceTests(unittest.TestCase):
                         shot.subject_distance(lens, framing), value, delta=0.00006)
 
 
+class ValidateValidTests(unittest.TestCase):
+    def make(self, **changes):
+        data = {"description": "A woman walks.", "camera": "static", "lens_mm": 50,
+                "aperture": 2.8, "framing": "waist-up"}
+        data.update(changes)
+        return data
+
+    def test_description_stripped(self):
+        result = shot.validate_shot(self.make(description="  A woman walks.  "))
+        self.assertEqual(result["description"], "A woman walks.")
+        self.assertEqual(result["camera"], "static")
+        self.assertEqual(result["lens_mm"], 50)
+        self.assertEqual(result["aperture"], 2.8)
+        self.assertEqual(result["framing"], "waist-up")
+
+    def test_aperture_int_and_float(self):
+        for aperture in (2, 2.0):
+            with self.subTest(aperture=aperture):
+                result = shot.validate_shot(self.make(aperture=aperture))
+                self.assertEqual(result["aperture"], 2)
+
+    def test_every_option_accepted(self):
+        for lens in [24, 35, 50, 85]:
+            with self.subTest(lens=lens):
+                self.assertEqual(shot.validate_shot(self.make(lens_mm=lens))["lens_mm"], lens)
+        cameras = ["static", "dolly-in", "dolly-out", "pan-left", "pan-right",
+                   "tilt-up", "orbit", "handheld"]
+        for camera in cameras:
+            with self.subTest(camera=camera):
+                self.assertEqual(shot.validate_shot(self.make(camera=camera))["camera"], camera)
+        for framing in ["close-up", "waist-up", "full-body", "wide"]:
+            with self.subTest(framing=framing):
+                self.assertEqual(shot.validate_shot(self.make(framing=framing))["framing"], framing)
+        for aperture in [1.4, 2, 2.8, 4, 5.6, 8, 11, 16]:
+            with self.subTest(aperture=aperture):
+                self.assertEqual(shot.validate_shot(self.make(aperture=aperture))["aperture"], aperture)
+
+
 if __name__ == "__main__":
     unittest.main()
