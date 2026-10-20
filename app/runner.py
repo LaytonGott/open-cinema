@@ -200,12 +200,8 @@ class ShotRunner:
                     self.update(record, status="failed", error=error,
                                 message=error["message"])
                 elif record is not None:
-                    self.update(record, status="failed", error={
-                        "code": "internal",
-                        "message": "Something went wrong inside Open Cinema. "
-                                   "Check the console for details.",
-                        "stage": "generate",
-                    })
+                    error = errors.map_error(exc, "optics")
+                    self.update(record, status="failed", error=error)
             finally:
                 self.cancel_requested = None
                 self.current = None
