@@ -34,6 +34,33 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(body["error"]["code"], "invalid_shot")
 
+    def test_list_newest_first(self):
+        ids = [self.harness.post("/api/shots", SHOT)[1]["id"] for _ in range(3)]
+        status, first = self.harness.get("/api/shots")
+        self.assertEqual(status, 200)
+        self.assertEqual([s["id"] for s in first["shots"]][:3], ids[::-1])
+        for record in first["shots"]:
+            self.assertEqual(set(record), RECORD_KEYS)
+            self.assertNotIn("seq", record)
+        self.assertEqual(self.harness.get("/api/shots"), (200, first))
+
+    def test_get_shot(self):
+        created = self.harness.post("/api/shots", SHOT)[1]
+        status, record = self.harness.get("/api/shots/" + created["id"])
+        self.assertEqual(status, 200)
+        self.assertEqual(record["id"], created["id"])
+        self.assertEqual(set(record), RECORD_KEYS)
+
+    def test_not_found(self):
+        status, body = self.harness.get("/api/shots/19990101-000000-abcd")
+        self.assertEqual(status, 404)
+        self.assertEqual(body["error"]["code"], "not_found")
+        self.assertTrue(body["error"]["message"])
+        status, body = self.harness.get("/api/nothing-here")
+        self.assertEqual(status, 404)
+        self.assertEqual(body["error"]["code"], "not_found")
+        self.assertNotIn("Traceback", str(body))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -86,6 +86,21 @@ async def create_shot(request):
     return web.json_response(public_record(record), status=201)
 
 
+async def list_shots(request):
+    """Return JSON ``{"shots": [...]}`` of public records, newest first."""
+    records = reversed(request.app[STORE].list())
+    return web.json_response({"shots": [public_record(r) for r in records]})
+
+
+async def get_shot(request):
+    """Return the public record of the shot in the path, or 404 ``not_found``."""
+    shot_id = request.match_info["id"]
+    for record in request.app[STORE].list():
+        if record["id"] == shot_id:
+            return web.json_response(public_record(record))
+    return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
+
+
 async def index(request):
     """Return the frontend page ``app/static/index.html``."""
     return web.FileResponse(STATIC_DIR / "index.html")
@@ -103,6 +118,8 @@ def create_app(comfyui_url, data_dir):
     app[STORE] = store
     app.router.add_get("/api/health", health)
     app.router.add_post("/api/shots", create_shot)
+    app.router.add_get("/api/shots", list_shots)
+    app.router.add_get("/api/shots/{id}", get_shot)
     app.router.add_get("/", index)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
     return app
