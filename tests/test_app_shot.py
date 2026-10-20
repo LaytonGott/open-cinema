@@ -43,22 +43,26 @@ class SubjectDistanceTests(unittest.TestCase):
     def test_table(self):
         # Hand-checked table from docs/app-spec.md section 2.1, in metres.
         framings = ["close-up", "waist-up", "full-body", "wide"]
-        table = {
+        rows = {
             24: [0.7599, 1.3119, 2.4482, 5.9114],
             35: [1.1082, 1.9132, 3.5704, 8.6209],
             50: [1.5832, 2.7331, 5.1005, 12.3155],
             85: [2.6914, 4.6462, 8.6709, 20.9364],
         }
-        for lens, expected in table.items():
-            for framing, value in zip(framings, expected):
-                with self.subTest(lens=lens, framing=framing):
-                    self.assertAlmostEqual(
-                        shot.subject_distance(lens, framing), value, delta=0.00006)
+        table = {(lens, framing): value
+                 for lens, expected in rows.items()
+                 for framing, value in zip(framings, expected)}
+        self.assertEqual(len(table), 16)
+        for (lens, framing), value in table.items():
+            with self.subTest(lens=lens, framing=framing):
+                self.assertAlmostEqual(
+                    shot.subject_distance(lens, framing), value, delta=0.00006)
 
 
 class SubjectDistanceRejectTests(unittest.TestCase):
     def test_bad_lens_or_framing(self):
-        for lens, framing in [(28, "wide"), (50, "head"), ("50", "wide"), (True, "wide")]:
+        for lens, framing in [(28, "wide"), (50, "head"), ("50", "wide"), (True, "wide"),
+                              (50.0, "wide"), (30, "wide"), (50, "medium"), (50, None)]:
             with self.subTest(lens=lens, framing=framing):
                 with self.assertRaises(ValueError) as ctx:
                     shot.subject_distance(lens, framing)
