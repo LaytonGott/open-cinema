@@ -20,6 +20,20 @@ class ShotRunner:
         self.client = None
         self._watchers = {}
         self.items = {}
+        self.current = None
+        self.cancel_requested = None
+
+    def on_job_for(self, record):
+        """Return the `on_job` callback for the shot `record` (called in a worker thread).
+
+        The callback stores `{'shot_id', 'job'}` in `self.current` and cancels
+        the job right away when `self.cancel_requested` is the shot's id.
+        """
+        def on_job(job):
+            self.current = {"shot_id": record["id"], "job": job}
+            if self.cancel_requested == record["id"]:
+                job.cancel()
+        return on_job
 
     def start(self):
         """Create the queue and the worker task; call inside a running loop."""
@@ -163,12 +177,16 @@ class ShotRunner:
         loop = asyncio.get_running_loop()
         if self.client is None:
             self.client = comfy.make_client()
-        job = await asyncio.to_thread(
-            comfy.submit_and_follow, self.client, graph,
-            self.thread_callback(loop, record, "generate"))
-        path = await asyncio.to_thread(
-            comfy.download_output, job, graphs.GENERATION_OUTPUT_NODE,
-            self.store.shot_dir(shot_id), "before")
+        try:
+            job = await asyncio.to_thread(
+                comfy.submit_and_follow, self.client, graph,
+                self.thread_callback(loop, record, "generate"),
+                self.on_job_for(record))
+            path = await asyncio.to_thread(
+                comfy.download_output, job, graphs.GENERATION_OUTPUT_NODE,
+                self.store.shot_dir(shot_id), "before")
+        finally:
+            self.current = None
         self._set_stage(record, "generate", "done", 1.0)
         self.update(
             record,
@@ -218,12 +236,16 @@ class ShotRunner:
         loop = asyncio.get_running_loop()
         client, graph = await asyncio.to_thread(
             self.prepare_optics, record, aperture, n)
-        job = await asyncio.to_thread(
-            comfy.submit_and_follow, client, graph,
-            self.thread_callback(loop, record, "optics"))
-        path = await asyncio.to_thread(
-            comfy.download_output, job, graphs.OPTICS_OUTPUT_NODE,
-            self.store.shot_dir(shot_id), f"after_{n}")
+        try:
+            job = await asyncio.to_thread(
+                comfy.submit_and_follow, client, graph,
+                self.thread_callback(loop, record, "optics"),
+                self.on_job_for(record))
+            path = await asyncio.to_thread(
+                comfy.download_output, job, graphs.OPTICS_OUTPUT_NODE,
+                self.store.shot_dir(shot_id), f"after_{n}")
+        finally:
+            self.current = None
         created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         record.setdefault("versions", []).append({
             "n": n, "aperture": aperture,
