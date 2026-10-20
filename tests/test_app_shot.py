@@ -138,6 +138,24 @@ class ValidateDescriptionTests(unittest.TestCase):
         self.assertEqual(shot.validate_shot(self.make(description=" abc "))["description"], "abc")
 
 
+class ValidateChoiceTests(unittest.TestCase):
+    BAD = [("camera", "zoom"), ("camera", None),
+           ("lens_mm", 28), ("lens_mm", "50"), ("lens_mm", True), ("lens_mm", None), ("lens_mm", 50.5),
+           ("aperture", 3), ("aperture", 0), ("aperture", "f/2.8"), ("aperture", True), ("aperture", None),
+           ("framing", "head"), ("framing", None), ("framing", 5)]
+
+    def test_bad_choices(self):
+        for field, value in self.BAD:
+            with self.subTest(field=field, value=value):
+                data = {"description": "A woman walks.", "camera": "static", "lens_mm": 50,
+                        "aperture": 2.8, "framing": "waist-up"}
+                data[field] = value
+                with self.assertRaises(shot.ShotError) as ctx:
+                    shot.validate_shot(data)
+                self.assertEqual(ctx.exception.field, field)
+                self.assertGreater(len(ctx.exception.message), 12)
+
+
 class BuildPromptTests(unittest.TestCase):
     FRAMING = {
         "close-up": "Close-up shot of the subject's face and shoulders",
