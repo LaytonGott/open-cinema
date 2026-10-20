@@ -109,7 +109,9 @@ def validate_shot(data):
     ShotError(field, message) are added in later tasks. Before any other
     check, raises ShotError(name, "The <name> is required.") for the first of
     description, camera, lens_mm, aperture, framing (in that order) that is
-    not a key of `data`.
+    not a key of `data`. Then raises ShotError("description", ...) if the
+    description is not a str, or if its stripped length is under 3 or over
+    1000 characters; the stripped text is returned.
     """
     for name in ("description", "camera", "lens_mm", "aperture", "framing"):
         if name not in data:
@@ -118,7 +120,18 @@ def validate_shot(data):
     camera_ids = [c["id"] for c in CAMERAS]
     framing_ids = [f["id"] for f in FRAMINGS]
 
-    description = data["description"].strip()
+    description = data["description"]
+    if not isinstance(description, str):
+        raise ShotError("description", "The description must be text.")
+    description = description.strip()
+    if len(description) < 3:
+        raise ShotError(
+            "description", "The description must be at least 3 characters long."
+        )
+    if len(description) > 1000:
+        raise ShotError(
+            "description", "The description must be at most 1000 characters long."
+        )
 
     camera = data["camera"]
     if camera in camera_ids:
