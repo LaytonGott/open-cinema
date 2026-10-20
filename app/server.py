@@ -11,7 +11,9 @@ from aiohttp import web
 from app.cli import parse_args
 from app.comfy_health import check_health
 from app.proxy import start_proxy, stop_proxy, use_proxy
-from app.store import ShotStore
+from app.record import new_record, public_record
+from app.shot import ShotError, validate_shot
+from app.store import ShotStore, new_shot_id
 
 log = logging.getLogger("app")
 
@@ -66,6 +68,24 @@ async def health(request):
     return web.json_response({"app": "ok", "comfyui": comfy})
 
 
+async def create_shot(request):
+    """Create a shot from the JSON body and return its public record with status 201 (400 ``invalid_shot`` if invalid)."""
+    try:
+        data = await request.json()
+    except ValueError:
+        return error_response(400, "invalid_shot", "The request body must be valid JSON.")
+    if not isinstance(data, dict):
+        return error_response(400, "invalid_shot", "The request body must be a JSON object.")
+    try:
+        params = validate_shot(data)
+    except ShotError as exc:
+        return error_response(400, "invalid_shot", exc.message, exc.field)
+    store = request.app[STORE]
+    record = new_record(new_shot_id({r["id"] for r in store.list()}), params)
+    store.add(record)
+    return web.json_response(public_record(record), status=201)
+
+
 async def index(request):
     """Return the frontend page ``app/static/index.html``."""
     return web.FileResponse(STATIC_DIR / "index.html")
@@ -82,6 +102,7 @@ def create_app(comfyui_url, data_dir):
     store.load_all()
     app[STORE] = store
     app.router.add_get("/api/health", health)
+    app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/", index)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
     return app
