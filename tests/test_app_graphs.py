@@ -169,5 +169,18 @@ class OpticsGraphCacheTests(unittest.TestCase):
             self.assertEqual(validate_prompt(graph, input_files=["clip.webm"]), [])
 
 
+class GenerationStageTests(unittest.TestCase):
+    def test_stage_and_step_counts(self):
+        g = build_generation_graph("a prompt", 7, "p/x")
+        for class_type in ("SamplerCustomAdvanced", "RandomNoise", "ManualSigmas", "CFGGuider"):
+            self.assertEqual(len(_nodes(g, class_type)), 2, class_type)
+        samplers = sorted(k for k, n in g.items() if n["class_type"] == "SamplerCustomAdvanced")
+        self.assertEqual(samplers, ["15", "24"])
+        self.assertEqual(g["15"]["inputs"]["sigmas"], ["13", 0])
+        self.assertEqual(len(g["13"]["inputs"]["sigmas"].split(",")), 9)
+        self.assertEqual(g["24"]["inputs"]["sigmas"], ["22", 0])
+        self.assertEqual(len(g["22"]["inputs"]["sigmas"].split(",")), 4)
+
+
 if __name__ == "__main__":
     unittest.main()
