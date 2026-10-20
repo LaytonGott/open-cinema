@@ -42,7 +42,15 @@ class ShotRunner:
             while True:
                 done, _ = await asyncio.wait({task}, timeout=self.watch_interval)
                 if done:
-                    return task.result()
+                    try:
+                        return task.result()
+                    except Exception as exc:
+                        # whatever the SDK raised when the connection dropped, an
+                        # unreachable ComfyUI is the cause
+                        if isinstance(exc, errors.ComfyUnreachable) or (
+                                await comfy_health.check_health(self.comfyui_url)).get("reachable"):
+                            raise
+                        raise errors.ComfyUnreachable("ComfyUI stopped answering") from exc
                 health = await comfy_health.check_health(self.comfyui_url)
                 failures = 0 if health.get("reachable") else failures + 1
                 if failures >= 3:
