@@ -148,6 +148,40 @@ async def create_shot(request):
     return web.json_response(public_record(record), status=201)
 
 
+async def reapply_shot(request):
+    """Re-apply the optics of the shot in the path with the body's ``aperture`` (f-number) and return its public record with status 202 (404 ``not_found``, 400 ``invalid_shot``, 409 ``not_ready`` or ``busy``)."""
+    shot_id = request.match_info["id"]
+    record = None
+    for r in request.app[STORE].list():
+        if r["id"] == shot_id:
+            record = r
+            break
+    if record is None:
+        return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
+    try:
+        data = await request.json()
+    except ValueError:
+        return error_response(400, "invalid_shot", "The request body must be valid JSON.")
+    if not isinstance(data, dict):
+        return error_response(400, "invalid_shot", "The request body must be a JSON object.")
+    aperture = data.get("aperture")
+    if type(aperture) not in (int, float) or aperture not in APERTURES:
+        return error_response(
+            400,
+            "invalid_shot",
+            f"The aperture must be one of: {', '.join(str(a) for a in APERTURES)}.",
+            "aperture",
+        )
+    if not record.get("before_url"):
+        return error_response(409, "not_ready", "The shot has no image yet, so its optics cannot be re-applied.")
+    if record["status"] in ("queued", "generating", "optics"):
+        return error_response(409, "busy", "The shot is still being processed. Try again when it is finished.")
+    runner = request.app[RUNNER]
+    runner.begin_reapply(record, aperture)
+    runner.enqueue(shot_id, aperture)
+    return web.json_response(public_record(record), status=202)
+
+
 async def list_shots(request):
     """Return JSON ``{"shots": [...]}`` of public records, newest first."""
     records = reversed(request.app[STORE].list())
@@ -255,6 +289,7 @@ def create_app(comfyui_url, data_dir):
     app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
+    app.router.add_post("/api/shots/{id}/reapply", reapply_shot)
     app.router.add_get("/api/shots/{id}/events", shot_events)
     app.router.add_get("/media/{id}/{name}", get_media)
     app.router.add_get("/", index)
