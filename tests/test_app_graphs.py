@@ -209,6 +209,17 @@ class GenerationStageTests(unittest.TestCase):
         self.assertEqual(g["16"]["class_type"], "LTXVSeparateAVLatent")
         self.assertEqual(g["16"]["inputs"]["av_latent"], ["15", 1])
 
+    def test_noise_seeds(self):
+        g = build_generation_graph("a prompt", 7, "p/x")
+        first = g["15"]["inputs"]["noise"][0]
+        self.assertEqual(first, "11")
+        self.assertEqual(g[first]["class_type"], "RandomNoise")
+        self.assertEqual(g[first]["inputs"]["noise_seed"], 7)
+        second = g["24"]["inputs"]["noise"][0]
+        self.assertEqual(second, "20")
+        self.assertEqual(g[second]["class_type"], "RandomNoise")
+        self.assertEqual(g[second]["inputs"]["noise_seed"], 385)
+
 
 if __name__ == "__main__":
     unittest.main()
