@@ -103,18 +103,24 @@ class ShotError(Exception):
 
 
 def validate_shot(data):
-    """Return a new dict of cleaned shot parameters from the request dict `data`.
+    """Validate the request dict `data` and return the cleaned shot parameters.
 
-    Keys: description (stripped str), camera (id), lens_mm (millimetres),
-    aperture (f-number), framing (id), and seed (always returned: a random int from 0 to 2147483647 when absent
-    from `data`).
-    Values are otherwise returned unchanged. Checks that raise
-    ShotError(field, message) are added in later tasks. Before any other
-    check, raises ShotError(name, "The <name> is required.") for the first of
-    description, camera, lens_mm, aperture, framing (in that order) that is
-    not a key of `data`. Then raises ShotError("description", ...) if the
-    description is not a str, or if its stripped length is under 3 or over
-    1000 characters; the stripped text is returned.
+    `lens_mm` is the focal length in millimetres (an int from LENSES);
+    `aperture` is an f-number (an int or float from APERTURES). `camera` and
+    `framing` are ids from CAMERAS and FRAMINGS.
+
+    Returns a new dict with the keys description (stripped str), camera,
+    lens_mm, aperture, framing and seed. `seed` is an int from 0 to
+    2147483647: the value from `data`, or a random one when it is absent.
+
+    Raises ShotError(field, message), with `.field` the name of the invalid
+    or missing field and `.message` the text for the user, for the first
+    problem found. Required fields are checked first, in the order
+    description, camera, lens_mm, aperture, framing: a missing one gives
+    "The <name> is required." Then each field is checked in turn: the
+    description must be a str of 3 to 1000 characters once stripped, camera
+    and framing must be known ids, lens_mm and aperture must be allowed
+    values, and seed, if present, must be an int from 0 to 2147483647.
     """
     for name in ("description", "camera", "lens_mm", "aperture", "framing"):
         if name not in data:
