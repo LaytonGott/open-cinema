@@ -182,6 +182,23 @@ async def reapply_shot(request):
     return web.json_response(public_record(record), status=202)
 
 
+async def cancel_shot(request):
+    """Cancel the shot in the path, wait up to 5 s for the worker to finish the cancel and return its public record (404 ``not_found``, 409 ``not_running``)."""
+    shot_id = request.match_info["id"]
+    store = request.app[STORE]
+    if store.get(shot_id) is None:
+        return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
+    record = await request.app[RUNNER].cancel(shot_id)
+    if record is None:
+        return error_response(409, "not_running", "This shot is not running, so there is nothing to cancel.")
+    for _ in range(100):
+        record = store.get(shot_id)
+        if record["status"] not in ("queued", "generating", "optics"):
+            break
+        await asyncio.sleep(0.05)
+    return web.json_response(public_record(record))
+
+
 async def list_shots(request):
     """Return JSON ``{"shots": [...]}`` of public records, newest first."""
     records = reversed(request.app[STORE].list())
@@ -290,6 +307,7 @@ def create_app(comfyui_url, data_dir):
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
     app.router.add_post("/api/shots/{id}/reapply", reapply_shot)
+    app.router.add_post("/api/shots/{id}/cancel", cancel_shot)
     app.router.add_get("/api/shots/{id}/events", shot_events)
     app.router.add_get("/media/{id}/{name}", get_media)
     app.router.add_get("/", index)
