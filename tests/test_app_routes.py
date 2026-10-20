@@ -87,5 +87,39 @@ class EstimateValueTests(unittest.TestCase):
         self.assertEqual(pairs, 16)
 
 
+class EstimateErrorTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.fake = FakeComfy()
+        cls.harness = AppHarness(fake=cls.fake).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.harness.stop()
+        cls.fake.close()
+
+    def check_invalid(self, query, field):
+        status, body = self.harness.get("/api/estimate" + query)
+        self.assertEqual(status, 400)
+        self.assertEqual(body["error"]["code"], "invalid_shot")
+        self.assertTrue(body["error"]["message"])
+        self.assertEqual(body["error"]["field"], field)
+
+    def test_lens_not_offered(self):
+        self.check_invalid("?lens_mm=30&framing=full-body", "lens_mm")
+
+    def test_lens_not_a_number(self):
+        self.check_invalid("?lens_mm=abc&framing=full-body", "lens_mm")
+
+    def test_lens_missing(self):
+        self.check_invalid("?framing=full-body", "lens_mm")
+
+    def test_framing_unknown(self):
+        self.check_invalid("?lens_mm=50&framing=huge", "framing")
+
+    def test_framing_missing(self):
+        self.check_invalid("?lens_mm=50", "framing")
+
+
 if __name__ == "__main__":
     unittest.main()
