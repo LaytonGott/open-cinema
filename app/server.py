@@ -14,7 +14,7 @@ from app.comfy_health import check_health
 from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.record import new_record, public_record
 from app.runner import ShotRunner
-from app.shot import ShotError, validate_shot
+from app.shot import APERTURES, CAMERAS, FRAMINGS, LENSES, ShotError, validate_shot
 from app.store import ShotStore, new_shot_id
 
 log = logging.getLogger("app")
@@ -72,6 +72,24 @@ async def health(request):
     """Return JSON ``{"app": "ok", "comfyui": {...}}`` with status 200."""
     comfy = await check_health(request.app[COMFYUI_URL])
     return web.json_response({"app": "ok", "comfyui": comfy})
+
+
+async def options(request):
+    """Return JSON with the choices (cameras, lenses in mm, apertures as f-numbers, framings) and the defaults."""
+    return web.json_response(
+        {
+            "cameras": CAMERAS,
+            "lenses": LENSES,
+            "apertures": APERTURES,
+            "framings": FRAMINGS,
+            "defaults": {
+                "camera": "static",
+                "lens_mm": 50,
+                "aperture": 2.8,
+                "framing": "full-body",
+            },
+        }
+    )
 
 
 async def create_shot(request):
@@ -150,6 +168,7 @@ def create_app(comfyui_url, data_dir):
     app.on_startup.append(start_runner)
     app.on_cleanup.append(stop_runner)
     app.router.add_get("/api/health", health)
+    app.router.add_get("/api/options", options)
     app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
