@@ -307,5 +307,21 @@ class PromptEndingTests(unittest.TestCase):
         self.assertNotIn("  ", got)
 
 
+class ShotUsesLibraryTests(unittest.TestCase):
+    def test_shot_source_uses_framing_helper(self):
+        with open(shot.__file__, encoding="utf-8") as f:
+            source = f.read()
+        self.assertIn("open_optics", source)
+        self.assertIn("subject_distance_m", source)
+        for banned in ("1700", "* 1000", "1000 *"):
+            self.assertNotIn(banned, source)
+
+    def test_subject_distance_rejects_bad_input(self):
+        for args in ((28, "wide"), (50, "head"), ("50", "wide")):
+            with self.subTest(args=args):
+                with self.assertRaises((ValueError, shot.ShotError)):
+                    shot.subject_distance(*args)
+
+
 if __name__ == "__main__":
     unittest.main()
