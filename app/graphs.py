@@ -7,6 +7,7 @@ WIDTH, HEIGHT, FRAMES, FPS = 1280, 704, 121, 24
 TEXT_ENCODER_DEVICE = "default"
 
 GENERATION_OUTPUT_NODE = "29"
+OPTICS_OUTPUT_NODE = "10"
 
 
 def build_generation_graph(prompt: str, seed: int, prefix: str) -> dict:
@@ -50,4 +51,33 @@ def build_generation_graph(prompt: str, seed: int, prefix: str) -> dict:
         "27": {"class_type": "LTXVAudioVAEDecode", "inputs": {"samples": ["25", 1], "audio_vae": ["3", 0]}},
         "28": {"class_type": "CreateVideo", "inputs": {"images": ["26", 0], "audio": ["27", 0], "fps": float(FPS)}},
         "29": {"class_type": "SaveVideo", "inputs": {"video": ["28", 0], "filename_prefix": prefix, "format": "auto", "codec": "auto"}},
+    }
+
+
+def build_optics_graph(video_file: str, focal_mm: float, f_number: float, subject_m: float, prefix: str) -> dict:
+    """Build the depth-of-field graph (ComfyUI API format) for a generated video.
+
+    `video_file` is the uploaded LoadVideo file name, `focal_mm` the focal length
+    in millimetres, `f_number` the aperture (f-stop), `subject_m` the subject
+    distance in metres (also the focus distance), `prefix` the SaveVideo filename
+    prefix. Only DepthOfField, CreateVideo and SaveVideo depend on `f_number` and
+    `prefix`, so changing them reuses the cached depth estimation. Returns a new
+    JSON-serialisable dict of node id -> node; the video is saved by node
+    OPTICS_OUTPUT_NODE.
+    """
+    return {
+        "1": {"class_type": "LoadVideo", "inputs": {"file": video_file}},
+        "2": {"class_type": "GetVideoComponents", "inputs": {"video": ["1", 0]}},
+        "3": {"class_type": "LoadDA3Model", "inputs": {"model_name": "depth_anything_3_mono_large.safetensors", "weight_dtype": "default"}},
+        "4": {"class_type": "DA3Inference", "inputs": {"da3_model": ["3", 0], "image": ["2", 0], "resolution": 504, "resize_method": "upper_bound_resize", "mode": "mono"}},
+        "5": {"class_type": "DA3Render", "inputs": {"da3_geometry": ["4", 0], "output": "depth", "output.normalization": "raw", "output.apply_sky_clip": False}},
+        "6": {"class_type": "OpenOptics_DepthToMetric", "inputs": {
+            "depth_image": ["5", 0], "mode": "subject", "subject_m": subject_m, "subject_x": 0.5, "subject_y": 0.5,
+            "inverse_depth": False, "near_m": 0.3, "far_m": 80, "low_percentile": 2, "high_percentile": 98}},
+        "7": {"class_type": "OpenOptics_DepthTemporalSmooth", "inputs": {"depth": ["6", 0], "strength": 0.7}},
+        "8": {"class_type": "OpenOptics_DepthOfField", "inputs": {
+            "image": ["2", 0], "depth_mask": ["7", 0], "focal_mm": focal_mm, "f_number": f_number, "focus_m": subject_m,
+            "sensor_width_mm": 36, "max_radius_px": 24, "quality": "normal", "colorspace": "srgb"}},
+        "9": {"class_type": "CreateVideo", "inputs": {"images": ["8", 0], "audio": ["2", 1], "fps": ["2", 2]}},
+        "10": {"class_type": "SaveVideo", "inputs": {"video": ["9", 0], "filename_prefix": prefix, "format": "auto", "codec": "auto"}},
     }
