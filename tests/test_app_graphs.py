@@ -169,6 +169,24 @@ class OpticsGraphCacheTests(unittest.TestCase):
             self.assertEqual(validate_prompt(graph, input_files=["clip.webm"]), [])
 
 
+class OpticsGraphChangedNodesTests(unittest.TestCase):
+    def test_aperture_lens_distance_only_in_expected_nodes(self):
+        def differing(a, b):
+            self.assertEqual(set(a), set(b))
+            return sorted(k for k in a if a[k] != b[k])
+
+        base = build_optics_graph("clip.webm", 50, 2.8, 5.1005, "p/x")
+        dof_id = next(k for k, n in base.items() if n["class_type"] == "OpenOptics_DepthOfField")
+        metric_id = next(k for k, n in base.items() if n["class_type"] == "OpenOptics_DepthToMetric")
+
+        aperture = build_optics_graph("clip.webm", 50, 4, 5.1005, "p/x")
+        self.assertEqual(differing(base, aperture), [dof_id])
+        lens = build_optics_graph("clip.webm", 85, 2.8, 5.1005, "p/x")
+        self.assertEqual(differing(base, lens), [dof_id])
+        distance = build_optics_graph("clip.webm", 50, 2.8, 8.6709, "p/x")
+        self.assertEqual(differing(base, distance), sorted([metric_id, dof_id]))
+
+
 class GenerationStageTests(unittest.TestCase):
     def test_stage_and_step_counts(self):
         g = build_generation_graph("a prompt", 7, "p/x")
