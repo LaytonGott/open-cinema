@@ -1,6 +1,7 @@
 """The aiohttp application for the Open Cinema director app."""
 
 import asyncio
+import signal
 import sys
 from pathlib import Path
 
@@ -44,13 +45,28 @@ def create_app(comfyui_url, data_dir):
     return app
 
 
-async def _serve(args):
-    """Start the proxy (unless ``args.proxy_url`` is given) and the app, then serve until cancelled.
+def _install_stop_handlers(loop, stop):
+    """Make SIGINT, SIGTERM (and SIGBREAK on Windows) set the asyncio.Event ``stop``."""
+    if sys.platform == "win32":
+        def handler(signum, frame):
+            loop.call_soon_threadsafe(stop.set)
 
-    Returns 1 if the port cannot be bound (after cleaning up); otherwise only returns by raising.
+        for name in ("SIGTERM", "SIGBREAK"):
+            signal.signal(getattr(signal, name), handler)
+        return
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, stop.set)
+
+
+async def _serve(args):
+    """Start the proxy (unless ``args.proxy_url`` is given) and the app, then serve until stopped.
+
+    Returns 0 after SIGINT/SIGTERM/SIGBREAK (runners cleaned up), or 1 if the port cannot be bound.
     """
     proxy_runner = None
     runner = None
+    stop = asyncio.Event()
+    _install_stop_handlers(asyncio.get_running_loop(), stop)
     try:
         if args.proxy_url:
             use_proxy(args.proxy_url)
@@ -73,7 +89,8 @@ async def _serve(args):
             f"Open Cinema is running at http://{args.host}:{args.port} (ComfyUI at {args.comfyui})",
             flush=True,
         )
-        await asyncio.Event().wait()
+        await stop.wait()
+        return 0
     finally:
         if runner is not None:
             await runner.cleanup()

@@ -1,3 +1,4 @@
+import signal
 import socket
 import subprocess
 import sys
@@ -32,6 +33,32 @@ class AppMainTest(unittest.TestCase):
                 proc.kill()
                 proc.wait()
                 proc.stdout.close()
+
+    def test_clean_shutdown(self):
+        port = _free_port()
+        comfy = f"http://127.0.0.1:{_free_port()}"
+        flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.Popen(
+                [sys.executable, "-m", "app", "--port", str(port), "--data-dir", tmp, "--comfyui", comfy],
+                cwd=ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                creationflags=flags,
+            )
+            try:
+                proc.stdout.readline()
+                if sys.platform == "win32":
+                    proc.send_signal(signal.CTRL_BREAK_EVENT)
+                else:
+                    proc.send_signal(signal.SIGTERM)
+                _, err = proc.communicate(timeout=10)
+                self.assertEqual(proc.returncode, 0)
+                self.assertNotIn("Traceback", err)
+            finally:
+                proc.kill()
+                proc.wait()
 
     def test_port_in_use(self):
         comfy = f"http://127.0.0.1:{_free_port()}"
