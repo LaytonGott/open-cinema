@@ -214,6 +214,26 @@ async def get_shot(request):
     return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
 
 
+async def delete_shot(request):
+    """Delete the shot in the path with its whole folder and return 204.
+
+    Status codes: 204 deleted, 404 ``not_found`` (unknown id), 409 ``busy`` (queued, generating or optics).
+    """
+    shot_id = request.match_info["id"]
+    store = request.app[STORE]
+    record = store.get(shot_id)
+    if record is None:
+        return error_response(404, "not_found", f"There is no shot with id {shot_id}.")
+    if record["status"] in ("queued", "generating", "optics"):
+        return error_response(409, "busy", "The shot is still being processed. Cancel it or wait until it is finished.")
+    items = request.app[RUNNER].items
+    item = items.get(shot_id)
+    if item is not None and not item["started"]:
+        items.pop(shot_id, None)
+    store.remove(shot_id)
+    return web.Response(status=204)
+
+
 async def shot_events(request):
     """Stream server-sent events ``shot`` (the public record as JSON) for the shot in the path.
 
@@ -306,6 +326,7 @@ def create_app(comfyui_url, data_dir):
     app.router.add_post("/api/shots", create_shot)
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
+    app.router.add_delete("/api/shots/{id}", delete_shot)
     app.router.add_post("/api/shots/{id}/reapply", reapply_shot)
     app.router.add_post("/api/shots/{id}/cancel", cancel_shot)
     app.router.add_get("/api/shots/{id}/events", shot_events)
