@@ -1,7 +1,12 @@
 import json
 import unittest
 
-from app.graphs import GENERATION_OUTPUT_NODE, build_generation_graph
+from app.graphs import (
+    GENERATION_OUTPUT_NODE,
+    OPTICS_OUTPUT_NODE,
+    build_generation_graph,
+    build_optics_graph,
+)
 from tests.fake_comfy import validate_prompt
 
 PROMPT = "A slow dolly shot through a rainy neon street"
@@ -49,6 +54,42 @@ class BuildGenerationGraphTests(unittest.TestCase):
 
     def test_deterministic(self):
         self.assertEqual(self.graph, build_generation_graph(PROMPT, SEED, PREFIX))
+
+
+OPTICS_PREFIX = "opencinema/test/after_1"
+OPTICS_CLASS_TYPES = [
+    "LoadVideo",
+    "GetVideoComponents",
+    "LoadDA3Model",
+    "DA3Inference",
+    "DA3Render",
+    "OpenOptics_DepthToMetric",
+    "OpenOptics_DepthTemporalSmooth",
+    "OpenOptics_DepthOfField",
+    "CreateVideo",
+    "SaveVideo",
+]
+
+
+class BuildOpticsGraphTests(unittest.TestCase):
+    def setUp(self):
+        self.graph = build_optics_graph("clip.webm", 50, 2.8, 5.1005, OPTICS_PREFIX)
+
+    def test_validates_without_problems(self):
+        self.assertEqual(validate_prompt(self.graph, input_files=["clip.webm"]), [])
+
+    def test_json_serialisable(self):
+        self.assertIsInstance(json.dumps(self.graph), str)
+
+    def test_each_class_type_once(self):
+        self.assertEqual(len(self.graph), 10)
+        for class_type in OPTICS_CLASS_TYPES:
+            self.assertEqual(len(_nodes(self.graph, class_type)), 1, class_type)
+
+    def test_output_node_and_prefix(self):
+        out = self.graph[OPTICS_OUTPUT_NODE]
+        self.assertEqual(out["class_type"], "SaveVideo")
+        self.assertEqual(out["inputs"]["filename_prefix"], OPTICS_PREFIX)
 
 
 if __name__ == "__main__":
