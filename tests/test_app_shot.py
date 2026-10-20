@@ -156,6 +156,33 @@ class ValidateChoiceTests(unittest.TestCase):
                 self.assertGreater(len(ctx.exception.message), 12)
 
 
+class ValidateSeedTests(unittest.TestCase):
+    def make(self, **changes):
+        data = {"description": "A woman walks.", "camera": "static", "lens_mm": 50,
+                "aperture": 2.8, "framing": "waist-up"}
+        data.update(changes)
+        return data
+
+    def test_seed_kept(self):
+        for seed in (5, 0, 2147483647):
+            with self.subTest(seed=seed):
+                self.assertEqual(shot.validate_shot(self.make(seed=seed))["seed"], seed)
+
+    def test_seed_default(self):
+        seed = shot.validate_shot(self.make())["seed"]
+        self.assertIs(type(seed), int)
+        self.assertGreaterEqual(seed, 0)
+        self.assertLessEqual(seed, 2147483647)
+
+    def test_bad_seeds(self):
+        for seed in (-1, 2147483648, 1.5, "7", True, None):
+            with self.subTest(seed=seed):
+                with self.assertRaises(shot.ShotError) as ctx:
+                    shot.validate_shot(self.make(seed=seed))
+                self.assertEqual(ctx.exception.field, "seed")
+                self.assertGreater(len(ctx.exception.message), 12)
+
+
 class BuildPromptTests(unittest.TestCase):
     FRAMING = {
         "close-up": "Close-up shot of the subject's face and shoulders",
