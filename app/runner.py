@@ -220,6 +220,19 @@ class ShotRunner:
                 if stage_progress is not None:
                     entry["progress"] = stage_progress
 
+    def begin_reapply(self, record, aperture):
+        """Mark the shot `record` as starting a re-apply at `aperture` (f-number).
+
+        Sets `_reapply`, the generate stage 'done', the optics stage 'active'
+        with progress 0.0, status 'optics', progress 0.0 and message
+        'Estimating depth', and saves. Leaves `error` untouched. Returns None.
+        """
+        record["_reapply"] = True
+        self._set_stage(record, "generate", "done")
+        self._set_stage(record, "optics", "active", 0.0)
+        self.update(record, status="optics", progress=0.0,
+                    message="Estimating depth")
+
     async def run_optics(self, record, aperture, n):
         """Apply the optics to the shot `record`'s "before" video as version `n`.
 
