@@ -144,11 +144,19 @@ class ShotRunner:
                     await self.run_shot(shot_id)
                 else:
                     await self.run_reapply(shot_id, item["aperture"])
+                if self.cancel_requested == shot_id:
+                    record = self.store.get(shot_id)
+                    if record is not None:
+                        self._finish_cancel(record)
             except asyncio.CancelledError:
                 raise
             except Exception:
-                logger.exception("run_shot failed for shot %s", shot_id)
                 record = self.store.get(shot_id)
+                if self.cancel_requested == shot_id:
+                    if record is not None:
+                        self._finish_cancel(record)
+                    continue
+                logger.exception("run_shot failed for shot %s", shot_id)
                 if record is not None:
                     self.update(record, status="failed", error={
                         "code": "internal",
@@ -157,6 +165,8 @@ class ShotRunner:
                         "stage": "generate",
                     })
             finally:
+                self.cancel_requested = None
+                self.current = None
                 if self.items.get(shot_id) is item:
                     del self.items[shot_id]
                 self.queue.task_done()
@@ -321,4 +331,6 @@ class ShotRunner:
         """Run one shot: generate the video, then apply the optics as version 1."""
         record = self.store.get(shot_id)
         await self.run_generation(record)
+        if self.cancel_requested == shot_id:
+            return
         await self.run_optics(record, record["params"]["aperture"], 1)
