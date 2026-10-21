@@ -13,7 +13,9 @@ function render(state) {
     panel.hidden = true;
     return;
   }
-  panel.hidden = false;
+  panel.hidden = shot.status === "done";
+  const dot = q("record-dot");
+  if (dot) dot.hidden = !["queued", "generating", "optics"].includes(shot.status);
   panel.dataset.status = shot.status;
   q("status-label").textContent = shot.message;
   const pct = Math.round(shot.progress * 100);

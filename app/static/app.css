@@ -93,3 +93,16 @@ code, pre, .mono { font-family: var(--font-mono); }
   border: 1px solid var(--danger);
 }
 [data-testid=comfy-banner][hidden] { display: none; }
+
+.record-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger, #e5484d);
+  animation: record-blink 1s steps(2, start) infinite;
+}
+.record-dot[hidden] { display: none; }
+@keyframes record-blink {
+  50% { opacity: 0.2; }
+}
