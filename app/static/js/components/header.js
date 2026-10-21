@@ -21,11 +21,21 @@ function render(state) {
 export function initHeader() {
   const retry = document.querySelector("[data-testid=comfy-retry]");
   if (retry) retry.addEventListener("click", () => checkHealth());
+  window.addEventListener("focus", () => checkHealth());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkHealth();
+  });
   subscribe(render);
   render(getState());
 }
 
+let timer = null;
+let inFlight = false;
+
 export async function checkHealth() {
+  if (inFlight) return;
+  inFlight = true;
+  clearTimeout(timer);
   try {
     const h = await getHealth();
     const c = h.comfyui;
@@ -36,5 +46,8 @@ export async function checkHealth() {
     }
   } catch (e) {
     setState({ comfy: { state: "down", device: null, message: e && e.message ? e.message : null } });
+  } finally {
+    inFlight = false;
+    timer = setTimeout(checkHealth, getState().comfy.state === "down" ? 5000 : 30000);
   }
 }
