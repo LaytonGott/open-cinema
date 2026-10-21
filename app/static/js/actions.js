@@ -20,3 +20,16 @@ export async function submitShot() {
     setState({ submitting: false });
   }
 }
+
+export async function cancelCurrentShot() {
+  try {
+    const record = await api.cancelShot(getState().shot.id);
+    setShot(record);
+  } catch (err) {
+    if (err instanceof api.ApiError) {
+      setState({ error: err.message });
+    } else {
+      throw err;
+    }
+  }
+}

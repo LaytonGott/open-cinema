@@ -1,5 +1,6 @@
 // Status panel: renders state.shot (server record) into [data-testid=status-panel].
 import { getState, subscribe } from "../state.js";
+import { cancelCurrentShot } from "../actions.js";
 
 function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
@@ -54,6 +55,8 @@ function render(state) {
   syncTimer(shot, !panel.hidden && ["queued", "generating", "optics"].includes(shot.status));
   const dot = q("record-dot");
   if (dot) dot.hidden = !["queued", "generating", "optics"].includes(shot.status);
+  const cancel = q("cancel-button");
+  if (cancel) cancel.hidden = !["queued", "generating", "optics"].includes(shot.status);
   panel.dataset.status = shot.status;
   q("status-label").textContent = shot.message;
   const pct = Math.round(shot.progress * 100);
@@ -70,6 +73,8 @@ function render(state) {
 }
 
 export function initStatusPanel() {
+  const cancel = q("cancel-button");
+  if (cancel) cancel.addEventListener("click", cancelCurrentShot);
   subscribe(render);
   render(getState());
 }
