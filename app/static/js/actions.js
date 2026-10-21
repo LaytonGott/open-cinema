@@ -33,6 +33,7 @@ export async function submitShot() {
 
 export async function retryShot() {
   const shot = getState().shot;
+  setState({ error: null });
   try {
     let record;
     if (shot.status === "failed" && shot.before_url) {
