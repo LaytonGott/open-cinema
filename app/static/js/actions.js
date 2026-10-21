@@ -3,6 +3,15 @@ import * as api from "./api.js";
 import { followShot } from "./follow.js";
 import { getState, setState, setShot } from "./state.js";
 
+// Show an ApiError from a POST as the state error; anything else is rethrown.
+export function handlePostError(err) {
+  if (err instanceof api.ApiError) {
+    setState({ error: err.message });
+  } else {
+    throw err;
+  }
+}
+
 export async function submitShot() {
   const { description, camera, lens_mm, aperture, framing } = getState().form;
   setState({ submitting: true, error: null });
@@ -11,11 +20,7 @@ export async function submitShot() {
     setShot(record);
     followShot(record.id);
   } catch (err) {
-    if (err instanceof api.ApiError) {
-      setState({ error: err.message });
-    } else {
-      throw err;
-    }
+    handlePostError(err);
   } finally {
     setState({ submitting: false });
   }
