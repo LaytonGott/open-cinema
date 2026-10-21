@@ -74,6 +74,10 @@ class HistoryTest(unittest.TestCase):
     def check_items(self):
         code, body = self.harness.get("/api/shots")
         self.assertEqual(code, 200)
+        self.page.wait_for_function(
+            "n => document.querySelectorAll('[data-testid=history-item]').length === n",
+            arg=len(body["shots"]),
+        )
         items = self.page.locator("[data-testid=history-item]")
         self.assertEqual(items.count(), len(body["shots"]))
         return body["shots"], items
@@ -103,6 +107,26 @@ class HistoryTest(unittest.TestCase):
         self.assertNotEqual(shots[0]["id"], previous)
         self.assertEqual(items.nth(0).get_attribute("data-shot-id"), shots[0]["id"])
         self.assertEqual(items.nth(1).get_attribute("data-shot-id"), previous)
+
+    def test_history_status_updates_live(self):
+        fake, page = self.harness.fake, self.page
+        item = page.locator("[data-testid=history-item]").first
+        fake.hold_at("SamplerCustomAdvanced")
+        try:
+            page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+            page.locator("[data-testid=generate-button]").click()
+            page.wait_for_function(
+                "() => { const e = document.querySelector('[data-testid=history-item]');"
+                " return e && e.dataset.status !== 'done' && e.dataset.status !== 'failed'"
+                " && e.dataset.status !== 'cancelled'; }"
+            )
+            self.assertNotIn(item.get_attribute("data-status"), TERMINAL)
+        finally:
+            fake.release()
+        page.wait_for_function(
+            "() => { const e = document.querySelector('[data-testid=history-item]');"
+            " return e && e.dataset.status === 'done'; }"
+        )
 
 
 if __name__ == "__main__":
