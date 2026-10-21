@@ -2,6 +2,7 @@
 import * as api from "./api.js";
 import { followShot, stopFollowing } from "./follow.js";
 import { getState, setState, setShot } from "./state.js";
+import { checkHealth } from "./components/header.js";
 
 // Show an ApiError from a POST as the state error; anything else is rethrown.
 export function handlePostError(err) {
@@ -24,6 +25,7 @@ export async function submitShot() {
     followShot(record.id);
   } catch (err) {
     handlePostError(err);
+    checkHealth();
   } finally {
     setState({ submitting: false });
   }
