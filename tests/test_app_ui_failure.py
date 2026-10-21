@@ -97,9 +97,19 @@ class FailureTest(unittest.TestCase):
         self.assertIn("Out of memory in sampler", page.locator("[data-testid=error-message]").inner_text())
         self.assertEqual(page.locator("[data-testid=stage-generate]").get_attribute("data-state"), "failed")
         self.assertEqual(page.locator("[data-testid=retry-button]").inner_text().strip(), "Try again")
+        items = page.locator("[data-testid=history-item]")
+        before = items.count()  # the app is shared, so earlier tests' shots are also listed
+        self.assertEqual(items.first.get_attribute("data-status"), "failed")
+        failed_id = items.first.get_attribute("data-shot-id")
         fake.clear_failures()
         page.locator("[data-testid=retry-button]").click()
         self.wait_state("viewport", "result")
+        page.wait_for_function(
+            "n => document.querySelectorAll('[data-testid=history-item]').length === n",
+            arg=before + 1,
+        )
+        self.assertEqual(items.first.get_attribute("data-status"), "done")
+        self.assertNotEqual(items.first.get_attribute("data-shot-id"), failed_id)
 
 
 if __name__ == "__main__":
