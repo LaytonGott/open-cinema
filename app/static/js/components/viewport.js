@@ -28,6 +28,18 @@ function render(state) {
   const hint = q("viewport-hint");
   if (hint) hint.hidden = value !== "empty";
   renderVideo(viewport, value, state.shot);
+  renderHud(state);
+}
+
+function renderHud(state) {
+  const hud = q("hud");
+  if (!hud) return;
+  const p = state.shot ? state.shot.params : state.form;
+  if (!p) return;
+  const list = (state.options && state.options.framings) || [];
+  const found = list.find((f) => f.id === p.framing);
+  const framing = found ? found.label : p.framing;
+  hud.textContent = p.lens_mm + " mm  f/" + p.aperture + "  " + String(framing || "").toUpperCase();
 }
 
 function currentUrl(shot) {
