@@ -1,5 +1,6 @@
 // Scene description field and Generate button enable rules (no submit logic here).
 import { getState, setState, subscribe } from "../state.js";
+import { submitShot } from "../actions.js";
 
 const BUSY = ["queued", "generating", "optics"];
 
@@ -20,6 +21,8 @@ export function initDescription() {
       setState({ form: { ...s.form, description: ta.value } });
     });
   }
+  const btn = document.querySelector("[data-testid=generate-button]");
+  if (btn) btn.addEventListener("click", () => submitShot());
   subscribe(updateButton);
   updateButton(getState());
 }
