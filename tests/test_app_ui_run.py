@@ -132,6 +132,31 @@ class RunTest(unittest.TestCase):
     def test_generate_failure_try_again(self):
         self.fail_then_retry("SamplerCustomAdvanced", "Out of memory in sampler", "Try again")
 
+    def test_run_comfy_down_then_recovers(self):
+        fake, page = self.harness.fake, self.page
+        fake.stop()
+        restored = False
+
+        def restore():
+            if not restored:
+                fake.start()
+
+        self.addCleanup(restore)
+        page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+        page.locator("[data-testid=generate-button]").click()
+        page.wait_for_function(
+            "s => document.querySelector(s).dataset.state === 'down'", arg=STATUS
+        )
+        error = page.locator("[data-testid=submit-error]")
+        self.assertTrue(error.is_visible())
+        self.assertTrue(error.inner_text().strip())
+        fake.start()
+        restored = True
+        page.locator("[data-testid=comfy-retry]").click()
+        page.wait_for_function(
+            "s => document.querySelector(s).dataset.state === 'ok'", arg=STATUS
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
