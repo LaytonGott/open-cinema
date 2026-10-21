@@ -1,6 +1,6 @@
 // Status panel: renders state.shot (server record) into [data-testid=status-panel].
 import { getState, subscribe } from "../state.js";
-import { cancelCurrentShot } from "../actions.js";
+import { cancelCurrentShot, retryShot } from "../actions.js";
 
 function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
@@ -87,6 +87,8 @@ function render(state) {
 export function initStatusPanel() {
   const cancel = q("cancel-button");
   if (cancel) cancel.addEventListener("click", cancelCurrentShot);
+  const retry = q("retry-button");
+  if (retry) retry.addEventListener("click", retryShot);
   subscribe(render);
   render(getState());
 }

@@ -26,6 +26,22 @@ export async function submitShot() {
   }
 }
 
+export async function retryShot() {
+  const shot = getState().shot;
+  try {
+    let record;
+    if (shot.status === "failed" && shot.before_url) {
+      record = await api.reapplyShot(shot.id, shot.params.aperture);
+    } else {
+      record = await api.createShot(shot.params);
+    }
+    setShot(record);
+    followShot(record.id);
+  } catch (err) {
+    handlePostError(err);
+  }
+}
+
 export async function cancelCurrentShot() {
   try {
     const record = await api.cancelShot(getState().shot.id);
