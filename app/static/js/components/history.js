@@ -1,6 +1,6 @@
 // History strip: renders state.history (newest first) into [data-testid=history-list].
 import { getState, subscribe } from "../state.js";
-import { selectShot } from "../actions.js";
+import { newShot, selectShot } from "../actions.js";
 
 function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
@@ -60,6 +60,8 @@ export function initHistory() {
       if (item) selectShot(item.dataset.shotId);
     });
   }
+  const fresh = q("history-new");
+  if (fresh) fresh.addEventListener("click", newShot);
   subscribe(render);
   render(getState());
 }

@@ -48,6 +48,13 @@ export async function retryShot() {
   }
 }
 
+export function newShot() {
+  stopFollowing();
+  setState({ shot: null, error: null });
+  const field = document.querySelector("[data-testid=shot-description]");
+  if (field) field.focus();
+}
+
 export async function selectShot(id) {
   stopFollowing();
   try {
