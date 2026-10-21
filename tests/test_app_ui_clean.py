@@ -7,6 +7,8 @@ from playwright.sync_api import sync_playwright
 from tests.app_harness import TERMINAL, AppHarness
 
 STATUS = "[data-testid=comfy-status]"
+BANNER = "[data-testid=comfy-banner]"
+RETRY = "[data-testid=comfy-retry]"
 VIEWPORT = "[data-testid=viewport]"
 DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
 
@@ -59,6 +61,12 @@ class CleanPageTest(unittest.TestCase):
         self.page.wait_for_function(
             "([s, v]) => document.querySelector(s) && document.querySelector(s).dataset.state === v",
             arg=[VIEWPORT, state],
+        )
+
+    def wait_status(self, state):
+        self.page.wait_for_function(
+            "([s, v]) => document.querySelector(s) && document.querySelector(s).dataset.state === v",
+            arg=[STATUS, state],
         )
 
     def generate(self):
@@ -117,6 +125,38 @@ class CleanPageTest(unittest.TestCase):
         page.wait_for_function(
             "s => document.querySelector(s) && document.querySelector(s).dataset.state !== 'empty'", arg=VIEWPORT
         )
+
+        self.assertEqual(errors, [])
+        self.assertEqual(failed, [])
+        self.assertTrue(urls)
+        foreign = [u for u in urls if not u.startswith(h.url)]
+        self.assertEqual(foreign, [])
+
+    def test_no_errors_while_comfy_is_down(self):
+        h = self.harness
+        fake = h.fake
+        self.addCleanup(lambda: fake._thread is None and fake.start())
+        page = self.page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        errors, failed, urls = [], [], []
+        page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+        page.on("requestfailed", lambda r: failed.append(r.url))
+        page.on("request", lambda r: urls.append(r.url))
+
+        page.goto(h.url)
+        self.wait_status("ok")
+        fake.stop()
+        try:
+            page.dispatch_event(RETRY, "click")
+            self.wait_status("down")
+            page.locator(BANNER).wait_for(state="visible")
+        finally:
+            if fake._thread is None:
+                fake.start()
+        page.click(RETRY)
+        self.wait_status("ok")
+        page.locator(BANNER).wait_for(state="hidden")
 
         self.assertEqual(errors, [])
         self.assertEqual(failed, [])
