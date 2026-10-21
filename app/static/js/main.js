@@ -7,7 +7,10 @@ import { initStatusPanel } from "./components/status-panel.js";
 
 import { initViewport } from "./components/viewport.js";
 
+import { initHistory } from "./components/history.js";
+
 function init() {
+  initHistory();
   initViewport();
   initStatusPanel();
   initHeader();
