@@ -50,4 +50,20 @@ export function setShot(record) {
     next = { ...record, progress: cur.progress };
   }
   setState({ shot: next });
+  if (next) upsertHistory(next);
+}
+
+// Puts a shot record into history, newest first: new ids go to the front, known ids are replaced in place.
+export function upsertHistory(record) {
+  const i = state.history.findIndex((r) => r.id === record.id);
+  const history =
+    i < 0
+      ? [record, ...state.history]
+      : state.history.map((r, j) => (j === i ? record : r));
+  setState({ history });
+}
+
+// Replaces history with the server's list (newest first).
+export function setHistory(records) {
+  setState({ history: [...records] });
 }
