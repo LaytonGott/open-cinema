@@ -109,6 +109,29 @@ class RunTest(unittest.TestCase):
         self.assertEqual(page.locator("[data-testid=status-label]").inner_text().strip(), "Cancelled.")
         self.assertEqual(page.locator("[data-testid=retry-button]").inner_text().strip(), "Try again")
 
+    def fail_then_retry(self, node, message, label):
+        fake, page = self.harness.fake, self.page
+        self.addCleanup(fake.clear_failures)
+        fake.fail(node, message)
+        page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+        page.locator("[data-testid=generate-button]").click()
+        page.wait_for_function(
+            "s => document.querySelector(s).dataset.state === 'failed'", arg=VIEWPORT
+        )
+        self.assertIn(message, page.locator("[data-testid=error-message]").inner_text())
+        self.assertEqual(page.locator("[data-testid=retry-button]").inner_text().strip(), label)
+        fake.clear_failures()
+        page.locator("[data-testid=retry-button]").click()
+        page.wait_for_function(
+            "s => document.querySelector(s).dataset.state === 'result'", arg=VIEWPORT
+        )
+
+    def test_optics_failure_retry_optics(self):
+        self.fail_then_retry("OpenOptics_DepthOfField", "Out of memory in Depth of Field", "Retry optics")
+
+    def test_generate_failure_try_again(self):
+        self.fail_then_retry("SamplerCustomAdvanced", "Out of memory in sampler", "Try again")
+
 
 if __name__ == "__main__":
     unittest.main()
