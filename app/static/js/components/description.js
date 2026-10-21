@@ -23,6 +23,14 @@ export function initDescription() {
   }
   const btn = document.querySelector("[data-testid=generate-button]");
   if (btn) btn.addEventListener("click", () => submitShot());
+  if (ta) {
+    ta.addEventListener("keydown", (event) => {
+      if (event.ctrlKey && event.key === "Enter" && btn && !btn.disabled) {
+        event.preventDefault();
+        submitShot();
+      }
+    });
+  }
   subscribe(updateButton);
   updateButton(getState());
 }
