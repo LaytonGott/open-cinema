@@ -308,6 +308,7 @@ def create_app(comfyui_url, data_dir):
     app[COMFYUI_URL] = comfyui_url
     store = ShotStore(data_dir)
     store.load_all()
+    store.recover_interrupted()
     app[STORE] = store
     runner = ShotRunner(store, comfyui_url)
     app[RUNNER] = runner

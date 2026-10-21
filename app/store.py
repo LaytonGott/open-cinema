@@ -92,3 +92,22 @@ class ShotStore:
         self._records = {r["id"]: r for r in loaded}
         seqs = [r["seq"] for r in loaded if isinstance(r.get("seq"), int)]
         self._seq = max(seqs, default=0)
+
+    def recover_interrupted(self):
+        """Mark loaded shots left queued, generating or optics as failed ("interrupted") and save them; returns the list of recovered shot ids."""
+        message = "Open Cinema was stopped while this shot was running. Submit the shot again."
+        recovered = []
+        for record in self.list():
+            status = record.get("status")
+            if status not in ("queued", "generating", "optics"):
+                continue
+            stage = "optics" if status == "optics" else "generate"
+            record["status"] = "failed"
+            record["error"] = {"code": "interrupted", "message": message, "stage": stage}
+            for entry in record.get("stages") or []:
+                if isinstance(entry, dict) and entry.get("id") == stage:
+                    entry["state"] = "failed"
+                    entry["message"] = message
+            self.save(record)
+            recovered.append(record["id"])
+        return recovered
