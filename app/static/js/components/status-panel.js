@@ -58,7 +58,19 @@ function render(state) {
   const cancel = q("cancel-button");
   if (cancel) cancel.hidden = !["queued", "generating", "optics"].includes(shot.status);
   panel.dataset.status = shot.status;
-  q("status-label").textContent = shot.message;
+  q("status-label").textContent = shot.status === "cancelled" ? "Cancelled." : shot.message;
+  const errorEl = q("error-message");
+  if (errorEl) {
+    const failed = shot.status === "failed" && shot.error;
+    errorEl.hidden = !failed;
+    errorEl.textContent = failed ? shot.error.message : "";
+  }
+  const retry = q("retry-button");
+  if (retry) {
+    const retryable = shot.status === "failed" || shot.status === "cancelled";
+    retry.hidden = !retryable;
+    retry.textContent = shot.status === "failed" && shot.before_url ? "Retry optics" : "Try again";
+  }
   const pct = Math.round(shot.progress * 100);
   const bar = q("progress-bar");
   bar.setAttribute("aria-valuenow", String(pct));
