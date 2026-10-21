@@ -1,6 +1,6 @@
 // User actions that talk to the API and update the shared state.
 import * as api from "./api.js";
-import { followShot } from "./follow.js";
+import { followShot, stopFollowing } from "./follow.js";
 import { getState, setState, setShot } from "./state.js";
 
 // Show an ApiError from a POST as the state error; anything else is rethrown.
@@ -40,6 +40,20 @@ export async function retryShot() {
     }
     setShot(record);
     followShot(record.id);
+  } catch (err) {
+    handlePostError(err);
+  }
+}
+
+export async function selectShot(id) {
+  stopFollowing();
+  try {
+    const record = await api.getShot(id);
+    setShot(record);
+    setState({ error: null });
+    if (["queued", "generating", "optics"].includes(record.status)) {
+      followShot(id);
+    }
   } catch (err) {
     handlePostError(err);
   }
