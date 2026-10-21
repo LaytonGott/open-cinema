@@ -1,4 +1,5 @@
 """Browser test of the shot form option groups (camera, lens, framing)."""
+import time
 import unittest
 
 from playwright.sync_api import sync_playwright
@@ -91,6 +92,37 @@ class FormGroupsTest(unittest.TestCase):
             ".getAttribute('aria-checked') === 'true'"
         )
         self.assertEqual(self.checked("lens-group"), ["24"])
+
+    def shot_ids(self):
+        code, body = self.harness.get("/api/shots")
+        self.assertEqual(code, 200)
+        return [s["id"] for s in body["shots"]]
+
+    def test_ctrl_enter_empty_creates_no_shot(self):
+        before = self.shot_ids()
+        ta = self.page.locator("[data-testid=shot-description]")
+        ta.focus()
+        ta.press("Control+Enter")
+        # a stray submit would show up as a request; wait until the page has settled, then compare
+        self.page.wait_for_function("() => document.querySelector('[data-testid=generate-button]').disabled")
+        self.assertEqual(self.shot_ids(), before)
+        self.assertFalse(self.page.locator("[data-testid=status-panel]").is_visible())
+
+    def test_ctrl_enter_with_text_creates_shot(self):
+        before = self.shot_ids()
+        ta = self.page.locator("[data-testid=shot-description]")
+        ta.fill("A dog runs on a beach")
+        ta.press("Control+Enter")
+        try:
+            deadline = time.time() + 15
+            new = []
+            while time.time() < deadline and not new:
+                new = [i for i in self.shot_ids() if i not in before]
+                time.sleep(0.1)
+            self.assertEqual(len(new), 1)
+        finally:
+            self.harness.fake.release()
+        self.harness.wait_for_shot(new[0])
 
 
 if __name__ == "__main__":
