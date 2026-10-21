@@ -56,5 +56,25 @@ class ErrorFormatTest(unittest.TestCase):
         self.assert_error(status, body, 404, "not_found")
 
 
+class ErrorFormatGenericTest(ErrorFormatTest):
+    """Same setup and assert_error as ErrorFormatTest, for generic router errors."""
+
+    test_get_unknown_shot = None
+    test_delete_unknown_shot = None
+    test_cancel_unknown_shot = None
+    test_reapply_unknown_shot = None
+    test_estimate_invalid_lens = None
+    test_create_invalid_lens = None
+    test_media_unknown_shot = None
+
+    def test_unknown_api_path(self):
+        status, body = self.harness.get("/api/nope")
+        self.assert_error(status, body, 404, "not_found")
+
+    def test_wrong_method(self):
+        status, body = self.harness.post("/api/options", {})
+        self.assert_error(status, body, 405, "method_not_allowed")
+
+
 if __name__ == "__main__":
     unittest.main()
