@@ -88,6 +88,19 @@ class FailureTest(unittest.TestCase):
         self.wait_state("viewport", "result")
         self.assertEqual(fake.count("SamplerCustomAdvanced"), n)
 
+    def test_try_again(self):
+        fake, page = self.harness.fake, self.page
+        fake.fail("SamplerCustomAdvanced", "Out of memory in sampler")
+        page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+        page.locator("[data-testid=generate-button]").click()
+        self.wait_state("viewport", "failed")
+        self.assertIn("Out of memory in sampler", page.locator("[data-testid=error-message]").inner_text())
+        self.assertEqual(page.locator("[data-testid=stage-generate]").get_attribute("data-state"), "failed")
+        self.assertEqual(page.locator("[data-testid=retry-button]").inner_text().strip(), "Try again")
+        fake.clear_failures()
+        page.locator("[data-testid=retry-button]").click()
+        self.wait_state("viewport", "result")
+
 
 if __name__ == "__main__":
     unittest.main()
