@@ -7,6 +7,9 @@ import { getState, setState, setShot } from "./state.js";
 export function handlePostError(err) {
   if (err instanceof api.ApiError) {
     setState({ error: err.message });
+    if (err.status === 503 && err.code === "comfy_unreachable") {
+      setState({ comfy: { state: "down", device: null, message: err.message } });
+    }
   } else {
     throw err;
   }
