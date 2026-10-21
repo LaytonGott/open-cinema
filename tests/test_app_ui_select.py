@@ -91,6 +91,34 @@ class SelectTest(unittest.TestCase):
         hud = page.locator("[data-testid=hud]")
         self.assertIn(lens, hud.inner_text().replace(" ", ""))
 
+    def test_switch_finished_and_running(self):
+        page, fake = self.page, self.harness.fake
+        items = page.locator("[data-testid=history-item]")
+        self.addCleanup(fake.release)
+        page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+        page.locator("[data-testid=generate-button]").click()
+        self.wait_state("viewport", "result")
+        items.first.wait_for()
+        x_id = items.first.get_attribute("data-shot-id")
+
+        fake.reset_cache()
+        fake.hold_at("SamplerCustomAdvanced")
+        page.locator("[data-testid=generate-button]").click()
+        self.wait_state("viewport", "working")
+        page.wait_for_function(
+            "id => document.querySelector('[data-testid=history-item]').dataset.shotId !== id", arg=x_id
+        )
+        y_id = items.first.get_attribute("data-shot-id")
+        self.assertNotEqual(x_id, y_id)
+
+        page.locator(f"[data-testid=history-item][data-shot-id='{x_id}']").click()
+        self.wait_state("viewport", "result")
+        page.locator(f"[data-testid=history-item][data-shot-id='{y_id}']").click()
+        self.wait_state("viewport", "working")
+
+        fake.release()
+        self.wait_state("viewport", "result")
+
 
 if __name__ == "__main__":
     unittest.main()
