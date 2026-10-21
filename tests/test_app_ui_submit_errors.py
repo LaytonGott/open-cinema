@@ -38,6 +38,9 @@ class SubmitErrorsTest(unittest.TestCase):
         cls.browser = cls.pw = cls.harness = None
 
     def setUp(self):
+        code, body = self.harness.get("/api/shots")
+        for shot in (body or {}).get("shots", []) if code == 200 else []:
+            self.harness.request("DELETE", "/api/shots/" + shot["id"])
         self.page = self.browser.new_page()
         self.addCleanup(self.page.close)
         self.page.set_default_timeout(15000)

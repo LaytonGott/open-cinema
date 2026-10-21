@@ -11,6 +11,7 @@ import { initHistory } from "./components/history.js";
 import { initSubmitError } from "./components/submit-error.js";
 import { listShots } from "./api.js";
 import { getState, setHistory } from "./state.js";
+import { selectShot } from "./actions.js";
 
 // Loads the server's shot list once; records already in state win, errors are left to the health banner.
 async function loadHistory() {
@@ -19,6 +20,10 @@ async function loadHistory() {
     const loaded = (body && body.shots) || [];
     const known = new Set(getState().history.map((r) => r.id));
     setHistory([...getState().history, ...loaded.filter((r) => !known.has(r.id))]);
+    const state = getState();
+    if (state.shot === null && !state.submitting && state.history.length > 0) {
+      selectShot(state.history[0].id);
+    }
   } catch (e) {
     // ignored on purpose
   }
