@@ -1,5 +1,6 @@
 // User actions that talk to the API and update the shared state.
 import * as api from "./api.js";
+import { followShot } from "./follow.js";
 import { getState, setState, setShot } from "./state.js";
 
 export async function submitShot() {
@@ -8,6 +9,7 @@ export async function submitShot() {
   try {
     const record = await api.createShot({ description, camera, lens_mm, aperture, framing });
     setShot(record);
+    followShot(record.id);
   } catch (err) {
     if (err instanceof api.ApiError) {
       setState({ error: err.message });
