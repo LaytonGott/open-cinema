@@ -25,6 +25,20 @@ body {
 
 code, pre, .mono { font-family: var(--font-mono); }
 
+.status-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+[data-status="queued"] .status-dot { background: var(--muted); }
+[data-status="generating"] .status-dot { background: var(--accent); }
+[data-status="optics"] .status-dot { background: var(--accent); }
+[data-status="done"] .status-dot { background: var(--ok); }
+[data-status="failed"] .status-dot { background: var(--danger); }
+[data-status="cancelled"] .status-dot { background: var(--line); }
+
 [data-testid="app"] {
   display: grid;
   grid-template-columns: 380px 1fr;
