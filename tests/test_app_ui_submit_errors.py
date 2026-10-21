@@ -63,6 +63,24 @@ class SubmitErrorsTest(unittest.TestCase):
         self.assertTrue(error.inner_text().strip())
         self.assertEqual(page.locator("[data-testid=viewport]").get_attribute("data-state"), "empty")
 
+    def test_retry_after_comfy_returns(self):
+        fake, page = self.harness.fake, self.page
+        fake.stop()
+        restored = False
+        try:
+            page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+            page.locator("[data-testid=generate-button]").click()
+            self.wait_state("comfy-status", "down")
+            fake.start()
+            restored = True
+            page.locator("[data-testid=comfy-retry]").click()
+            self.wait_state("comfy-status", "ok")
+            page.locator("[data-testid=generate-button]").click()
+            self.wait_state("viewport", "result")
+        finally:
+            if not restored:
+                fake.start()
+
 
 if __name__ == "__main__":
     unittest.main()
