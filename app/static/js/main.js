@@ -5,7 +5,10 @@ import { initDescription } from "./components/description.js";
 
 import { initStatusPanel } from "./components/status-panel.js";
 
+import { initViewport } from "./components/viewport.js";
+
 function init() {
+  initViewport();
   initStatusPanel();
   initHeader();
   initOptionGroups();

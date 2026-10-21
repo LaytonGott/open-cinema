@@ -22,6 +22,13 @@
     <button data-testid="generate-button">Generate shot</button>
   </section>
   <section id="monitor">
+    <div data-testid="viewport" data-state="empty">
+      <span data-testid="crop-mark" class="tl"></span>
+      <span data-testid="crop-mark" class="tr"></span>
+      <span data-testid="crop-mark" class="bl"></span>
+      <span data-testid="crop-mark" class="br"></span>
+      <p data-testid="viewport-hint">Describe a shot and press Generate.</p>
+    </div>
     <section data-testid="status-panel" hidden>
       <p data-testid="status-label"></p>
       <div data-testid="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progress"><div class="progress-fill" style="width:0%"></div></div>
