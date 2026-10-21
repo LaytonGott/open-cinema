@@ -5,15 +5,53 @@ function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
 }
 
+export function formatElapsed(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const s = total % 60;
+  return Math.floor(total / 60) + ":" + (s < 10 ? "0" : "") + s;
+}
+
+let timer = null;
+let baseRecord = null;
+let baseAt = 0;
+
+function stopTimer() {
+  if (timer !== null) clearInterval(timer);
+  timer = null;
+  baseRecord = null;
+}
+
+function tick() {
+  const el = q("elapsed");
+  if (!el || !baseRecord) return;
+  el.textContent = formatElapsed(baseRecord.elapsed_s + (Date.now() - baseAt) / 1000);
+}
+
+function syncTimer(shot, running) {
+  if (!running) {
+    stopTimer();
+    return;
+  }
+  if (shot !== baseRecord) {
+    baseRecord = shot;
+    baseAt = Date.now();
+  }
+  if (timer === null) timer = setInterval(tick, 1000);
+}
+
 function render(state) {
   const panel = q("status-panel");
   if (!panel) return;
   const shot = state.shot;
   if (!shot) {
     panel.hidden = true;
+    stopTimer();
     return;
   }
   panel.hidden = shot.status === "done";
+  const elapsed = q("elapsed");
+  if (elapsed) elapsed.textContent = formatElapsed(shot.elapsed_s);
+  syncTimer(shot, !panel.hidden && ["queued", "generating", "optics"].includes(shot.status));
   const dot = q("record-dot");
   if (dot) dot.hidden = !["queued", "generating", "optics"].includes(shot.status);
   panel.dataset.status = shot.status;
