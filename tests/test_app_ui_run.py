@@ -75,6 +75,9 @@ class RunTest(unittest.TestCase):
             page.wait_for_function(
                 "s => document.querySelector(s).dataset.status === 'generating'", arg=PANEL
             )
+            deadline = time.time() + 15
+            while not fake.prompts and time.time() < deadline:
+                time.sleep(0.05)
             code, body = h.get("/api/shots")
             self.assertEqual(code, 200)
             shot_id = body["shots"][0]["id"]
