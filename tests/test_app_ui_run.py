@@ -91,6 +91,24 @@ class RunTest(unittest.TestCase):
         if shot_id is not None:
             h.wait_for_shot(shot_id, "done")
 
+    def test_cancel_held_shot(self):
+        fake, page = self.harness.fake, self.page
+        fake.hold_at("SamplerCustomAdvanced")
+        try:
+            page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+            page.locator("[data-testid=generate-button]").click()
+            page.wait_for_function(
+                "s => document.querySelector(s).dataset.state === 'working'", arg=VIEWPORT
+            )
+            page.locator("[data-testid=cancel-button]").click()
+            page.wait_for_function(
+                "s => document.querySelector(s).dataset.state === 'cancelled'", arg=VIEWPORT
+            )
+        finally:
+            fake.release()
+        self.assertEqual(page.locator("[data-testid=status-label]").inner_text().strip(), "Cancelled.")
+        self.assertEqual(page.locator("[data-testid=retry-button]").inner_text().strip(), "Try again")
+
 
 if __name__ == "__main__":
     unittest.main()
