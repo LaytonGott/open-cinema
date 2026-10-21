@@ -95,5 +95,51 @@ class ReloadTest(unittest.TestCase):
         self.wait_state("viewport", "result")
 
 
+class EmptyStartTest(unittest.TestCase):
+    harness = None
+    pw = None
+    browser = None
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.harness = AppHarness().start()
+            cls.pw = sync_playwright().start()
+            cls.browser = cls.pw.chromium.launch(headless=True)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for closer in (
+            lambda: cls.browser and cls.browser.close(),
+            lambda: cls.pw and cls.pw.stop(),
+            lambda: cls.harness and cls.harness.stop(),
+        ):
+            try:
+                closer()
+            except Exception:
+                pass
+        cls.browser = cls.pw = cls.harness = None
+
+    def wait_state(self, page, testid, state):
+        page.wait_for_function(
+            "([s, v]) => document.querySelector(s) && document.querySelector(s).dataset.state === v",
+            arg=[f"[data-testid={testid}]", state],
+        )
+
+    def test_fresh_start_is_empty(self):
+        code, body = self.harness.get("/api/shots")
+        self.assertEqual(code, 200)
+        self.assertEqual(body["shots"], [])
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(self.harness.url)
+        self.wait_state(page, "comfy-status", "ok")
+        self.assertEqual(page.locator("[data-testid=viewport]").get_attribute("data-state"), "empty")
+
+
 if __name__ == "__main__":
     unittest.main()
