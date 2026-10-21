@@ -21,7 +21,16 @@
     <textarea id="shot-description" data-testid="shot-description" maxlength="1000" placeholder="e.g. A woman in a red coat walks through a rainy neon street"></textarea>
     <button data-testid="generate-button">Generate shot</button>
   </section>
-  <section id="monitor"></section>
+  <section id="monitor">
+    <section data-testid="status-panel" hidden>
+      <p data-testid="status-label"></p>
+      <div data-testid="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progress"><div class="progress-fill" style="width:0%"></div></div>
+      <ul>
+        <li data-testid="stage-generate">Generate video</li>
+        <li data-testid="stage-optics">Apply optics</li>
+      </ul>
+    </section>
+  </section>
   <section id="history"></section>
 </div>
 </body>
