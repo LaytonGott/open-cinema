@@ -8,6 +8,7 @@ import { initStatusPanel } from "./components/status-panel.js";
 import { initViewport } from "./components/viewport.js";
 
 import { initHistory } from "./components/history.js";
+import { initSubmitError } from "./components/submit-error.js";
 import { listShots } from "./api.js";
 import { getState, setHistory } from "./state.js";
 
@@ -31,6 +32,7 @@ function init() {
   initHeader();
   initOptionGroups();
   initDescription();
+  initSubmitError();
   checkHealth();
 }
 
