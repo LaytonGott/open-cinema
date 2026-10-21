@@ -83,3 +83,13 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-testid=crop-mark].tr { top: 6px; right: 6px; border-top-width: 2px; border-right-width: 2px; }
 [data-testid=crop-mark].bl { bottom: 6px; left: 6px; border-bottom-width: 2px; border-left-width: 2px; }
 [data-testid=crop-mark].br { bottom: 6px; right: 6px; border-bottom-width: 2px; border-right-width: 2px; }
+
+[data-testid=comfy-banner] {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+[data-testid=comfy-banner][hidden] { display: none; }

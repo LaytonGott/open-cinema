@@ -10,9 +10,17 @@ function render(state) {
   if (s === "ok") el.textContent = "ComfyUI: connected" + (device ? " " + device : "");
   else if (s === "down") el.textContent = "ComfyUI: offline";
   else el.textContent = "ComfyUI: checking";
+  const banner = document.querySelector("[data-testid=comfy-banner]");
+  if (banner) {
+    banner.hidden = s !== "down";
+    const text = document.querySelector("[data-testid=comfy-banner-text]");
+    if (text) text.textContent = s === "down" ? state.comfy.message || "" : "";
+  }
 }
 
 export function initHeader() {
+  const retry = document.querySelector("[data-testid=comfy-retry]");
+  if (retry) retry.addEventListener("click", () => checkHealth());
   subscribe(render);
   render(getState());
 }
