@@ -4,9 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Open Cinema</title>
+<link rel="stylesheet" href="/static/app.css">
+<script type="module" src="/static/js/main.js"></script>
 </head>
 <body>
-<h1>Open Cinema</h1>
-<p>The director app is starting up.</p>
+<div data-testid="app" id="app">
+  <header>
+    <h1>Open Cinema</h1>
+    <span data-testid="comfy-status"></span>
+  </header>
+  <section id="director"></section>
+  <section id="monitor"></section>
+  <section id="history"></section>
+</div>
 </body>
 </html>
