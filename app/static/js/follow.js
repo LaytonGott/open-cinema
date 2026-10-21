@@ -7,6 +7,11 @@ const POLL_MS = 1000;
 
 let stopCurrent = null;
 
+export function stopFollowing() {
+  if (stopCurrent) stopCurrent();
+  stopCurrent = null;
+}
+
 export function followShot(id) {
   if (stopCurrent) stopCurrent();
 
