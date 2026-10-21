@@ -24,9 +24,21 @@ function render(state) {
       b.setAttribute("aria-checked", checked ? "true" : "false");
       b.tabIndex = checked ? 0 : -1;
       b.textContent = g.number ? value + " mm" : opt.label;
-      b.addEventListener("click", () => {
+      const select = (v) => {
         const s = getState();
-        setState({ form: { ...s.form, [g.key]: value } });
+        setState({ form: { ...s.form, [g.key]: v } });
+      };
+      b.addEventListener("click", () => select(value));
+      b.addEventListener("keydown", (ev) => {
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
+        if (!step) return;
+        ev.preventDefault();
+        const opts = state.options[g.list] || [];
+        const i = opts.indexOf(opt);
+        const nextOpt = opts[(i + step + opts.length) % opts.length];
+        select(g.number ? nextOpt : nextOpt.id);
+        const checkedNow = el.querySelector("[role=radio][aria-checked=true]");
+        if (checkedNow) checkedNow.focus();
       });
       el.appendChild(b);
     }
