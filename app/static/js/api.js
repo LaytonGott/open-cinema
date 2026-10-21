@@ -62,6 +62,14 @@ export function createShot(params) {
   });
 }
 
+export function reapplyShot(id, aperture) {
+  return request("/api/shots/" + encodeURIComponent(id) + "/reapply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ aperture }),
+  });
+}
+
 export function cancelShot(id) {
   return request("/api/shots/" + encodeURIComponent(id) + "/cancel", { method: "POST" });
 }
