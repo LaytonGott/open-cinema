@@ -1,5 +1,6 @@
 // Player: before and after videos stacked inside the viewport while it shows a result.
 import { getState, subscribe, shownVersionOf } from "../state.js";
+import { syncVideos } from "../sync.js";
 
 function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
@@ -81,6 +82,7 @@ function build(viewport) {
       video.addEventListener(name, updatePlaying);
     }
   }
+  syncVideos(before, after);
   player.append(before, after, toggle);
   viewport.prepend(player);
   updateReady();
