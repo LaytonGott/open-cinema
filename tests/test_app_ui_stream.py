@@ -50,7 +50,7 @@ class StreamTest(unittest.TestCase):
             time.sleep(0.1)
         else:
             raise AssertionError("a shot was still active")
-        h.fake.reset_cache()
+        h.reset()
         self.page = self.browser.new_page()
         self.addCleanup(self.page.close)
         self.page.set_default_timeout(15000)

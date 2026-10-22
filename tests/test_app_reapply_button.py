@@ -42,7 +42,7 @@ class ReapplyButtonTest(unittest.TestCase):
 
     def test_disabled_until_slider_moves_to_another_stop(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)
@@ -66,7 +66,7 @@ class ReapplyButtonTest(unittest.TestCase):
 
     def test_reapply_slider_and_value(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)
@@ -99,7 +99,7 @@ class ReapplyButtonTest(unittest.TestCase):
 
     def test_apply_disabled_during_reapply(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)

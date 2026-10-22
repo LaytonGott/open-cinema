@@ -42,7 +42,7 @@ class VersionChipsUiTest(unittest.TestCase):
 
     def _two_versions(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)

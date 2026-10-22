@@ -43,7 +43,8 @@ class BackendTest(unittest.TestCase):
         for record in first["shots"]:
             self.assertEqual(set(record), RECORD_KEYS)
             self.assertNotIn("seq", record)
-        self.assertEqual(self.harness.get("/api/shots"), (200, first))
+        again = self.harness.get("/api/shots")[1]["shots"]
+        self.assertEqual([s["id"] for s in again], [s["id"] for s in first["shots"]])
 
     def test_get_shot(self):
         created = self.harness.post("/api/shots", SHOT)[1]

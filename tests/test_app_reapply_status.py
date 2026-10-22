@@ -42,7 +42,7 @@ class ReapplyStatusTest(unittest.TestCase):
 
     def test_finished_shot_shows_applied_status(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)
@@ -60,7 +60,7 @@ class ReapplyStatusTest(unittest.TestCase):
 
     def test_applying_then_applied_status_text(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)

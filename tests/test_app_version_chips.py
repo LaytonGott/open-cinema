@@ -42,7 +42,7 @@ class VersionChipsTest(unittest.TestCase):
 
     def test_finished_shot_shows_one_pressed_chip(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)

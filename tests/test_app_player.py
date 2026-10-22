@@ -42,7 +42,7 @@ class PlayerTest(unittest.TestCase):
 
     def finished_page(self):
         h = self.harness
-        h.fake.reset_cache()
+        h.reset()
         page = self.browser.new_page()
         self.addCleanup(page.close)
         page.set_default_timeout(15000)

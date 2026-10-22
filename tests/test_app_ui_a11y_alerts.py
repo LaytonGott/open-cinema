@@ -72,7 +72,7 @@ class AlertsTest(unittest.TestCase):
             time.sleep(0.1)
         else:
             raise AssertionError("a shot was still active")
-        h.fake.reset_cache()
+        h.reset()
         self.addCleanup(h.fake.clear_failures)
         page = self.browser.new_page()
         self.addCleanup(page.close)

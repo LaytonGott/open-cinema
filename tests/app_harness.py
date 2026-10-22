@@ -150,6 +150,25 @@ class AppHarness:
     def post(self, path, body=None, timeout=15):
         return self.request("POST", path, {} if body is None else body, timeout=timeout)
 
+    def reset(self, timeout=30):
+        """Start a test from a clean slate: release the fake, wait until no shot is running, delete every shot, clear ComfyUI's cache.
+
+        A harness shared by the tests of a class keeps its shots, and a page restores the latest one on load, so a test that
+        generates its own shot must call this first or it may see the shot an earlier test left behind.
+        """
+        self.fake.release()
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            code, body = self.get("/api/shots")
+            if code == 200 and all(s["status"] in TERMINAL for s in body["shots"]):
+                break
+            time.sleep(0.1)
+        else:
+            raise AssertionError("a shot was still running; cannot reset")
+        for shot in body["shots"]:
+            self.request("DELETE", f"/api/shots/{shot['id']}")
+        self.fake.reset_cache()
+
     def wait_for_shot(self, shot_id, status="done", timeout=60):
         """Poll the shot until it reaches a final state. Returns the record if it is `status`; raises AssertionError otherwise."""
         deadline = time.time() + timeout

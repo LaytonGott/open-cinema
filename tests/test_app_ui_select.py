@@ -52,7 +52,7 @@ class SelectTest(unittest.TestCase):
             raise AssertionError("a shot was still active")
         for shot in body["shots"]:
             h.request("DELETE", "/api/shots/" + shot["id"])
-        h.fake.reset_cache()
+        h.reset()
         self.addCleanup(h.fake.clear_failures)
         self.page = self.browser.new_page()
         self.addCleanup(self.page.close)
