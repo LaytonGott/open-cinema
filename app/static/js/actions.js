@@ -48,6 +48,18 @@ export async function retryShot() {
   }
 }
 
+export async function reapplyShown(aperture) {
+  const shot = getState().shot;
+  setState({ error: null });
+  try {
+    const record = await api.reapplyShot(shot.id, aperture);
+    setShot(record);
+    followShot(record.id);
+  } catch (err) {
+    handlePostError(err);
+  }
+}
+
 export function newShot() {
   stopFollowing();
   setState({ shot: null, error: null });

@@ -1,12 +1,14 @@
 // Optics controls: a re-apply aperture slider shown while the viewport shows a result.
 import { getState, subscribe, shownVersionOf } from "../state.js";
 import { APERTURE_STOPS } from "./option-groups.js";
+import { reapplyShown } from "../actions.js";
 
 let slider = null;
 let value = null;
 let button = null;
 let current = null;
 let lastKey = null;
+let pendingAperture = null;
 
 function showValue() {
   const text = "f/" + APERTURE_STOPS[Number(slider.value)];
@@ -47,6 +49,10 @@ function render(state) {
     button.type = "button";
     button.setAttribute("data-testid", "reapply-button");
     button.textContent = "Apply aperture";
+    button.addEventListener("click", () => {
+      pendingAperture = APERTURE_STOPS[Number(slider.value)];
+      reapplyShown(pendingAperture);
+    });
     box.append(slider, value, button);
   }
   current = state;
