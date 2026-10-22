@@ -29,7 +29,6 @@ function render(state) {
   viewport.dataset.state = value;
   const hint = q("viewport-hint");
   if (hint) hint.hidden = value !== "empty";
-  renderVideo(viewport, value, state.shot);
   renderHud(state);
 }
 
@@ -42,36 +41,6 @@ function renderHud(state) {
   const found = list.find((f) => f.id === p.framing);
   const framing = found ? found.label : p.framing;
   hud.textContent = p.lens_mm + " mm  f/" + p.aperture + "  " + String(framing || "").toUpperCase();
-}
-
-function currentUrl(shot) {
-  const versions = (shot && shot.versions) || [];
-  const found = versions.find((v) => v.n === shot.current_version);
-  return found ? found.url : "";
-}
-
-function renderVideo(viewport, value, shot) {
-  let video = q("result-video");
-  const url = value === "result" ? currentUrl(shot) : "";
-  if (!url) {
-    if (video) video.hidden = true;
-    return;
-  }
-  if (!video) {
-    video = document.createElement("video");
-    video.dataset.testid = "result-video";
-    video.muted = true;
-    video.loop = true;
-    video.autoplay = true;
-    video.playsInline = true;
-    video.setAttribute("muted", "");
-    video.setAttribute("loop", "");
-    video.setAttribute("playsinline", "");
-    video.setAttribute("autoplay", "");
-    viewport.prepend(video);
-  }
-  video.hidden = false;
-  if (video.getAttribute("src") !== url) video.setAttribute("src", url);
 }
 
 export function initViewport() {

@@ -67,7 +67,7 @@ class ResultTest(unittest.TestCase):
         page.wait_for_function(
             "s => document.querySelector(s).dataset.state === 'result'", arg=VIEWPORT, timeout=60000
         )
-        video = page.locator(f"{VIEWPORT} video[data-testid=result-video]")
+        video = page.locator(f"{VIEWPORT} [data-testid=player] video[data-testid=after-video]")
         self.assertEqual(video.count(), 1)
         for prop in ("muted", "loop", "playsInline"):
             self.assertTrue(video.evaluate(f"v => v.{prop}"), prop)
