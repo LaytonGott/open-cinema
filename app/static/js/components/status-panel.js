@@ -80,7 +80,10 @@ function render(state) {
   for (const id of ["generate", "optics"]) {
     const el = q("stage-" + id);
     const st = stages.find((s) => s.id === id);
-    if (el && st) el.dataset.state = st.state;
+    if (el && st) {
+      el.dataset.state = st.state;
+      el.textContent = st.label + " (" + st.state + ")";
+    }
   }
 }
 
