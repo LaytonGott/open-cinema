@@ -103,6 +103,10 @@ code, pre, .mono { font-family: var(--font-mono); }
   width: 100%;
   height: 100%;
 }
+[data-testid=player]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 [data-testid=player] video {
   position: absolute;
   inset: 0;

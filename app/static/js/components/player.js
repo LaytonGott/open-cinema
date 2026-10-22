@@ -88,6 +88,14 @@ function onToggle() {
 function build(viewport) {
   const player = document.createElement("div");
   player.dataset.testid = "player";
+  player.tabIndex = 0;
+  player.setAttribute("aria-label", "Video player");
+  player.addEventListener("keydown", (event) => {
+    if (event.target !== player) return;
+    if (event.key !== " " && event.code !== "Space") return;
+    event.preventDefault();
+    onToggle();
+  });
   const before = makeVideo("before-video");
   const after = makeVideo("after-video");
   const toggle = document.createElement("button");
