@@ -99,8 +99,13 @@ function build(viewport) {
       video.addEventListener(name, updatePlaying);
     }
   }
+  const labelBefore = document.createElement("div");
+  labelBefore.dataset.testid = "label-before";
+  labelBefore.textContent = "Before";
+  const labelAfter = document.createElement("div");
+  labelAfter.dataset.testid = "label-after";
   syncVideos(before, after);
-  player.append(before, after, toggle);
+  player.append(before, after, labelBefore, labelAfter, toggle);
   viewport.prepend(player);
   updateReady();
   return player;
@@ -120,6 +125,7 @@ function render(state) {
   const version = shownVersionOf(state);
   setSrc(q("before-video"), shot && shot.before_url);
   setAfterSrc(q("after-video"), q("before-video"), version && version.url);
+  q("label-after").textContent = version ? "After f/" + version.aperture : "After";
 }
 
 export function initPlayer() {

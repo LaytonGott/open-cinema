@@ -110,6 +110,19 @@ code, pre, .mono { font-family: var(--font-mono); }
   height: 100%;
   object-fit: contain;
 }
+[data-testid=label-before], [data-testid=label-after] {
+  position: absolute;
+  top: 14px;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+}
+[data-testid=label-before] { left: 14px; }
+[data-testid=label-after] { right: 14px; }
 [data-testid=play-toggle] {
   position: absolute;
   right: 14px;
