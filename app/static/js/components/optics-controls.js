@@ -94,6 +94,7 @@ function render(state) {
     status = document.createElement("span");
     status.setAttribute("data-testid", "reapply-status");
     status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
     list = document.createElement("div");
     list.setAttribute("data-testid", "version-list");
     box.append(slider, value, button, status, list);

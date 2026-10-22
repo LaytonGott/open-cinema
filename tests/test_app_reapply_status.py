@@ -58,6 +58,43 @@ class ReapplyStatusTest(unittest.TestCase):
         self.assertEqual(status.text_content(), "Applied f/2.8")
         self.assertEqual(status.get_attribute("role"), "status")
 
+    def test_applying_then_applied_status_text(self):
+        h = self.harness
+        h.fake.reset_cache()
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(h.url)
+        page.locator(tid("shot-description")).fill(DESCRIPTION)
+        page.locator(tid("generate-button")).click()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'result'",
+            arg=tid("viewport"),
+        )
+        status = page.locator(tid("reapply-status"))
+        slider = page.locator(tid("reapply-slider"))
+        status.wait_for(state="visible")
+        self.assertEqual(status.get_attribute("aria-live"), "polite")
+        h.fake.hold_at("OpenOptics_DepthOfField")
+        try:
+            slider.evaluate(
+                "el => { el.value = '5'; el.dispatchEvent(new Event('input', {bubbles: true})); }"
+            )
+            page.locator(tid("reapply-button")).click()
+            page.wait_for_function(
+                "s => document.querySelector(s) && document.querySelector(s).textContent.trim() === 'Applying f/8 ...'",
+                arg=tid("reapply-status"),
+            )
+            self.assertEqual(
+                page.locator(tid("viewport")).get_attribute("data-state"), "result"
+            )
+        finally:
+            h.fake.release()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).textContent.trim() === 'Applied f/8'",
+            arg=tid("reapply-status"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
