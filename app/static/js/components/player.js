@@ -20,15 +20,70 @@ function makeVideo(id) {
   return video;
 }
 
+function updateReady() {
+  const toggle = q("play-toggle");
+  const before = q("before-video");
+  const after = q("after-video");
+  if (!toggle || !before || !after) return;
+  toggle.disabled = !(before.readyState >= 2 && after.readyState >= 2);
+}
+
+function updatePlaying() {
+  const toggle = q("play-toggle");
+  const before = q("before-video");
+  if (!toggle || !before) return;
+  const playing = !before.paused;
+  toggle.setAttribute("aria-pressed", playing ? "true" : "false");
+  toggle.setAttribute("aria-label", playing ? "Pause" : "Play");
+  toggle.textContent = playing ? "⏸ Pause" : "▶ Play";
+}
+
 function setSrc(video, url) {
-  if (url && video.getAttribute("src") !== url) video.setAttribute("src", url);
+  if (url && video.getAttribute("src") !== url) {
+    video.setAttribute("src", url);
+    updateReady();
+  }
+}
+
+function onToggle() {
+  const toggle = q("play-toggle");
+  if (!toggle || toggle.disabled) return;
+  const videos = [q("before-video"), q("after-video")];
+  const start = videos[0].paused;
+  for (const video of videos) {
+    if (start) {
+      const result = video.play();
+      if (result && result.catch) result.catch(() => {});
+    } else {
+      video.pause();
+    }
+  }
 }
 
 function build(viewport) {
   const player = document.createElement("div");
   player.dataset.testid = "player";
-  player.append(makeVideo("before-video"), makeVideo("after-video"));
+  const before = makeVideo("before-video");
+  const after = makeVideo("after-video");
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.dataset.testid = "play-toggle";
+  toggle.setAttribute("aria-pressed", "false");
+  toggle.setAttribute("aria-label", "Play");
+  toggle.textContent = "▶ Play";
+  toggle.disabled = true;
+  toggle.addEventListener("click", onToggle);
+  for (const video of [before, after]) {
+    for (const name of ["loadeddata", "canplay", "emptied"]) {
+      video.addEventListener(name, updateReady);
+    }
+    for (const name of ["play", "pause"]) {
+      video.addEventListener(name, updatePlaying);
+    }
+  }
+  player.append(before, after, toggle);
   viewport.prepend(player);
+  updateReady();
   return player;
 }
 

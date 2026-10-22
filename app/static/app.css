@@ -110,6 +110,16 @@ code, pre, .mono { font-family: var(--font-mono); }
   height: 100%;
   object-fit: contain;
 }
+[data-testid=play-toggle] {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 1;
+}
+[data-testid=play-toggle]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 [data-testid=hud] {
   position: absolute;
   left: 14px;
