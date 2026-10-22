@@ -14,7 +14,7 @@
 
 * { box-sizing: border-box; }
 
-html, body { height: 100%; }
+html, body { height: 100%; overflow: hidden; }
 
 body {
   margin: 0;
@@ -69,7 +69,7 @@ code, pre, .mono { font-family: var(--font-mono); }
   overflow-y: auto;
 }
 
-#monitor { grid-area: monitor; min-width: 0; overflow: auto; }
+#monitor { grid-area: monitor; min-width: 560px; overflow: auto; }
 
 #history {
   grid-area: history;
@@ -82,6 +82,7 @@ code, pre, .mono { font-family: var(--font-mono); }
 
 [data-testid=viewport] {
   aspect-ratio: 20 / 11;
+  width: 100%;
   position: relative;
   background: var(--surface);
   border: 1px solid var(--line);
