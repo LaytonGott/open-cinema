@@ -213,6 +213,36 @@ class PlayerTest(unittest.TestCase):
             "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
         )
 
+    def test_compare_slider_keyboard(self):
+        page = self.finished_page()
+        slider = page.locator(tid("compare-slider"))
+        slider.wait_for(state="attached")
+        self.assertEqual(slider.get_attribute("role"), "slider")
+        self.assertEqual(slider.get_attribute("aria-label"), "Before and after")
+        self.assertEqual(slider.get_attribute("aria-valuemin"), "0")
+        self.assertEqual(slider.get_attribute("aria-valuemax"), "100")
+        self.assertEqual(slider.get_attribute("aria-valuenow"), "50")
+
+        def expect_value(value):
+            page.wait_for_function(
+                "v => document.querySelector('[data-testid=compare-slider]')"
+                ".getAttribute('aria-valuenow') === v",
+                arg=str(value),
+            )
+
+        slider.focus()
+        slider.press("ArrowRight")
+        expect_value(51)
+        slider.press("Shift+ArrowLeft")
+        expect_value(41)
+        slider.press("Home")
+        expect_value(0)
+        slider.press("End")
+        expect_value(100)
+        for _ in range(3):
+            slider.press("ArrowRight")
+        expect_value(100)
+
 
 if __name__ == "__main__":
     unittest.main()
