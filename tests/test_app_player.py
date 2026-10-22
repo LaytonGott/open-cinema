@@ -125,6 +125,69 @@ class PlayerTest(unittest.TestCase):
         )
         self.assertEqual(page.evaluate(paused), [True, True])
 
+    def test_videos_stay_in_sync(self):
+        page = self.finished_page()
+        self.wait_ready(page)
+        times = (
+            "() => ['before-video', 'after-video'].map("
+            "n => document.querySelector('[data-testid=' + n + ']').currentTime)"
+        )
+
+        def diff():
+            a, b = page.evaluate(times)
+            return abs(a - b)
+
+        toggle = page.locator(tid("play-toggle"))
+        toggle.click()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=before-video]').currentTime > 1"
+        )
+        self.assertLess(diff(), 0.25)
+
+        toggle.click()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=before-video]').paused === true"
+        )
+        target = page.evaluate(
+            "() => { const v = document.querySelector('[data-testid=before-video]');"
+            " const t = Math.min(0.5, v.duration / 2); v.currentTime = t; return t; }"
+        )
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every(n => {"
+            " const v = document.querySelector('[data-testid=' + n + ']');"
+            " return !v.seeking && Math.abs(v.currentTime - %r) < 0.25; })" % target
+        )
+        self.assertLess(diff(), 0.25)
+
+        toggle.click()
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => document.querySelector('[data-testid=' + n + ']').paused === false)"
+        )
+        previous = page.evaluate(times)[0]
+        page.wait_for_function(
+            "p => document.querySelector('[data-testid=before-video]').currentTime > 0.3"
+            " && document.querySelector('[data-testid=before-video]').currentTime > p"
+            " || false",
+            arg=previous,
+            timeout=30000,
+        )
+        # Let the clip play to its end; currentTime drops below its largest value on the loop.
+        page.evaluate(
+            "() => { window.__maxT = 0; window.__looped = false;"
+            " const v = document.querySelector('[data-testid=before-video]');"
+            " setInterval(() => { if (v.currentTime < window.__maxT - 0.5)"
+            " window.__looped = true; window.__maxT = Math.max(window.__maxT, v.currentTime); }, 20); }"
+        )
+        page.wait_for_function("() => window.__looped === true", timeout=30000)
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => document.querySelector('[data-testid=' + n + ']').paused === false)"
+        )
+        for _ in range(5):
+            self.assertLess(diff(), 0.25)
+            page.wait_for_timeout(100)
+
 
 if __name__ == "__main__":
     unittest.main()
