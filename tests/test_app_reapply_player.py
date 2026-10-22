@@ -162,6 +162,42 @@ class ReapplyPlayerTest(unittest.TestCase):
         for c, n in counts.items():
             self.assertEqual(fake.count(c), n, c)
 
+    def test_failed_reapply_then_retry_counts(self):
+        h = self.harness
+        fake = h.fake
+        message = "Simulated failure"
+        page = self.finished_page()
+        self.addCleanup(fake.clear_failures)
+        slider = page.locator(tid("reapply-slider"))
+        slider.wait_for(state="visible")
+        optics = "OpenOptics_DepthOfField"
+        before = fake.count(optics)
+        fake.fail(optics, message)
+        slider.focus()
+        for _ in range(3):
+            slider.press("ArrowRight")
+        page.locator(tid("reapply-button")).click()
+        page.wait_for_function(
+            "([s, t]) => document.querySelector(s) && document.querySelector(s).textContent.includes(t)",
+            arg=[tid("reapply-status"), message],
+        )
+        self.assertEqual(page.locator(tid("version-chip")).count(), 1)
+        # The fake fails the node before recording it as executed.
+        self.assertEqual(fake.count(optics), before)
+        self.wait_ready(page)
+        page.locator(tid("play-toggle")).click()
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => document.querySelector('[data-testid=' + n + ']').paused === false)"
+        )
+
+        fake.clear_failures()
+        page.locator(tid("reapply-button")).click()
+        page.wait_for_function(
+            "s => document.querySelectorAll(s).length === 2", arg=tid("version-chip")
+        )
+        self.assertEqual(fake.count(optics), before + 1)
+
 
 if __name__ == "__main__":
     unittest.main()
