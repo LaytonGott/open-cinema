@@ -188,6 +188,31 @@ class PlayerTest(unittest.TestCase):
             self.assertLess(diff(), 0.25)
             page.wait_for_timeout(100)
 
+    def test_scrubber(self):
+        page = self.finished_page()
+        self.wait_ready(page)
+        page.evaluate(
+            "() => { const s = document.querySelector('[data-testid=scrubber]');"
+            " s.value = 500; s.dispatchEvent(new Event('input', {bubbles: true})); }"
+        )
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every(n => {"
+            " const v = document.querySelector('[data-testid=' + n + ']');"
+            " return !v.seeking && Math.abs(v.currentTime - v.duration / 2) < 0.2; })"
+        )
+        toggle = page.locator(tid("play-toggle"))
+        toggle.click()
+        page.wait_for_function(
+            "() => Number(document.querySelector('[data-testid=scrubber]').value) > 500"
+            " || document.querySelector('[data-testid=before-video]').ended",
+            timeout=30000,
+        )
+        toggle.click()
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
