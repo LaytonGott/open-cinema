@@ -40,6 +40,12 @@ function updatePlaying() {
   toggle.textContent = playing ? "⏸ Pause" : "▶ Play";
 }
 
+function fmt(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const whole = Math.floor(seconds);
+  return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
+}
+
 function setSrc(video, url) {
   if (url && video.getAttribute("src") !== url) {
     video.setAttribute("src", url);
@@ -113,6 +119,10 @@ function build(viewport) {
   scrubber.step = "1";
   scrubber.value = "0";
   scrubber.setAttribute("aria-label", "Seek");
+  const readout = document.createElement("span");
+  readout.dataset.testid = "time-readout";
+  readout.setAttribute("aria-live", "off");
+  readout.textContent = "0:00 / 0:00";
   let dragging = false;
   scrubber.addEventListener("pointerdown", () => { dragging = true; });
   scrubber.addEventListener("pointerup", () => { dragging = false; });
@@ -125,6 +135,12 @@ function build(viewport) {
   for (const name of ["timeupdate", "seeked", "loadedmetadata"]) {
     before.addEventListener(name, follow);
   }
+  const updateReadout = () => {
+    readout.textContent = fmt(before.currentTime) + " / " + fmt(before.duration);
+  };
+  for (const name of ["timeupdate", "seeked", "loadedmetadata", "durationchange", "emptied"]) {
+    before.addEventListener(name, updateReadout);
+  }
   scrubber.addEventListener("input", () => {
     const duration = before.duration;
     if (!Number.isFinite(duration) || duration <= 0) return;
@@ -133,7 +149,7 @@ function build(viewport) {
     after.currentTime = time;
   });
   syncVideos(before, after);
-  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter, toggle, scrubber);
+  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter, toggle, scrubber, readout);
   viewport.prepend(player);
   updateReady();
   return player;

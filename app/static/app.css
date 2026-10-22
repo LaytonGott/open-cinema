@@ -141,6 +141,16 @@ code, pre, .mono { font-family: var(--font-mono); }
   width: calc(100% - 28px);
   z-index: 1;
 }
+[data-testid=time-readout] {
+  position: absolute;
+  left: 14px;
+  bottom: 82px;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
 [data-testid=hud] {
   position: absolute;
   left: 14px;
