@@ -178,6 +178,26 @@ class RunTest(unittest.TestCase):
         self.assertEqual(page.locator(VIEWPORT).get_attribute("data-state"), before)
         self.assertNotEqual(before, "working")
 
+    def test_run_reload_after_done_shows_result(self):
+        page = self.page
+        page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+        page.locator("[data-testid=generate-button]").click()
+        page.wait_for_function(
+            "s => document.querySelector(s).dataset.state === 'result'", arg=VIEWPORT
+        )
+        shot_id = page.locator("[data-testid=history-item]").first.get_attribute("data-shot-id")
+        self.assertTrue(shot_id)
+        page.reload()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'ok'", arg=STATUS
+        )
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'result'", arg=VIEWPORT
+        )
+        self.assertEqual(
+            page.locator(f"[data-testid=history-item][data-shot-id='{shot_id}']").count(), 1
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
