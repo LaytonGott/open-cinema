@@ -6,6 +6,7 @@ import { reapplyShown } from "../actions.js";
 let slider = null;
 let value = null;
 let button = null;
+let status = null;
 let current = null;
 let lastKey = null;
 let pendingAperture = null;
@@ -22,6 +23,20 @@ function updateButton() {
   const version = current ? shownVersionOf(current) : null;
   const same = !!version && APERTURE_STOPS[Number(slider.value)] === Number(version.aperture);
   button.disabled = same || !current.shot || current.shot.status === "optics";
+}
+
+function showStatus(state, version) {
+  const shot = state.shot;
+  let text = "";
+  if (shot && shot.status === "optics") {
+    text = "Applying f/" + (pendingAperture !== null ? pendingAperture : APERTURE_STOPS[Number(slider.value)]) + " ...";
+  } else if (shot && shot.status === "done" && shot.reapply_error) {
+    const err = shot.reapply_error;
+    text = typeof err === "object" ? String(err.message) : String(err);
+  } else if (version) {
+    text = "Applied f/" + version.aperture;
+  }
+  status.textContent = text;
 }
 
 function renderChips(state, version) {
@@ -76,13 +91,17 @@ function render(state) {
       pendingAperture = APERTURE_STOPS[Number(slider.value)];
       reapplyShown(pendingAperture);
     });
+    status = document.createElement("span");
+    status.setAttribute("data-testid", "reapply-status");
+    status.setAttribute("role", "status");
     list = document.createElement("div");
     list.setAttribute("data-testid", "version-list");
-    box.append(slider, value, button, list);
+    box.append(slider, value, button, status, list);
   }
   current = state;
   const version = shownVersionOf(state);
   renderChips(state, version);
+  showStatus(state, version);
   const key = (state.shot ? state.shot.id : "") + ":" + (version ? version.n : "");
   if (key === lastKey) {
     updateButton();
