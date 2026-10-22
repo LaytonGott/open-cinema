@@ -13,6 +13,7 @@ let state = {
   },
   comfy: { state: "checking", device: null, message: null },
   shot: null,
+  shownVersion: null,
   history: [],
   submitting: false,
   error: null,
@@ -49,8 +50,26 @@ export function setShot(record) {
   ) {
     next = { ...record, progress: cur.progress };
   }
-  setState({ shot: next });
+  const fresh =
+    !!record && (!cur || record.id !== cur.id || record.current_version !== cur.current_version);
+  const patch = { shot: next };
+  if (!record) patch.shownVersion = null;
+  else if (fresh) patch.shownVersion = record.current_version ?? null;
+  setState(patch);
   if (next) upsertHistory(next);
+}
+
+// Chooses which version of the shot the viewport shows (a version number, or null for the current one).
+export function setShownVersion(n) {
+  setState({ shownVersion: n ?? null });
+}
+
+// Returns the version object {n, aperture, url} that state.shownVersion names, else the current version, else null.
+export function shownVersionOf(s) {
+  const shot = s && s.shot;
+  const versions = (shot && shot.versions) || [];
+  const pick = (n) => versions.find((v) => v.n === n);
+  return (s.shownVersion != null && pick(s.shownVersion)) || pick(shot && shot.current_version) || null;
 }
 
 // Puts a shot record into history, newest first: new ids go to the front, known ids are replaced in place.
