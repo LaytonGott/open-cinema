@@ -97,6 +97,50 @@ class ReapplyButtonTest(unittest.TestCase):
         if director_before is not None:
             self.assertEqual(director.input_value(), director_before)
 
+    def test_apply_disabled_during_reapply(self):
+        h = self.harness
+        h.fake.reset_cache()
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(h.url)
+        page.locator(tid("shot-description")).fill(DESCRIPTION)
+        page.locator(tid("generate-button")).click()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'result'",
+            arg=tid("viewport"),
+        )
+        button = page.locator(tid("reapply-button"))
+        slider = page.locator(tid("reapply-slider"))
+        button.wait_for(state="visible")
+        self.assertTrue(button.is_disabled())
+
+        def set_slider(index):
+            slider.evaluate(
+                "(el, i) => { el.value = String(i); el.dispatchEvent(new Event('input', {bubbles: true})); }",
+                index,
+            )
+
+        set_slider(5)
+        self.assertTrue(button.is_enabled())
+        button.click()
+        # Disabled while the re-apply runs, until the new version is shown.
+        page.wait_for_function(
+            "s => document.querySelector(s).disabled", arg=tid("reapply-button")
+        )
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).textContent.trim() === 'Applied f/8'",
+            arg=tid("reapply-status"),
+        )
+        page.wait_for_function(
+            "s => document.querySelectorAll(s).length === 2", arg=tid("version-chip")
+        )
+        self.assertTrue(button.is_disabled())
+        set_slider(2)
+        self.assertTrue(button.is_enabled())
+        set_slider(5)
+        self.assertTrue(button.is_disabled())
+
 
 if __name__ == "__main__":
     unittest.main()
