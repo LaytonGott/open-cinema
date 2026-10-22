@@ -29,6 +29,7 @@ class BeginReapplyTest(unittest.TestCase):
             self.assertEqual(saved["stages"][1]["state"], "active")
             self.assertEqual(saved["stages"][1]["progress"], 0.0)
             self.assertEqual(saved["error"], "old error")
+            self.assertEqual(saved["reapply_aperture"], 4.0)
 
 
 if __name__ == "__main__":

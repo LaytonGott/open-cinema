@@ -29,7 +29,8 @@ function showStatus(state, version) {
   const shot = state.shot;
   let text = "";
   if (shot && shot.status === "optics") {
-    text = "Applying f/" + (pendingAperture !== null ? pendingAperture : APERTURE_STOPS[Number(slider.value)]) + " ...";
+    const target = shot.reapply_aperture != null ? shot.reapply_aperture : pendingAperture !== null ? pendingAperture : APERTURE_STOPS[Number(slider.value)];
+    text = "Applying f/" + target + " ...";
   } else if (shot && shot.status === "done" && shot.reapply_error) {
     const err = shot.reapply_error;
     text = typeof err === "object" ? String(err.message) : String(err);
