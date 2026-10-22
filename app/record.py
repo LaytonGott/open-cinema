@@ -1,6 +1,7 @@
 """Build the shot record of docs/app-spec.md section 4.1."""
 
 import copy
+import time
 
 from app.shot import build_prompt, subject_distance
 
@@ -42,7 +43,12 @@ def public_record(record):
     """Return a deep copy of the shot `record` without internal keys.
 
     Drops `seq` and every key starting with '_'. Values keep their units
-    (metres, seconds, f-numbers).
+    (metres, seconds, f-numbers). While the shot is active (queued,
+    generating or optics) and has `_started` (a `time.monotonic()` value),
+    `elapsed_s` is the live seconds since then, rounded to 1 decimal.
     """
-    return {k: copy.deepcopy(v) for k, v in record.items()
-            if k != "seq" and not k.startswith("_")}
+    out = {k: copy.deepcopy(v) for k, v in record.items()
+           if k != "seq" and not k.startswith("_")}
+    if record.get("status") in ("queued", "generating", "optics") and "_started" in record:
+        out["elapsed_s"] = round(max(0.0, time.monotonic() - record["_started"]), 1)
+    return out
