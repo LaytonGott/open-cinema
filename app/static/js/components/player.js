@@ -1,6 +1,7 @@
 // Player: before and after videos stacked inside the viewport while it shows a result.
 import { getState, subscribe, shownVersionOf } from "../state.js";
 import { syncVideos } from "../sync.js";
+import { makeCompareSlider } from "../compare.js";
 
 function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
@@ -132,7 +133,7 @@ function build(viewport) {
     after.currentTime = time;
   });
   syncVideos(before, after);
-  player.append(before, after, labelBefore, labelAfter, toggle, scrubber);
+  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter, toggle, scrubber);
   viewport.prepend(player);
   updateReady();
   return player;

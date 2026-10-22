@@ -180,3 +180,14 @@ code, pre, .mono { font-family: var(--font-mono); }
 @keyframes record-blink {
   50% { opacity: 0.2; }
 }
+
+[data-testid=compare-slider] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: transparent;
+}
+[data-testid=compare-slider]:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: -2px;
+}
