@@ -5,6 +5,8 @@ from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
 
+GENERATION = ("SamplerCustomAdvanced", "VAEDecodeTiled")
+DEPTH = ("DA3Inference", "OpenOptics_DepthToMetric")
 DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
 
 
@@ -61,6 +63,13 @@ class ReapplyPlayerTest(unittest.TestCase):
             " return !!t && !t.disabled; }"
         )
 
+    def wait_src_not(self, page, old):
+        page.wait_for_function(
+            "([s, old]) => { const e = document.querySelector(s);"
+            " return (e.currentSrc || e.src) !== old; }",
+            arg=[tid("after-video"), old],
+        )
+
     def test_player_visible_and_playable_during_reapply(self):
         h = self.harness
         page = self.finished_page()
@@ -97,6 +106,61 @@ class ReapplyPlayerTest(unittest.TestCase):
         )
         chips = page.locator(tid("version-chip"))
         self.assertEqual(chips.nth(1).get_attribute("aria-pressed"), "true")
+
+    def test_chip_switch_does_not_regenerate(self):
+        h = self.harness
+        fake = h.fake
+        page = self.finished_page()
+        slider = page.locator(tid("reapply-slider"))
+        slider.wait_for(state="visible")
+        watched = GENERATION + DEPTH
+        before = {c: fake.count(c) for c in watched + ("OpenOptics_DepthOfField",)}
+        slider.focus()
+        for _ in range(3):
+            slider.press("ArrowRight")
+        page.locator(tid("reapply-button")).click()
+        page.wait_for_function(
+            "s => document.querySelectorAll(s).length === 2", arg=tid("version-chip")
+        )
+        page.wait_for_function(
+            "s => document.querySelector(s).textContent.trim() === 'Applied f/8'",
+            arg=tid("reapply-status"),
+        )
+        self.assertEqual(
+            fake.count("OpenOptics_DepthOfField"), before["OpenOptics_DepthOfField"] + 1
+        )
+        for c in watched:
+            self.assertEqual(fake.count(c), before[c], c)
+        chips = page.locator(tid("version-chip"))
+        self.assertEqual(chips.nth(1).get_attribute("data-aperture"), "8")
+        code, listing = h.get("/api/shots")
+        self.assertEqual(code, 200)
+        code, record = h.get("/api/shots/%s" % listing["shots"][0]["id"])
+        self.assertEqual(code, 200)
+        self.assertEqual([v["aperture"] for v in record["versions"]], [2.8, 8])
+
+        counts = {c: fake.count(c) for c in before}
+        src = lambda: page.locator(tid("after-video")).evaluate("e => e.currentSrc || e.src")
+        label = lambda: page.locator(tid("label-after")).text_content().strip()
+        src_f8 = src()
+        self.assertEqual(label(), "After f/8")
+        chips.nth(0).click()
+        page.wait_for_function(
+            "s => document.querySelector(s).textContent.trim() === 'After f/2.8'",
+            arg=tid("label-after"),
+        )
+        self.wait_src_not(page, src_f8)
+        src_f28 = src()
+        self.assertNotEqual(src_f28, src_f8)
+        chips.nth(1).click()
+        page.wait_for_function(
+            "s => document.querySelector(s).textContent.trim() === 'After f/8'",
+            arg=tid("label-after"),
+        )
+        self.wait_src_not(page, src_f28)
+        self.assertNotEqual(src(), src_f28)
+        for c, n in counts.items():
+            self.assertEqual(fake.count(c), n, c)
 
 
 if __name__ == "__main__":
