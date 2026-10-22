@@ -46,6 +46,23 @@ function setSrc(video, url) {
   }
 }
 
+// Switching the shown version: keep the playback position and play state.
+function setAfterSrc(after, before, url) {
+  if (!url || after.getAttribute("src") === url) return;
+  const hadSrc = after.hasAttribute("src");
+  const time = before.currentTime;
+  const wasPlaying = !before.paused;
+  setSrc(after, url);
+  if (!hadSrc) return;
+  after.addEventListener("loadedmetadata", () => {
+    after.currentTime = time;
+    if (wasPlaying) {
+      const result = after.play();
+      if (result && result.catch) result.catch(() => {});
+    }
+  }, { once: true });
+}
+
 function onToggle() {
   const toggle = q("play-toggle");
   if (!toggle || toggle.disabled) return;
@@ -102,7 +119,7 @@ function render(state) {
   const shot = state.shot;
   const version = shownVersionOf(state);
   setSrc(q("before-video"), shot && shot.before_url);
-  setSrc(q("after-video"), version && version.url);
+  setAfterSrc(q("after-video"), q("before-video"), version && version.url);
 }
 
 export function initPlayer() {
