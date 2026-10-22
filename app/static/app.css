@@ -71,6 +71,10 @@ code, pre, .mono { font-family: var(--font-mono); }
 
 #monitor { grid-area: monitor; min-width: 560px; overflow: auto; }
 
+[data-testid=optics-controls] { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+[data-testid=optics-controls][hidden] { display: none; }
+[data-testid=optics-controls] input { flex: 1; min-width: 0; }
+
 #history {
   grid-area: history;
   background: var(--surface);

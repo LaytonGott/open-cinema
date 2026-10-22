@@ -2,6 +2,9 @@
 import { getOptions } from "../api.js";
 import { getState, setState, subscribe } from "../state.js";
 
+// Aperture stops (f-numbers) offered for a re-apply, in slider order.
+export const APERTURE_STOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16];
+
 const GROUPS = [
   { testid: "camera-group", key: "camera", list: "cameras", number: false },
   { testid: "lens-group", key: "lens_mm", list: "lenses", number: true },

@@ -5,6 +5,7 @@ import { initDescription } from "./components/description.js";
 
 import { initStatusPanel } from "./components/status-panel.js";
 
+import { initOpticsControls } from "./components/optics-controls.js";
 import { initViewport } from "./components/viewport.js";
 
 import { initHistory } from "./components/history.js";
@@ -33,6 +34,7 @@ function init() {
   initHistory();
   loadHistory();
   initViewport();
+  initOpticsControls();
   initStatusPanel();
   initHeader();
   initOptionGroups();
