@@ -49,7 +49,7 @@ function render(state) {
     stopTimer();
     return;
   }
-  panel.hidden = shot.status === "done";
+  panel.hidden = shot.status === "done" || (shot.status === "optics" && !!shot.versions && shot.versions.length > 0);
   const elapsed = q("elapsed");
   if (elapsed) elapsed.textContent = formatElapsed(shot.elapsed_s);
   syncTimer(shot, !panel.hidden && ["queued", "generating", "optics"].includes(shot.status));

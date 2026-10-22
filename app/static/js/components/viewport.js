@@ -11,6 +11,8 @@ function stateOf(state) {
   switch (shot.status) {
     case "done":
       return "result";
+    case "optics":
+      return shot.versions && shot.versions.length > 0 ? "result" : "working";
     case "failed":
       return "failed";
     case "cancelled":
