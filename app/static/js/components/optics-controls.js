@@ -1,5 +1,5 @@
 // Optics controls: a re-apply aperture slider shown while the viewport shows a result.
-import { getState, subscribe, shownVersionOf } from "../state.js";
+import { getState, subscribe, shownVersionOf, setShownVersion } from "../state.js";
 import { APERTURE_STOPS } from "./option-groups.js";
 import { reapplyShown } from "../actions.js";
 
@@ -9,6 +9,8 @@ let button = null;
 let current = null;
 let lastKey = null;
 let pendingAperture = null;
+let list = null;
+let listKey = null;
 
 function showValue() {
   const text = "f/" + APERTURE_STOPS[Number(slider.value)];
@@ -20,6 +22,27 @@ function updateButton() {
   const version = current ? shownVersionOf(current) : null;
   const same = !!version && APERTURE_STOPS[Number(slider.value)] === Number(version.aperture);
   button.disabled = same || !current.shot || current.shot.status === "optics";
+}
+
+function renderChips(state, version) {
+  const versions = (state.shot && state.shot.versions) || [];
+  const shown = version ? version.n : null;
+  const key = versions.map((v) => v.n + "@" + v.aperture).join(",") + "|" + shown;
+  if (key === listKey) return;
+  listKey = key;
+  list.replaceChildren(
+    ...versions.map((v) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.setAttribute("data-testid", "version-chip");
+      chip.setAttribute("data-version", String(v.n));
+      chip.setAttribute("data-aperture", String(v.aperture));
+      chip.setAttribute("aria-pressed", v.n === shown ? "true" : "false");
+      chip.textContent = "f/" + v.aperture;
+      chip.addEventListener("click", () => setShownVersion(v.n));
+      return chip;
+    }),
+  );
 }
 
 function onInput() {
@@ -53,10 +76,13 @@ function render(state) {
       pendingAperture = APERTURE_STOPS[Number(slider.value)];
       reapplyShown(pendingAperture);
     });
-    box.append(slider, value, button);
+    list = document.createElement("div");
+    list.setAttribute("data-testid", "version-list");
+    box.append(slider, value, button, list);
   }
   current = state;
   const version = shownVersionOf(state);
+  renderChips(state, version);
   const key = (state.shot ? state.shot.id : "") + ":" + (version ? version.n : "");
   if (key === lastKey) {
     updateButton();
