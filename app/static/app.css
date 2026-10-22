@@ -133,6 +133,14 @@ code, pre, .mono { font-family: var(--font-mono); }
   opacity: 0.4;
   cursor: not-allowed;
 }
+[data-testid=scrubber] {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 54px;
+  width: calc(100% - 28px);
+  z-index: 1;
+}
 [data-testid=hud] {
   position: absolute;
   left: 14px;

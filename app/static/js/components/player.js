@@ -104,8 +104,35 @@ function build(viewport) {
   labelBefore.textContent = "Before";
   const labelAfter = document.createElement("div");
   labelAfter.dataset.testid = "label-after";
+  const scrubber = document.createElement("input");
+  scrubber.type = "range";
+  scrubber.dataset.testid = "scrubber";
+  scrubber.min = "0";
+  scrubber.max = "1000";
+  scrubber.step = "1";
+  scrubber.value = "0";
+  scrubber.setAttribute("aria-label", "Seek");
+  let dragging = false;
+  scrubber.addEventListener("pointerdown", () => { dragging = true; });
+  scrubber.addEventListener("pointerup", () => { dragging = false; });
+  scrubber.addEventListener("change", () => { dragging = false; });
+  const follow = () => {
+    const duration = before.duration;
+    if (dragging || !Number.isFinite(duration) || duration <= 0) return;
+    scrubber.value = String(Math.round(before.currentTime / duration * 1000));
+  };
+  for (const name of ["timeupdate", "seeked", "loadedmetadata"]) {
+    before.addEventListener(name, follow);
+  }
+  scrubber.addEventListener("input", () => {
+    const duration = before.duration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    const time = Number(scrubber.value) / 1000 * duration;
+    before.currentTime = time;
+    after.currentTime = time;
+  });
   syncVideos(before, after);
-  player.append(before, after, labelBefore, labelAfter, toggle);
+  player.append(before, after, labelBefore, labelAfter, toggle, scrubber);
   viewport.prepend(player);
   updateReady();
   return player;
