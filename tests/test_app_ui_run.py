@@ -157,6 +157,27 @@ class RunTest(unittest.TestCase):
             "s => document.querySelector(s).dataset.state === 'ok'", arg=STATUS
         )
 
+    def test_run_400_shows_server_message(self):
+        page = self.page
+        message = "Aperture must be between 1.4 and 16."
+        body = json.dumps({"error": {"code": "invalid_request", "message": message, "field": "aperture"}})
+
+        def handler(route):
+            if route.request.method == "POST":
+                route.fulfill(status=400, content_type="application/json", body=body)
+            else:
+                route.continue_()
+
+        page.route("**/api/shots", handler)
+        before = page.locator(VIEWPORT).get_attribute("data-state")
+        page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
+        page.locator("[data-testid=generate-button]").click()
+        error = page.locator("[data-testid=submit-error]")
+        error.wait_for(state="visible")
+        self.assertIn(message, error.inner_text())
+        self.assertEqual(page.locator(VIEWPORT).get_attribute("data-state"), before)
+        self.assertNotEqual(before, "working")
+
 
 if __name__ == "__main__":
     unittest.main()
