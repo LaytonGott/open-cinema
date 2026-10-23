@@ -9,9 +9,17 @@ export function makeCompareSlider() {
   slider.setAttribute("aria-valuemax", "100");
   slider.setAttribute("aria-valuenow", "50");
 
+  const handle = document.createElement("div");
+  handle.dataset.testid = "compare-handle";
+  handle.setAttribute("aria-hidden", "true");
+  handle.style.left = "50%";
+  slider.append(handle);
+
   function setValue(n) {
     const value = Math.min(100, Math.max(0, Math.round(Number(n))));
-    slider.setAttribute("aria-valuenow", String(Number.isNaN(value) ? 50 : value));
+    const shown = Number.isNaN(value) ? 50 : value;
+    slider.setAttribute("aria-valuenow", String(shown));
+    handle.style.left = shown + "%";
   }
   slider.setValue = setValue;
 
