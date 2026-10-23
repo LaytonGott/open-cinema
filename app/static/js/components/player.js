@@ -73,21 +73,39 @@ function setSrc(video, url) {
   }
 }
 
-// Switching the shown version: keep the playback position and play state.
+let unsync = null;
+let pending = null;
+
+// Switching the shown version: load a clone beside the old video and swap once it can show a frame.
 function setAfterSrc(after, before, url) {
   if (!url || after.getAttribute("src") === url) return;
-  const hadSrc = after.hasAttribute("src");
+  if (!after.hasAttribute("src")) {
+    setSrc(after, url);
+    return;
+  }
+  if (pending) pending.remove();
   const time = before.currentTime;
   const wasPlaying = !before.paused;
-  setSrc(after, url);
-  if (!hadSrc) return;
-  after.addEventListener("loadedmetadata", () => {
-    after.currentTime = time;
+  const next = cloneAfterVideo(after, url);
+  pending = next;
+  next.removeAttribute("data-testid");
+  next.addEventListener("loadedmetadata", () => {
+    next.currentTime = time;
+  }, { once: true });
+  next.addEventListener("loadeddata", () => {
+    if (pending !== next) return;
+    pending = null;
+    next.dataset.testid = "after-video";
+    after.replaceWith(next);
+    if (unsync) unsync();
+    unsync = syncVideos(before, next);
     if (wasPlaying) {
-      const result = after.play();
+      const result = next.play();
       if (result && result.catch) result.catch(() => {});
     }
+    updateReady();
   }, { once: true });
+  after.after(next);
 }
 
 function onToggle() {
@@ -168,9 +186,10 @@ function build(viewport) {
     if (!Number.isFinite(duration) || duration <= 0) return;
     const time = Number(scrubber.value) / 1000 * duration;
     before.currentTime = time;
-    after.currentTime = time;
+    const current = q("after-video");
+    if (current) current.currentTime = time;
   });
-  syncVideos(before, after);
+  unsync = syncVideos(before, after);
   player.append(before, after, makeCompareSlider(), labelBefore, labelAfter, toggle, scrubber, readout);
   viewport.prepend(player);
   updateReady();

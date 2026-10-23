@@ -77,6 +77,11 @@ class VersionChipsUiTest(unittest.TestCase):
         second_src = after.get_attribute("src")
         chips.nth(0).click()
         self._wait_label(page, "After f/2.8")
+        # The after video is swapped in once the new version has loaded.
+        page.wait_for_function(
+            "old => document.querySelector('[data-testid=after-video]').getAttribute('src') !== old",
+            arg=second_src,
+        )
         self.assertNotEqual(after.get_attribute("src"), second_src)
         self.assertEqual(page.locator(tid("reapply-slider")).input_value(), "2")
         self.assertEqual(page.locator(tid("reapply-value")).text_content().strip(), "f/2.8")

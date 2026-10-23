@@ -85,6 +85,11 @@ class PlayerHistoryTest(unittest.TestCase):
         older = self.srcs(page)
         self.make_shot(page, 2)
         newer_id = page.locator(tid("history-item")).first.get_attribute("data-shot-id")
+        # The after video is swapped in once the new version has loaded.
+        page.wait_for_function(
+            "old => document.querySelector('[data-testid=after-video]').getAttribute('src') !== old",
+            arg=older[1],
+        )
         newer = self.srcs(page)
         self.assertNotEqual(older_id, newer_id)
         self.assertTrue(all(older) and all(newer))
