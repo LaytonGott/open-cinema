@@ -23,6 +23,32 @@ export function makeCompareSlider() {
   }
   slider.setValue = setValue;
 
+  let dragging = false;
+  function setFromPointer(event) {
+    const rect = slider.getBoundingClientRect();
+    if (rect.width > 0) setValue((event.clientX - rect.left) / rect.width * 100);
+  }
+  function endDrag(event) {
+    if (!dragging) return;
+    dragging = false;
+    if (slider.hasPointerCapture && slider.hasPointerCapture(event.pointerId)) {
+      slider.releasePointerCapture(event.pointerId);
+    }
+  }
+  slider.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    slider.focus();
+    setFromPointer(event);
+    slider.setPointerCapture(event.pointerId);
+    dragging = true;
+  });
+  slider.addEventListener("pointermove", (event) => {
+    if (dragging) setFromPointer(event);
+  });
+  slider.addEventListener("pointerup", endDrag);
+  slider.addEventListener("pointercancel", endDrag);
+  slider.addEventListener("lostpointercapture", endDrag);
+
   slider.addEventListener("keydown", (event) => {
     const current = Number(slider.getAttribute("aria-valuenow"));
     const step = event.shiftKey ? 10 : 1;

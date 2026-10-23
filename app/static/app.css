@@ -200,8 +200,11 @@ code, pre, .mono { font-family: var(--font-mono); }
   inset: 0;
   z-index: 1;
   background: transparent;
+  touch-action: none;
+  user-select: none;
 }
 [data-testid=compare-handle] {
+  user-select: none;
   position: absolute;
   top: 0;
   bottom: 0;
