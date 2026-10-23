@@ -39,16 +39,20 @@ export function syncVideos(master, follower) {
   on(master, "timeupdate", correct);
 
   let active = true;
+  let frameHandle = null;
   if (typeof master.requestVideoFrameCallback === "function") {
     const tick = () => {
       if (!active) return;
       correct();
-      master.requestVideoFrameCallback(tick);
+      frameHandle = master.requestVideoFrameCallback(tick);
     };
-    master.requestVideoFrameCallback(tick);
+    frameHandle = master.requestVideoFrameCallback(tick);
   }
   cleanups.push(() => {
     active = false;
+    if (frameHandle !== null && typeof master.cancelVideoFrameCallback === "function") {
+      master.cancelVideoFrameCallback(frameHandle);
+    }
   });
 
   return () => {
