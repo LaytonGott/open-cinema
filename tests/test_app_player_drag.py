@@ -77,6 +77,40 @@ class PlayerDragTest(unittest.TestCase):
         value = float(slider.get_attribute("aria-valuenow"))
         self.assertAlmostEqual(value, 25, delta=3)
 
+    def test_touch_drag(self):
+        page = self.finished_page()
+        slider = page.locator(tid("compare-slider"))
+        handle = page.locator(tid("compare-handle"))
+        handle.wait_for(state="visible")
+        box = slider.bounding_box()
+        hbox = handle.bounding_box()
+        start_x = hbox["x"] + hbox["width"] / 2
+        y = box["y"] + box["height"] / 2
+        target_x = box["x"] + box["width"] * 0.25
+        page.evaluate(
+            """([startX, targetX, y]) => {
+                const handle = document.querySelector('[data-testid=compare-handle]');
+                // A synthetic pointer id is not an active pointer, so capture would throw.
+                handle.parentElement.setPointerCapture = () => {};
+                const fire = (el, type, x) => el.dispatchEvent(new PointerEvent(type, {
+                    pointerId: 7, pointerType: 'touch', isPrimary: true,
+                    clientX: x, clientY: y, bubbles: true, cancelable: true,
+                }));
+                fire(handle, 'pointerdown', startX);
+                fire(handle, 'pointermove', (startX + targetX) / 2);
+                fire(handle, 'pointermove', targetX);
+                fire(handle, 'pointerup', targetX);
+            }""",
+            [start_x, target_x, y],
+        )
+        page.wait_for_function(
+            "() => Math.abs(Number(document.querySelector('[data-testid=compare-slider]')"
+            ".getAttribute('aria-valuenow')) - 25) <= 3"
+        )
+        value = float(slider.get_attribute("aria-valuenow"))
+        self.assertAlmostEqual(value, 25, delta=3)
+        self.assertEqual(page.evaluate("window.scrollY"), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
