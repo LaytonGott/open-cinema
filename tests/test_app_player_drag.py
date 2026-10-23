@@ -124,6 +124,30 @@ class PlayerDragTest(unittest.TestCase):
         value = float(slider.get_attribute("aria-valuenow"))
         self.assertAlmostEqual(value, 75, delta=3)
 
+    def test_no_change_after_release(self):
+        page = self.finished_page()
+        slider = page.locator(tid("compare-slider"))
+        handle = page.locator(tid("compare-handle"))
+        handle.wait_for(state="visible")
+        box = slider.bounding_box()
+        hbox = handle.bounding_box()
+        start_x = hbox["x"] + hbox["width"] / 2
+        y = box["y"] + box["height"] / 2
+        target_x = box["x"] + box["width"] * 0.4
+        page.mouse.move(start_x, y)
+        page.mouse.down()
+        page.mouse.move((start_x + target_x) / 2, y, steps=5)
+        page.mouse.move(target_x, y, steps=5)
+        page.mouse.up()
+        page.wait_for_function(
+            "() => Math.abs(Number(document.querySelector('[data-testid=compare-slider]')"
+            ".getAttribute('aria-valuenow')) - 40) <= 3"
+        )
+        released = slider.get_attribute("aria-valuenow")
+        page.mouse.move(box["x"] + box["width"] * 0.9, y, steps=5)
+        page.mouse.move(box["x"] + box["width"] * 0.1, y, steps=5)
+        self.assertEqual(slider.get_attribute("aria-valuenow"), released)
+
 
 if __name__ == "__main__":
     unittest.main()
