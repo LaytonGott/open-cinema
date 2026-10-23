@@ -123,6 +123,51 @@ class PlayerSwitchTest(unittest.TestCase):
         self.assertTrue(state["ap"])
         self.assertEqual(slider.get_attribute("aria-valuenow"), "30")
 
+    def test_reapply_keeps_time_and_pause(self):
+        page = self.two_version_page()
+        target = page.evaluate(
+            "() => { const v = document.querySelector('[data-testid=before-video]');"
+            " const t = Math.min(2, v.duration / 2); v.currentTime = t; return t; }"
+        )
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every(n => {"
+            " const v = document.querySelector('[data-testid=' + n + ']');"
+            " return !v.seeking && Math.abs(v.currentTime - %r) < 0.25; })" % target
+        )
+        if not page.evaluate(
+            "() => document.querySelector('[data-testid=before-video]').paused"
+        ):
+            page.locator(tid("play-toggle")).click()
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
+        )
+
+        slider = page.locator(tid("reapply-slider"))
+        slider.focus()
+        slider.press("ArrowRight")
+        page.locator(tid("reapply-button")).click()
+        page.wait_for_function(
+            "s => document.querySelectorAll(s).length === 3", arg=tid("version-chip")
+        )
+        page.wait_for_function(
+            "() => { const t = document.querySelector('[data-testid=reapply-status]')"
+            ".textContent.trim(); return t.startsWith('Applied f/') && t !== 'Applied f/8'; }"
+        )
+        page.wait_for_function(
+            "() => { const e = document.querySelector('[data-testid=after-video]');"
+            " return e.readyState >= 2 && !e.seeking; }"
+        )
+
+        state = page.evaluate(
+            "() => { const g = n => document.querySelector('[data-testid=' + n + ']');"
+            " return { b: g('before-video').currentTime, a: g('after-video').currentTime,"
+            " bp: g('before-video').paused, ap: g('after-video').paused }; }"
+        )
+        self.assertAlmostEqual(state["a"], target, delta=0.25)
+        self.assertTrue(state["bp"])
+        self.assertTrue(state["ap"])
+
     def test_playing_switch_keeps_playing(self):
         page = self.two_version_page()
         if page.evaluate(
