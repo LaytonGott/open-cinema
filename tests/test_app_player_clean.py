@@ -110,6 +110,35 @@ class PlayerCleanTest(unittest.TestCase):
 
         rec.assert_clean(self, h.url)
 
+    def test_no_scroll_1280x720(self):
+        h = self.harness
+        h.reset()
+        page = self.browser.new_page(viewport={"width": 1280, "height": 720})
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(h.url)
+        page.locator(tid("shot-description")).fill(DESCRIPTION)
+        page.locator(tid("generate-button")).click()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'result'",
+            arg=tid("viewport"),
+        )
+        page.locator(tid("reapply-slider")).evaluate(
+            "el => { el.value = '5'; el.dispatchEvent(new Event('input', {bubbles: true})); }"
+        )
+        page.locator(tid("reapply-button")).click()
+        page.wait_for_function(
+            "s => document.querySelectorAll(s).length === 2", arg=tid("version-chip")
+        )
+        page.wait_for_function(
+            "() => { const t = document.querySelector('[data-testid=play-toggle]');"
+            " return !!t && !t.disabled; }"
+        )
+        sizes = page.evaluate(
+            "() => ({scroll: document.documentElement.scrollHeight, inner: window.innerHeight})"
+        )
+        self.assertLessEqual(sizes["scroll"], sizes["inner"])
+
 
 if __name__ == "__main__":
     unittest.main()
