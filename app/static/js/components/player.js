@@ -40,6 +40,15 @@ function updatePlaying() {
   toggle.textContent = playing ? "⏸ Pause" : "▶ Play";
 }
 
+function wireVideo(video) {
+  for (const name of ["loadeddata", "canplay", "emptied"]) {
+    video.addEventListener(name, updateReady);
+  }
+  for (const name of ["play", "pause"]) {
+    video.addEventListener(name, updatePlaying);
+  }
+}
+
 function fmt(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const whole = Math.floor(seconds);
@@ -106,14 +115,8 @@ function build(viewport) {
   toggle.textContent = "▶ Play";
   toggle.disabled = true;
   toggle.addEventListener("click", onToggle);
-  for (const video of [before, after]) {
-    for (const name of ["loadeddata", "canplay", "emptied"]) {
-      video.addEventListener(name, updateReady);
-    }
-    for (const name of ["play", "pause"]) {
-      video.addEventListener(name, updatePlaying);
-    }
-  }
+  wireVideo(before);
+  wireVideo(after);
   const labelBefore = document.createElement("div");
   labelBefore.dataset.testid = "label-before";
   labelBefore.textContent = "Before";
