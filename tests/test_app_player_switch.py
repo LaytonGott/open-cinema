@@ -123,6 +123,41 @@ class PlayerSwitchTest(unittest.TestCase):
         self.assertTrue(state["ap"])
         self.assertEqual(slider.get_attribute("aria-valuenow"), "30")
 
+    def test_playing_switch_keeps_playing(self):
+        page = self.two_version_page()
+        if page.evaluate(
+            "() => document.querySelector('[data-testid=before-video]').paused"
+        ):
+            page.locator(tid("play-toggle")).click()
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every(n => {"
+            " const v = document.querySelector('[data-testid=' + n + ']');"
+            " return !v.paused && v.currentTime > 0.1; })"
+        )
+
+        old = page.locator(tid("after-video")).evaluate("e => e.currentSrc || e.src")
+        chips = page.locator(tid("version-chip"))
+        other = 0 if chips.nth(1).get_attribute("aria-pressed") == "true" else 1
+        chips.nth(other).click()
+        page.wait_for_function(
+            "old => { const e = document.querySelector('[data-testid=after-video]');"
+            " return (e.currentSrc || e.src) !== old && e.readyState >= 2; }",
+            arg=old,
+        )
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => !document.querySelector('[data-testid=' + n + ']').paused)"
+        )
+
+        state = page.evaluate(
+            "() => { const g = n => document.querySelector('[data-testid=' + n + ']');"
+            " return { b: g('before-video').currentTime, a: g('after-video').currentTime,"
+            " bp: g('before-video').paused, ap: g('after-video').paused }; }"
+        )
+        self.assertFalse(state["bp"])
+        self.assertFalse(state["ap"])
+        self.assertAlmostEqual(state["a"], state["b"], delta=0.25)
+
 
 if __name__ == "__main__":
     unittest.main()
