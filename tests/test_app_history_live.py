@@ -1,0 +1,100 @@
+"""Browser test of history statuses staying live while an older shot is selected."""
+import unittest
+
+from playwright.sync_api import sync_playwright
+
+from tests.app_harness import AppHarness
+
+DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
+
+
+def tid(name):
+    return "[data-testid=%s]" % name
+
+
+class HistoryLiveTest(unittest.TestCase):
+    harness = None
+    pw = None
+    browser = None
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.harness = AppHarness().start()
+            cls.pw = sync_playwright().start()
+            cls.browser = cls.pw.chromium.launch(headless=True)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for closer in (
+            lambda: cls.browser and cls.browser.close(),
+            lambda: cls.pw and cls.pw.stop(),
+            lambda: cls.harness and cls.harness.stop(),
+        ):
+            try:
+                closer()
+            except Exception:
+                pass
+        cls.browser = cls.pw = cls.harness = None
+
+    def generate(self, page):
+        self.harness.fake.reset_cache()
+        page.locator(tid("shot-description")).fill(DESCRIPTION)
+        page.locator(tid("generate-button")).click()
+
+    def test_live_status_while_older_selected(self):
+        self.harness.reset()
+        fake = self.harness.fake
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(self.harness.url)
+
+        self.generate(page)
+        page.wait_for_function(
+            "() => document.querySelectorAll('[data-testid=history-item]').length === 1"
+            " && document.querySelector('[data-testid=viewport]').dataset.state === 'result'"
+        )
+        page.wait_for_function(
+            "() => !!document.querySelector('[data-testid=before-video]').getAttribute('src')"
+        )
+        older = page.locator(tid("history-item")).first
+        older_id = older.get_attribute("data-shot-id")
+        older_src = page.locator(tid("before-video")).get_attribute("src")
+
+        fake.hold_at("SamplerCustomAdvanced")
+        try:
+            self.generate(page)
+            page.wait_for_function(
+                "() => document.querySelectorAll('[data-testid=history-item]').length === 2"
+            )
+            running = page.locator(tid("history-item")).first
+            running_id = running.get_attribute("data-shot-id")
+            self.assertNotEqual(running_id, older_id)
+            sel = "[data-testid=history-item][data-shot-id='%s']" % running_id
+            page.wait_for_function(
+                "s => ['queued', 'generating', 'optics'].includes(document.querySelector(s).dataset.status)",
+                arg=sel,
+            )
+
+            page.locator("[data-testid=history-item][data-shot-id='%s']" % older_id).click()
+            page.locator(tid("player")).wait_for(state="visible")
+            page.wait_for_function(
+                "src => document.querySelector('[data-testid=before-video]').getAttribute('src') === src",
+                arg=older_src,
+            )
+            self.assertNotEqual(page.locator(sel).get_attribute("data-status"), "done")
+        finally:
+            fake.release()
+
+        page.wait_for_function(
+            "s => document.querySelector(s).dataset.status === 'done'", arg=sel
+        )
+        self.assertEqual(page.locator(tid("before-video")).get_attribute("src"), older_src)
+
+
+if __name__ == "__main__":
+    unittest.main()
