@@ -111,6 +111,19 @@ class PlayerDragTest(unittest.TestCase):
         self.assertAlmostEqual(value, 25, delta=3)
         self.assertEqual(page.evaluate("window.scrollY"), 0)
 
+    def test_track_click(self):
+        page = self.finished_page()
+        slider = page.locator(tid("compare-slider"))
+        slider.wait_for(state="visible")
+        box = slider.bounding_box()
+        page.mouse.click(box["x"] + box["width"] * 0.75, box["y"] + box["height"] / 2)
+        page.wait_for_function(
+            "() => Math.abs(Number(document.querySelector('[data-testid=compare-slider]')"
+            ".getAttribute('aria-valuenow')) - 75) <= 3"
+        )
+        value = float(slider.get_attribute("aria-valuenow"))
+        self.assertAlmostEqual(value, 75, delta=3)
+
 
 if __name__ == "__main__":
     unittest.main()
