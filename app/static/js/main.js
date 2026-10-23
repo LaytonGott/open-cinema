@@ -14,6 +14,7 @@ import { initSubmitError } from "./components/submit-error.js";
 import { listShots } from "./api.js";
 import { getState, setHistory } from "./state.js";
 import { selectShot } from "./actions.js";
+import { initHistoryRefresh } from "./history-refresh.js";
 
 // Loads the server's shot list once; records already in state win, errors are left to the health banner.
 async function loadHistory() {
@@ -34,6 +35,7 @@ async function loadHistory() {
 function init() {
   initHistory();
   loadHistory();
+  initHistoryRefresh();
   initViewport();
   initPlayer();
   initOpticsControls();
