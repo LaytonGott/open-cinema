@@ -133,6 +133,59 @@ class HistoryLiveTest(unittest.TestCase):
             "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'"
         )
 
+    def test_reapply_isolated_between_shots(self):
+        self.harness.reset()
+        fake = self.harness.fake
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(self.harness.url)
+
+        ids = []
+        for count in (1, 2):
+            self.generate(page)
+            page.wait_for_function(
+                "n => document.querySelectorAll('[data-testid=history-item]').length === n"
+                " && document.querySelector('[data-testid=viewport]').dataset.state === 'result'",
+                arg=count,
+            )
+            ids.append(page.locator(tid("history-item")).first.get_attribute("data-shot-id"))
+        id_b, id_a = ids
+        self.assertNotEqual(id_a, id_b)
+
+        button = page.locator(tid("reapply-button"))
+        slider = page.locator(tid("reapply-slider"))
+        status = page.locator(tid("reapply-status"))
+
+        def set_slider(index):
+            slider.evaluate(
+                "(el, i) => { el.value = String(i); el.dispatchEvent(new Event('input', {bubbles: true})); }",
+                index,
+            )
+
+        page.locator("[data-testid=history-item][data-shot-id='%s']" % id_a).click()
+        button.wait_for(state="visible")
+        fake.hold_at("OpenOptics_DepthOfField")
+        try:
+            set_slider(5)
+            button.click()
+            page.wait_for_function(
+                "s => document.querySelector(s).textContent.includes('Applying')",
+                arg=tid("reapply-status"),
+            )
+
+            page.locator("[data-testid=history-item][data-shot-id='%s']" % id_b).click()
+            page.wait_for_function(
+                "s => !document.querySelector(s).textContent.includes('Applying')",
+                arg=tid("reapply-status"),
+            )
+            set_slider(5)
+            self.assertTrue(button.is_enabled())
+            self.assertNotIn("Applying", status.text_content())
+            self.assertTrue(page.locator(tid("player")).is_visible())
+        finally:
+            fake.release()
+
     def test_failed_shot_shows_state(self):
         self.harness.reset()
         fake = self.harness.fake
