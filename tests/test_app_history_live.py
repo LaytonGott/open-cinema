@@ -133,6 +133,39 @@ class HistoryLiveTest(unittest.TestCase):
             "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'"
         )
 
+    def test_failed_shot_shows_state(self):
+        self.harness.reset()
+        fake = self.harness.fake
+        self.addCleanup(fake.clear_failures)
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(self.harness.url)
+
+        fake.fail("SamplerCustomAdvanced", "Out of memory in sampler")
+        self.generate(page)
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'failed'"
+        )
+        failed_id = page.locator(tid("history-item")).first.get_attribute("data-shot-id")
+        fail_sel = "[data-testid=history-item][data-shot-id='%s']" % failed_id
+        self.assertEqual(page.locator(fail_sel).get_attribute("data-status"), "failed")
+        fake.clear_failures()
+
+        self.generate(page)
+        page.wait_for_function(
+            "() => document.querySelectorAll('[data-testid=history-item]').length === 2"
+            " && document.querySelector('[data-testid=viewport]').dataset.state === 'result'"
+        )
+        self.assertNotEqual(
+            page.locator(tid("history-item")).first.get_attribute("data-shot-id"), failed_id
+        )
+
+        page.locator(fail_sel).click()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'failed'"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
