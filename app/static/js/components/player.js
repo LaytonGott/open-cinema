@@ -49,6 +49,17 @@ function wireVideo(video) {
   }
 }
 
+// A fresh after video that looks like the old one; the caller inserts it.
+function cloneAfterVideo(old, url) {
+  const video = makeVideo("after-video");
+  wireVideo(video);
+  video.style.cssText = old.style.cssText;
+  video.className = old.className;
+  video.style.clipPath = old.style.clipPath;
+  video.setAttribute("src", url);
+  return video;
+}
+
 function fmt(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const whole = Math.floor(seconds);
