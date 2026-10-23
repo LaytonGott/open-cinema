@@ -166,6 +166,7 @@ code, pre, .mono { font-family: var(--font-mono); }
   white-space: pre;
 }
 [data-testid=elapsed], [data-testid=aperture-value], [data-testid=subject-distance] { font-family: var(--font-mono); }
+[data-testid=time-readout], [data-testid=reapply-value], [data-testid=reapply-status], [data-testid=label-after] { font-family: var(--font-mono); }
 [data-testid=crop-mark] { z-index: 1; }
 [data-testid=crop-mark].tl { top: 6px; left: 6px; border-top-width: 2px; border-left-width: 2px; }
 [data-testid=crop-mark].tr { top: 6px; right: 6px; border-top-width: 2px; border-right-width: 2px; }
