@@ -84,17 +84,18 @@ function setAfterSrc(after, before, url) {
     return;
   }
   if (pending) pending.remove();
-  const time = before.currentTime;
-  const wasPlaying = !before.paused;
   const next = cloneAfterVideo(after, url);
   pending = next;
   next.removeAttribute("data-testid");
   next.addEventListener("loadedmetadata", () => {
-    next.currentTime = time;
+    next.currentTime = before.currentTime;
   }, { once: true });
   next.addEventListener("loadeddata", () => {
     if (pending !== next) return;
     pending = null;
+    // the master may have been sought or played on while the clone loaded: take its time and state as they are now
+    if (Math.abs(next.currentTime - before.currentTime) > 0.05) next.currentTime = before.currentTime;
+    const wasPlaying = !before.paused;
     next.dataset.testid = "after-video";
     after.replaceWith(next);
     if (unsync) unsync();

@@ -74,15 +74,6 @@ class PlayerSwitchTest(unittest.TestCase):
 
     def test_paused_switch_keeps_time(self):
         page = self.two_version_page()
-        target = page.evaluate(
-            "() => { const v = document.querySelector('[data-testid=before-video]');"
-            " const t = Math.min(2, v.duration / 2); v.currentTime = t; return t; }"
-        )
-        page.wait_for_function(
-            "() => ['before-video', 'after-video'].every(n => {"
-            " const v = document.querySelector('[data-testid=' + n + ']');"
-            " return !v.seeking && Math.abs(v.currentTime - %r) < 0.25; })" % target
-        )
         toggle = page.locator(tid("play-toggle"))
         if not page.evaluate(
             "() => document.querySelector('[data-testid=before-video]').paused"
@@ -91,6 +82,15 @@ class PlayerSwitchTest(unittest.TestCase):
         page.wait_for_function(
             "() => ['before-video', 'after-video'].every("
             "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
+        )
+        target = page.evaluate(
+            "() => { const v = document.querySelector('[data-testid=before-video]');"
+            " const t = Math.min(2, v.duration / 2); v.currentTime = t; return t; }"
+        )
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every(n => {"
+            " const v = document.querySelector('[data-testid=' + n + ']');"
+            " return !v.seeking && Math.abs(v.currentTime - %r) < 0.25; })" % target
         )
         slider = page.locator(tid("compare-slider"))
         slider.focus()
@@ -125,6 +125,14 @@ class PlayerSwitchTest(unittest.TestCase):
 
     def test_reapply_keeps_time_and_pause(self):
         page = self.two_version_page()
+        if not page.evaluate(
+            "() => document.querySelector('[data-testid=before-video]').paused"
+        ):
+            page.locator(tid("play-toggle")).click()
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
+        )
         target = page.evaluate(
             "() => { const v = document.querySelector('[data-testid=before-video]');"
             " const t = Math.min(2, v.duration / 2); v.currentTime = t; return t; }"
@@ -133,14 +141,6 @@ class PlayerSwitchTest(unittest.TestCase):
             "() => ['before-video', 'after-video'].every(n => {"
             " const v = document.querySelector('[data-testid=' + n + ']');"
             " return !v.seeking && Math.abs(v.currentTime - %r) < 0.25; })" % target
-        )
-        if not page.evaluate(
-            "() => document.querySelector('[data-testid=before-video]').paused"
-        ):
-            page.locator(tid("play-toggle")).click()
-        page.wait_for_function(
-            "() => ['before-video', 'after-video'].every("
-            "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
         )
 
         slider = page.locator(tid("reapply-slider"))
