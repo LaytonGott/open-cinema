@@ -95,6 +95,44 @@ class HistoryLiveTest(unittest.TestCase):
         )
         self.assertEqual(page.locator(tid("before-video")).get_attribute("src"), older_src)
 
+    def test_follow_running_shot_to_result(self):
+        self.harness.reset()
+        fake = self.harness.fake
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(self.harness.url)
+
+        self.generate(page)
+        page.wait_for_function(
+            "() => document.querySelectorAll('[data-testid=history-item]').length === 1"
+            " && document.querySelector('[data-testid=viewport]').dataset.state === 'result'"
+        )
+
+        fake.hold_at("SamplerCustomAdvanced")
+        try:
+            self.generate(page)
+            page.wait_for_function(
+                "() => document.querySelectorAll('[data-testid=history-item]').length === 2"
+            )
+            running_id = page.locator(tid("history-item")).first.get_attribute("data-shot-id")
+            sel = "[data-testid=history-item][data-shot-id='%s']" % running_id
+            page.wait_for_function(
+                "s => ['queued', 'generating', 'optics'].includes(document.querySelector(s).dataset.status)",
+                arg=sel,
+            )
+
+            page.locator(sel).click()
+            page.wait_for_function(
+                "() => document.querySelector('[data-testid=viewport]').dataset.state === 'working'"
+            )
+        finally:
+            fake.release()
+
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
