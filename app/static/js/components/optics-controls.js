@@ -53,6 +53,7 @@ function renderChips(state, version) {
       chip.setAttribute("data-testid", "version-chip");
       chip.setAttribute("data-version", String(v.n));
       chip.setAttribute("data-aperture", String(v.aperture));
+      chip.setAttribute("aria-label", "Version " + v.n + ", f/" + v.aperture);
       chip.setAttribute("aria-pressed", v.n === shown ? "true" : "false");
       chip.textContent = "f/" + v.aperture;
       chip.addEventListener("click", () => setShownVersion(v.n));
@@ -87,6 +88,7 @@ function render(state) {
     button = document.createElement("button");
     button.type = "button";
     button.setAttribute("data-testid", "reapply-button");
+    button.setAttribute("aria-label", "Apply aperture");
     button.textContent = "Apply aperture";
     button.addEventListener("click", () => {
       pendingAperture = APERTURE_STOPS[Number(slider.value)];

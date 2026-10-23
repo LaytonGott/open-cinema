@@ -8,6 +8,7 @@ export function makeCompareSlider() {
   slider.setAttribute("aria-valuemin", "0");
   slider.setAttribute("aria-valuemax", "100");
   slider.setAttribute("aria-valuenow", "50");
+  slider.setAttribute("aria-valuetext", "50% after");
 
   const handle = document.createElement("div");
   handle.dataset.testid = "compare-handle";
@@ -19,6 +20,7 @@ export function makeCompareSlider() {
     const value = Math.min(100, Math.max(0, Math.round(Number(n))));
     const shown = Number.isNaN(value) ? 50 : value;
     slider.setAttribute("aria-valuenow", String(shown));
+    slider.setAttribute("aria-valuetext", shown + "% after");
     handle.style.left = shown + "%";
   }
   slider.setValue = setValue;
