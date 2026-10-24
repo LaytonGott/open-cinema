@@ -144,6 +144,36 @@ code, pre, .mono { font-family: var(--font-mono); }
   border-radius: 6px;
 }
 
+[data-testid=lens-group] {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--raised);
+}
+#director [data-testid=lens-group] .opt {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 0;
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding-top: 14px;
+  transition: background 150ms, color 150ms;
+}
+#director [data-testid=lens-group] .opt:last-child { border-right: 0; }
+[data-testid=lens-group] .opt::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  background: var(--muted);
+}
+
 .actions {
   position: sticky;
   bottom: 0;
