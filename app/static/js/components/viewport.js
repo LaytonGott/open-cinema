@@ -1,5 +1,5 @@
 // Viewport: sets data-state on [data-testid=viewport] from the shared state.
-import { getState, subscribe } from "../state.js";
+import { getState, subscribe, shownVersionOf } from "../state.js";
 
 function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
@@ -40,7 +40,14 @@ function renderHud(state) {
   const list = (state.options && state.options.framings) || [];
   const found = list.find((f) => f.id === p.framing);
   const framing = found ? found.label : p.framing;
-  hud.textContent = p.lens_mm + " mm  f/" + p.aperture + "  " + String(framing || "").toUpperCase();
+  const version = state.shot ? shownVersionOf(state) : null;
+  const aperture = version && version.aperture != null ? version.aperture : p.aperture;
+  let text = p.lens_mm + " mm  f/" + aperture + "  " + String(framing || "").toUpperCase();
+  const d = state.shot && state.shot.derived ? state.shot.derived.subject_distance_m : null;
+  if (typeof d === "number" && isFinite(d)) {
+    text += "  about " + (d < 10 ? d.toFixed(1) : String(Math.round(d))) + " m";
+  }
+  hud.textContent = text;
 }
 
 export function initViewport() {
