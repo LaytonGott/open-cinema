@@ -1,9 +1,16 @@
 """Browser tests that no text is clipped or pushed off screen in the empty and form states."""
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
+from PIL import Image, ImageStat
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def tid(name):
@@ -200,3 +207,24 @@ class VisualReviewTest(unittest.TestCase):
                 self.assertEqual(overlaps(page), [], label)
             finally:
                 fake.clear_failures()
+
+    def test_screenshots_look_like_a_console(self):
+        with tempfile.TemporaryDirectory() as out:
+            run = subprocess.run([sys.executable, str(ROOT / "scripts" / "app_screenshots.py"), "--out", out],
+                                 cwd=str(ROOT), capture_output=True, text=True, timeout=240)
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            files = sorted(Path(out).glob("*.png"))
+            self.assertEqual(len(files), 12, [f.name for f in files])
+            spread = {}
+            for path in files:
+                with Image.open(path) as img:
+                    grey = img.convert("L")
+                    width, height = grey.size
+                    centre = grey.crop((width // 4, height // 4, width * 3 // 4, height * 3 // 4))
+                    mean = ImageStat.Stat(grey).mean[0]
+                    deviation = ImageStat.Stat(centre).stddev[0]
+                self.assertLess(mean, 90, "%s is not dark (mean %.1f)" % (path.name, mean))
+                self.assertGreater(deviation, 6, "%s monitor looks empty (stddev %.1f)" % (path.name, deviation))
+                spread[path.name] = deviation
+            for size in ("1280x720", "1366x768"):
+                self.assertGreater(spread["result-%s.png" % size], spread["empty-%s.png" % size], size)
