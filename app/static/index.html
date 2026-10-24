@@ -15,13 +15,20 @@
     <div data-testid="comfy-banner" role="alert" hidden><span data-testid="comfy-banner-text"></span><button data-testid="comfy-retry">Retry</button></div>
   </header>
   <section id="director">
+    <label for="shot-description">Scene</label>
+    <textarea id="shot-description" data-testid="shot-description" maxlength="1000" placeholder="e.g. A woman in a red coat walks through a rainy neon street"></textarea>
     <div data-testid="camera-group" role="radiogroup" aria-label="Camera move"></div>
     <div data-testid="lens-group" role="radiogroup" aria-label="Lens"></div>
     <div data-testid="framing-group" role="radiogroup" aria-label="Framing"></div>
-    <label for="shot-description">Scene</label>
-    <textarea id="shot-description" data-testid="shot-description" maxlength="1000" placeholder="e.g. A woman in a red coat walks through a rainy neon street"></textarea>
-    <button data-testid="generate-button">Generate shot</button>
-    <p data-testid="submit-error" role="alert" hidden></p>
+    <div class="aperture">
+      <input type="range" data-testid="aperture-slider" id="aperture-slider" min="0" max="7" step="1" value="2" aria-label="Aperture">
+      <output data-testid="aperture-value" for="aperture-slider">f/2.8</output>
+    </div>
+    <p data-testid="subject-distance"></p>
+    <div class="actions">
+      <button data-testid="generate-button">Generate shot</button>
+      <p data-testid="submit-error" role="alert" hidden></p>
+    </div>
   </section>
   <section id="monitor">
     <div data-testid="viewport" data-state="empty">
