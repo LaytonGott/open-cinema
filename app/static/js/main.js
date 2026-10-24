@@ -2,6 +2,7 @@
 import { initHeader, checkHealth } from "./components/header.js";
 import { initOptionGroups } from "./components/option-groups.js";
 import { initDescription } from "./components/description.js";
+import { initAperture } from "./components/aperture.js";
 
 import { initStatusPanel } from "./components/status-panel.js";
 
@@ -43,6 +44,7 @@ function init() {
   initHeader();
   initOptionGroups();
   initDescription();
+  initAperture();
   initSubmitError();
   checkHealth();
 }
