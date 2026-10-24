@@ -288,6 +288,18 @@ class DesignTest(unittest.TestCase):
         self.assertEqual(page.evaluate("s => document.querySelector(s).tagName.toLowerCase()", tid("logo-mark")), "svg")
         self.assertEqual(page.locator("header img").count(), 0)
 
+    def test_status_pill_connected(self):
+        page = self.open_page(1280, 720)
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).textContent.trim().startsWith('ComfyUI: connected')",
+            arg=tid("comfy-status"),
+        )
+        color = page.evaluate(
+            "s => getComputedStyle(document.querySelector(s), '::before').backgroundColor",
+            tid("comfy-status"),
+        )
+        self.assertEqual(color, "rgb(90, 209, 154)")
+
 
 if __name__ == "__main__":
     unittest.main()
