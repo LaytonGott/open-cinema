@@ -86,6 +86,38 @@ class DesignTest(unittest.TestCase):
         self.assertIn("Segoe UI", body)
         self.assertIn("system-ui", body)
 
+    def test_hud_follows_form_and_background(self):
+        self.harness.reset()
+        page = self.open_page(1280, 720)
+        page.click(tid("history-new"))
+        before = page.inner_text(tid("hud"))
+        page.click(tid("lens-group") + " [data-value='85']")
+        page.fill(tid("aperture-slider"), "5")
+        page.wait_for_function(
+            "([s, old]) => { const t = document.querySelector(s).textContent;"
+            " return t !== old && t.includes('f/8') && t.includes('85'); }",
+            arg=[tid("hud"), before],
+        )
+        info = page.evaluate(
+            """() => {
+                const hud = document.querySelector('[data-testid=hud]');
+                const view = document.querySelector('[data-testid=viewport]').getBoundingClientRect();
+                const box = hud.getBoundingClientRect();
+                const style = getComputedStyle(hud);
+                return {background: style.backgroundColor, family: style.fontFamily,
+                        hudBottom: box.bottom, hudWidth: box.width,
+                        viewBottom: view.bottom, viewWidth: view.width};
+            }"""
+        )
+        channels = [float(v) for v in info["background"].split("(")[1].rstrip(")").split(",")]
+        alpha = channels[3] if len(channels) > 3 else 1.0
+        self.assertGreaterEqual(alpha, 0.35, info["background"])
+        for value in channels[:3]:
+            self.assertLess(value, 80, info["background"])
+        self.assertAlmostEqual(info["hudBottom"], info["viewBottom"], delta=1)
+        self.assertAlmostEqual(info["hudWidth"], info["viewWidth"], delta=2)
+        self.assertIn("monospace", info["family"])
+
     def test_no_foreign_requests(self):
         self.open_page(1280, 720)
         self.assertTrue(self.requests)
