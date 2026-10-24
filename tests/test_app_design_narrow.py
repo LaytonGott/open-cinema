@@ -67,6 +67,22 @@ class NarrowLayoutTest(unittest.TestCase):
         self.assertLess(t["director"], t["history"], t)
         self.assertLessEqual(t["scrollWidth"], t["innerWidth"], t)
 
+    def test_viewport_ratio_and_history_scroll(self):
+        self.page.set_viewport_size({"width": 390, "height": 844})
+        m = self.page.evaluate("""() => {
+          const v = document.querySelector('[data-testid=viewport]').getBoundingClientRect();
+          const h = document.querySelector('[data-testid=history-list]');
+          return {
+            width: v.width, height: v.height, innerWidth: window.innerWidth,
+            overflowX: getComputedStyle(h).overflowX,
+            scrollWidth: document.documentElement.scrollWidth,
+          };
+        }""")
+        self.assertAlmostEqual(m["width"], m["innerWidth"], delta=1, msg=m)
+        self.assertAlmostEqual(m["width"] / m["height"], 20 / 11, delta=0.1, msg=m)
+        self.assertIn(m["overflowX"], ("auto", "scroll"), m)
+        self.assertLessEqual(m["scrollWidth"], m["innerWidth"], m)
+
 
 if __name__ == "__main__":
     unittest.main()

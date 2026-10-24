@@ -322,6 +322,11 @@ code, pre, .mono { font-family: var(--font-mono); }
 @media (min-width: 900px) {
   [data-testid=viewport] { min-width: 560px; }
 }
+@media (max-width: 899px) {
+  #monitor { padding-left: 0; padding-right: 0; }
+  [data-testid=viewport] { width: 100%; aspect-ratio: 20 / 11; }
+  #history > [data-testid=history-list] { overflow-x: auto; min-width: 0; }
+}
 [data-testid=viewport-hint] {
   position: absolute;
   top: 50%;
