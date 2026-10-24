@@ -450,6 +450,25 @@ code, pre, .mono { font-family: var(--font-mono); }
   text-decoration: underline;
 }
 
+/* tracker row */
+.tracker {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+.tracker li[data-step="2"] {
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
+}
+.tracker li[data-state=pending] { color: var(--muted); }
+.tracker li[data-state=active] { color: var(--text); font-weight: 600; }
+.tracker li[data-state=done] { color: var(--ok); }
+.tracker li[data-state=failed] { color: var(--danger); }
+
 /* tracker step icons */
 [data-testid=stage-generate]::before, [data-testid=stage-optics]::before {
   display: inline-block;
