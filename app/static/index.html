@@ -55,9 +55,9 @@
       <button data-testid="retry-button" hidden></button>
       <span data-testid="elapsed">0:00</span>
       <div data-testid="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progress"><div class="progress-fill" style="width:0%"></div></div>
-      <ul>
-        <li data-testid="stage-generate">Generate video</li>
-        <li data-testid="stage-optics">Apply optics</li>
+      <ul class="tracker">
+        <li data-testid="stage-generate" data-step="1">Generate video</li>
+        <li data-testid="stage-optics" data-step="2">Apply optics</li>
       </ul>
     </section>
   </section>
