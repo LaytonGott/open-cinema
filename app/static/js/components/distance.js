@@ -5,6 +5,7 @@ import { getState, subscribe } from "../state.js";
 export function initDistance() {
   const el = document.querySelector('[data-testid="subject-distance"]');
   if (!el) return;
+  const marker = document.querySelector('[data-testid="focus-marker"]');
   let counter = 0;
   let lastKey = null;
 
@@ -26,6 +27,10 @@ export function initDistance() {
       if (!Number.isFinite(metres)) return;
       el.textContent = format(metres);
       el.setAttribute("data-metres", String(metres));
+      if (marker) {
+        const clamped = Math.min(20, Math.max(1, metres));
+        marker.style.left = (100 * Math.log(clamped) / Math.log(20)) + "%";
+      }
     } catch (e) {
       // ignored on purpose; the previous reading stays
     }

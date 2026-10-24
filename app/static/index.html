@@ -31,7 +31,17 @@
       <div class="fstop-scale" data-testid="aperture-scale" aria-hidden="true"><span>1.4</span><span>2</span><span>2.8</span><span>4</span><span>5.6</span><span>8</span><span>11</span><span>16</span></div>
       <output data-testid="aperture-value" for="aperture-slider">f/2.8</output>
     </div>
-    <p data-testid="subject-distance"></p>
+    <div class="distance">
+      <p data-testid="subject-distance"></p>
+      <div class="focus-ruler" data-testid="focus-ruler" aria-hidden="true">
+        <span class="focus-tick" style="left:0%">1</span>
+        <span class="focus-tick" style="left:23.1%">2</span>
+        <span class="focus-tick" style="left:53.7%">5</span>
+        <span class="focus-tick" style="left:76.9%">10</span>
+        <span class="focus-tick" style="left:100%">20</span>
+        <span data-testid="focus-marker" class="focus-marker"></span>
+      </div>
+    </div>
     <div class="actions">
       <button data-testid="generate-button">Generate shot</button>
       <p data-testid="submit-error" role="alert" hidden></p>
