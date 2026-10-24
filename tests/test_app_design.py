@@ -340,6 +340,39 @@ class DesignTest(unittest.TestCase):
         self.assertGreater(values["min"][0], values["max"][0])
         self.assertEqual(values["min"][1], values["max"][1])
 
+    def test_status_panel_centred_and_tracker(self):
+        self.harness.reset()
+        fake = self.harness.fake
+        page = self.open_page(1280, 720)
+        panel_sel = tid("status-panel")
+        fake.hold_at("SamplerCustomAdvanced")
+        try:
+            page.locator(tid("shot-description")).fill("A rider crosses a foggy salt flat at dawn.")
+            page.locator(tid("generate-button")).click()
+            page.wait_for_function(
+                "s => document.querySelector(s).dataset.status === 'generating'", arg=panel_sel
+            )
+            panel = page.locator(panel_sel).bounding_box()
+            view = page.locator(tid("viewport")).bounding_box()
+            self.assertAlmostEqual(
+                panel["x"] + panel["width"] / 2, view["x"] + view["width"] / 2, delta=40
+            )
+            self.assertAlmostEqual(
+                panel["y"] + panel["height"] / 2, view["y"] + view["height"] / 2, delta=40
+            )
+            self.assertEqual(page.locator(tid("stage-generate")).get_attribute("data-state"), "active")
+            self.assertEqual(page.locator(tid("stage-optics")).get_attribute("data-state"), "pending")
+            content = page.evaluate(
+                "s => getComputedStyle(document.querySelector(s), '::before').content",
+                tid("stage-generate"),
+            )
+            self.assertNotIn(content, ("none", ""))
+            self.assertRegex(page.locator(tid("elapsed")).text_content(), r"^\d+:\d{2}$")
+            self.assertRegex(page.locator(tid("progress-bar")).get_attribute("aria-valuenow"), r"^\d+$")
+            self.assertTrue(page.locator(tid("cancel-button")).is_visible())
+        finally:
+            fake.release()
+
     def test_header(self):
         page = self.open_page(1280, 720)
         height = page.evaluate("() => document.querySelector('header').getBoundingClientRect().height")
