@@ -62,6 +62,12 @@ subject_distance_m(focal_mm=50, sensor_height_mm=24, subject_height_px=600, imag
 
 This is an estimate: it assumes a thin lens and a subject facing the camera. There is no ComfyUI node for these helpers.
 
+## Run the director app
+
+1. You need ComfyUI portable v0.41 or newer with the Open Cinema pack in `ComfyUI\custom_nodes` as in the Install section, the ComfyUI-GGUF custom node, and a Depth Anything 3 custom node that provides `LoadDA3Model`, `DA3Inference` and `DA3Render` (the one installed in this project's ComfyUI). You also need these model files: `ltx-2-19b-distilled_Q4_K_M.gguf` in `models\diffusion_models`, `gemma_3_12B_it_fp8_scaled.safetensors` in `models\text_encoders`, `ltx-2-19b-embeddings_connector_distill_bf16.safetensors` and `LTX2_audio_vae_bf16.safetensors` in `models\checkpoints`, `LTX2_video_vae_bf16.safetensors` in `models\vae`, `ltx-2-spatial-upscaler-x2-1.0.safetensors` in `models\latent_upscale_models`, and `depth_anything_3_mono_large.safetensors` in `models\geometry_estimation`. `docs/benchmarks.md` has the sources.
+2. Install the app's packages into the project's venv: `pip install -r app/requirements.txt`. On Windows: `.venv\Scripts\pip install -r app/requirements.txt`.
+3. Start ComfyUI with `run_nvidia_gpu.bat` in the portable folder and wait for the line `To see the GUI go to`.
+
 ## Tests
 
 Run all tests with `npm test`. Run the GPU benchmarks with `npm run test:bench` (it sets `OPEN_OPTICS_BENCH=1`).
