@@ -16,12 +16,17 @@ SENTENCE = "A woman in a red coat crosses a rainy street at night."
 
 
 def shoot_size(h, browser, fake, w, ht, out):
-    """Write empty-WxH.png and form-WxH.png (viewport only) for a viewport of w x ht pixels into the folder `out`."""
+    """Write empty, form, working, result, failed and comfy-down PNGs (viewport only, named kind-WxH.png) for a viewport of w x ht pixels into the folder `out`; leaves the fake ComfyUI stopped."""
+    restarted = fake._thread is None  # a previous size left it stopped
+    if restarted:
+        fake.start()
     context = browser.new_context(viewport={"width": w, "height": ht})
     try:
         page = context.new_page()
         page.set_default_timeout(15000)
         page.goto(h.url + "/")
+        if restarted:
+            page.wait_for_selector('[data-testid="comfy-banner"]', state="hidden", timeout=40000)
         page.get_by_test_id("history-new").click()
         page.screenshot(path=str(Path(out) / f"empty-{w}x{ht}.png"))
         page.get_by_test_id("shot-description").fill(SENTENCE)
@@ -45,6 +50,10 @@ def shoot_size(h, browser, fake, w, ht, out):
             page.screenshot(path=str(Path(out) / f"failed-{w}x{ht}.png"))
         finally:
             fake.clear_failures()
+        fake.stop()
+        page.evaluate("window.dispatchEvent(new Event('focus'))")
+        page.wait_for_selector('[data-testid="comfy-banner"]', timeout=15000)
+        page.screenshot(path=str(Path(out) / f"comfy-down-{w}x{ht}.png"))
     finally:
         context.close()
 
