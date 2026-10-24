@@ -326,6 +326,21 @@ class DesignTest(unittest.TestCase):
         )
         self.assertGreaterEqual(ratio, 4.5)
 
+    def test_status_pill_offline(self):
+        self.addCleanup(self.harness.fake.start)
+        self.harness.fake.stop()
+        page = self.open_page(1280, 720)
+        page.evaluate("window.dispatchEvent(new Event('focus'))")
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).textContent.includes('ComfyUI: offline')",
+            arg=tid("comfy-status"),
+        )
+        color = page.evaluate(
+            "s => getComputedStyle(document.querySelector(s), '::before').backgroundColor",
+            tid("comfy-status"),
+        )
+        self.assertEqual(color, "rgb(255, 107, 107)")
+
 
 if __name__ == "__main__":
     unittest.main()
