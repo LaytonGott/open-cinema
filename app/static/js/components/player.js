@@ -109,6 +109,31 @@ function setAfterSrc(after, before, url) {
   after.after(next);
 }
 
+let lastShotId = null;
+
+function loadSrc(video, url) {
+  video.pause();
+  video.removeAttribute("src");
+  if (url) video.setAttribute("src", url);
+  video.load();
+}
+
+// A different shot: drop any pending clone and load both videos directly, without the clone swap.
+function resetMedia(before, after, shot, version) {
+  if (pending) {
+    pending.remove();
+    pending = null;
+  }
+  loadSrc(before, shot && shot.before_url);
+  loadSrc(after, version && version.url);
+  if (unsync) unsync();
+  unsync = syncVideos(before, after);
+  q("scrubber").value = "0";
+  q("time-readout").textContent = "0:00 / 0:00";
+  updatePlaying();
+  updateReady();
+}
+
 function onToggle() {
   const toggle = q("play-toggle");
   if (!toggle || toggle.disabled) return;
@@ -215,8 +240,15 @@ function render(state) {
   q("player-controls").hidden = false;
   const shot = state.shot;
   const version = shownVersionOf(state);
-  setSrc(q("before-video"), shot && shot.before_url);
-  setAfterSrc(q("after-video"), q("before-video"), version && version.url);
+  const before = q("before-video");
+  const shotId = shot ? shot.id : null;
+  if (shotId !== lastShotId) {
+    lastShotId = shotId;
+    resetMedia(before, q("after-video"), shot, version);
+  } else {
+    setSrc(before, shot && shot.before_url);
+    setAfterSrc(q("after-video"), before, version && version.url);
+  }
   q("label-after").textContent = version ? "After f/" + version.aperture : "After";
 }
 
