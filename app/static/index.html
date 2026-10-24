@@ -26,7 +26,9 @@
     <div data-testid="framing-group" role="radiogroup" aria-label="Framing"></div>
     <h2 class="panel-heading">Aperture</h2>
     <div class="aperture">
+      <div class="iris" data-testid="aperture-iris" aria-hidden="true"></div>
       <input type="range" data-testid="aperture-slider" id="aperture-slider" min="0" max="7" step="1" value="2" aria-label="Aperture">
+      <div class="fstop-scale" data-testid="aperture-scale" aria-hidden="true"><span>1.4</span><span>2</span><span>2.8</span><span>4</span><span>5.6</span><span>8</span><span>11</span><span>16</span></div>
       <output data-testid="aperture-value" for="aperture-slider">f/2.8</output>
     </div>
     <p data-testid="subject-distance"></p>
