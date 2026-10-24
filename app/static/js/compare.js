@@ -14,6 +14,19 @@ export function makeCompareSlider() {
   handle.dataset.testid = "compare-handle";
   handle.setAttribute("aria-hidden", "true");
   handle.style.left = "50%";
+  const knob = document.createElement("span");
+  knob.className = "compare-knob";
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  for (const points of ["14 7 9 12 14 17", "10 7 15 12 10 17"]) {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    const arrow = document.createElementNS(SVG_NS, "polyline");
+    arrow.setAttribute("points", points);
+    svg.append(arrow);
+    knob.append(svg);
+  }
+  handle.append(knob);
   slider.append(handle);
 
   let current = 50;

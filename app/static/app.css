@@ -444,6 +444,34 @@ code, pre, .mono { font-family: var(--font-mono); }
   margin-left: -1px;
   background: var(--accent);
 }
+[data-testid=compare-handle] .compare-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  transition: transform 200ms ease;
+}
+[data-testid=compare-handle]:hover .compare-knob {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+[data-testid=compare-handle] .compare-knob svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 [data-testid=compare-slider]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
