@@ -164,7 +164,25 @@ code, pre, .mono { font-family: var(--font-mono); }
   align-items: center;
   padding: 16px;
   background: var(--bg);
+  position: relative;
 }
+
+[data-testid=status-panel] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: center;
+  z-index: 4;
+}
+[data-testid=status-panel][hidden] { display: none; }
 
 [data-testid=optics-controls] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; }
 [data-testid=optics-controls][hidden] { display: none; }
