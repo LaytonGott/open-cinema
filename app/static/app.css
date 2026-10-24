@@ -433,7 +433,7 @@ code, pre, .mono { font-family: var(--font-mono); }
   border-radius: 6px;
 }
 [data-testid=play-toggle]:disabled {
-  opacity: 0.4;
+  color: var(--muted);
   cursor: not-allowed;
 }
 [data-testid=scrubber] {

@@ -42,6 +42,23 @@ JS_CONTRAST = """() => {
   return out;
 }"""
 
+JS_BACKGROUND_IMAGES = """() => {
+  const bad = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const seen = new Set();
+  while (walker.nextNode()) {
+    const t = walker.currentNode; const el = t.parentElement;
+    if (!t.textContent.trim() || !el || seen.has(el) || el.closest('video, [data-testid="hud"]')) continue;
+    seen.add(el);
+    const b = el.getBoundingClientRect(); const s = getComputedStyle(el);
+    if (s.display === 'none' || s.visibility === 'hidden' || b.width === 0 || b.height === 0) continue;
+    for (let e = el; e; e = e.parentElement) {
+      if (getComputedStyle(e).backgroundImage !== 'none') { bad.push(t.textContent.trim().slice(0, 40) + ' <- ' + e.tagName + '.' + e.className); break; }
+    }
+  }
+  return bad;
+}"""
+
 
 class ContrastTest(unittest.TestCase):
     harness = None
@@ -154,6 +171,29 @@ class ContrastTest(unittest.TestCase):
         self.assertTrue(cards, "no history card text found")
         self.assert_contrast(items)
         self.assert_contrast(muted + placeholders + cards, minimum=3)
+
+    def assert_solid(self):
+        self.assertEqual(self.page.evaluate(JS_BACKGROUND_IMAGES), [], "text over a background-image")
+        self.assert_contrast(self.scan())
+
+    def test_history_and_tracker_text_is_solid(self):
+        fake = self.harness.fake
+        self.make_result()
+        self.assertTrue([r for r in self.scan() if r["history"]], "no history card text found")
+        self.assert_solid()
+        fake.reset_cache()
+        fake.hold_at("SamplerCustomAdvanced")
+        try:
+            self.page.locator("[data-testid=history-new]").click()
+            self.page.locator("[data-testid=shot-description]").fill("Held at the sampler for the tracker.")
+            self.page.locator("[data-testid=generate-button]").click()
+            self.wait_viewport("working")
+            for stage in ("stage-generate", "stage-optics"):
+                self.page.locator("[data-testid=%s]" % stage).wait_for(state="visible")
+            self.assert_solid()
+        finally:
+            fake.release()
+        self.wait_viewport("result")
 
 
 if __name__ == "__main__":
