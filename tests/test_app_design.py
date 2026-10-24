@@ -564,6 +564,31 @@ class DesignTest(unittest.TestCase):
             self.assertLessEqual(box["x"] + box["width"], size["width"], name)
             self.assertLessEqual(box["y"] + box["height"], size["height"], name)
 
+    def test_lens_figure_and_distance(self):
+        self.harness.reset()
+        page = self.open_page(1280, 720)
+        metres = {}
+        framing = page.get_attribute(tid("framing-group") + " [aria-checked=true]", "data-value")
+        for lens in (24, 35, 50, 85):
+            expected = page.evaluate(
+                "async ([l, f]) => (await (await fetch('/api/estimate?lens_mm=' + l"
+                " + '&framing=' + f)).json()).subject_distance_m",
+                [lens, framing],
+            )
+            page.click("%s [data-value='%d']" % (tid("lens-group"), lens))
+            page.wait_for_function(
+                "([s, d, n, e]) => document.querySelector(s).textContent.trim() === n"
+                " && Number(document.querySelector(d).getAttribute('data-metres')) === e",
+                arg=[
+                    tid("lens-figure") + " .lens-figure-num",
+                    tid("subject-distance"),
+                    str(lens),
+                    expected,
+                ],
+            )
+            metres[lens] = page.get_attribute(tid("subject-distance"), "data-metres")
+        self.assertNotEqual(metres[24], metres[85])
+
 
 if __name__ == "__main__":
     unittest.main()
