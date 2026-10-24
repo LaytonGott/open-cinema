@@ -155,6 +155,27 @@ class DesignTest(unittest.TestCase):
                 empty["history"]["top"], down["history"]["top"], delta=1, msg="history top moved with banner at " + size
             )
 
+    def test_banner_layout(self):
+        self.harness.reset()
+        for width, height in ((1280, 720), (1366, 768), (1440, 900), (1536, 864)):
+            size = "%dx%d" % (width, height)
+            page = self.open_page(width, height)
+            self.harness.fake.stop()
+            try:
+                page.evaluate("window.dispatchEvent(new Event('focus'))")
+                page.wait_for_selector(tid("comfy-banner"), state="visible", timeout=10000)
+                header_bottom = page.evaluate("document.querySelector('header').getBoundingClientRect().bottom")
+                banner_top = page.evaluate(
+                    "s => document.querySelector(s).getBoundingClientRect().top", tid("comfy-banner")
+                )
+                self.assertGreaterEqual(banner_top, header_bottom - 0.5, "banner below header at " + size)
+                self.check_layout(page, "down at " + size)
+            finally:
+                self.harness.fake.start()
+            page.click(tid("comfy-retry"))
+            page.wait_for_selector(tid("comfy-banner"), state="hidden", timeout=10000)
+            self.check_layout(page, "retried at " + size)
+
     BRACKETS_JS = """() => {
         const box = (el) => {
             const r = el.getBoundingClientRect();
