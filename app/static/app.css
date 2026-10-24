@@ -173,6 +173,27 @@ code, pre, .mono { font-family: var(--font-mono); }
   height: 8px;
   background: var(--muted);
 }
+#director [data-testid=lens-group] .opt[aria-checked=true] {
+  border-bottom: 3px solid var(--accent);
+  color: var(--text);
+  background: var(--surface);
+  font-weight: 600;
+}
+[data-testid=lens-group] .opt[aria-checked=true]::before {
+  height: 14px;
+  width: 2px;
+  background: var(--accent);
+}
+[data-testid=lens-group] .opt[aria-checked=true]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid var(--accent);
+}
 
 .actions {
   position: sticky;
