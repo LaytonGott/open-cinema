@@ -18,9 +18,13 @@
   <section id="director">
     <label for="shot-description">Scene</label>
     <textarea id="shot-description" data-testid="shot-description" maxlength="1000" placeholder="e.g. A woman in a red coat walks through a rainy neon street"></textarea>
+    <h2 class="panel-heading">Camera</h2>
     <div data-testid="camera-group" role="radiogroup" aria-label="Camera move"></div>
+    <h2 class="panel-heading">Lens</h2>
     <div data-testid="lens-group" role="radiogroup" aria-label="Lens"></div>
+    <h2 class="panel-heading">Framing</h2>
     <div data-testid="framing-group" role="radiogroup" aria-label="Framing"></div>
+    <h2 class="panel-heading">Aperture</h2>
     <div class="aperture">
       <input type="range" data-testid="aperture-slider" id="aperture-slider" min="0" max="7" step="1" value="2" aria-label="Aperture">
       <output data-testid="aperture-value" for="aperture-slider">f/2.8</output>

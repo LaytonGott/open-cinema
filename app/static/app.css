@@ -101,7 +101,27 @@ code, pre, .mono { font-family: var(--font-mono); }
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
+  gap: 8px;
   padding: 16px 16px 0;
+}
+
+.panel-heading {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+#director textarea,
+#director .opt,
+#director .aperture input {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
 }
 
 .actions {
