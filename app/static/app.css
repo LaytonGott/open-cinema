@@ -48,8 +48,18 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-status="queued"] .status-dot,
 [data-status="cancelled"] .status-dot { background: transparent; box-shadow: inset 0 0 0 1px var(--muted); transform: scale(0.75); }
 
+/* below 900px the panels stack and the page scrolls: header, banner, monitor, director, history */
+[data-testid="app"] { display: flex; flex-direction: column; min-height: 100vh; }
+[data-testid="app"] > * { flex: none; }
+#monitor { order: 1; overflow: visible; }
+#director { order: 2; }
+#history { order: 3; min-height: 104px; }
+
 @media (min-width: 900px) {
   html, body { height: 100%; overflow: hidden; }
+  #monitor, #director, #history { order: 0; }
+  #monitor { overflow: auto; }
+  #history { min-height: 0; }
 
   [data-testid="app"] {
     display: grid;
