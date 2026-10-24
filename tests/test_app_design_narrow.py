@@ -83,6 +83,27 @@ class NarrowLayoutTest(unittest.TestCase):
         self.assertIn(m["overflowX"], ("auto", "scroll"), m)
         self.assertLessEqual(m["scrollWidth"], m["innerWidth"], m)
 
+    def test_no_overflow_360(self):
+        self.page.set_viewport_size({"width": 360, "height": 740})
+        self.page.locator("[data-testid=history-new]").click()
+        bad = self.page.evaluate("""() => {
+          const roots = ['#director', '[data-testid=comfy-status]']
+            .map(s => document.querySelector(s)).filter(Boolean);
+          const out = [];
+          for (const root of roots) {
+            for (const el of [root, ...root.querySelectorAll('*')]) {
+              const r = el.getBoundingClientRect();
+              if (!r.width && !r.height) continue;
+              if (getComputedStyle(el).visibility === 'hidden') continue;
+              if (r.right > 361 || r.left < -1) {
+                out.push((el.dataset.testid || el.tagName + '.' + el.className) + ' ' + r.left + ' ' + r.right);
+              }
+            }
+          }
+          return out;
+        }""")
+        self.assertEqual(bad, [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -326,6 +326,22 @@ code, pre, .mono { font-family: var(--font-mono); }
   #monitor { padding-left: 0; padding-right: 0; }
   [data-testid=viewport] { width: 100%; aspect-ratio: 20 / 11; }
   #history > [data-testid=history-list] { overflow-x: auto; min-width: 0; }
+  #director { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  #director > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  #director textarea { width: 100%; }
+  [data-testid=camera-group],
+  [data-testid=lens-group],
+  [data-testid=framing-group] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr));
+    gap: 8px;
+  }
+  #director .opt { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  #director .opt-icon svg { max-width: 100%; height: auto; }
+  .tracker { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+  .tracker li { min-width: 0; }
+  .aperture { grid-template-columns: 48px minmax(0, 1fr); max-width: 100%; }
+  .aperture input, .fstop-scale { min-width: 0; max-width: 100%; }
 }
 [data-testid=viewport-hint] {
   position: absolute;
