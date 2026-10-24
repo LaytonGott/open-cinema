@@ -373,6 +373,77 @@ class DesignTest(unittest.TestCase):
         )
         self.assertEqual(color, "rgb(255, 107, 107)")
 
+    def test_player_transport_bar(self):
+        self.harness.reset()
+        page = self.open_page(1280, 720)
+        page.locator(tid("shot-description")).fill("A rider crosses a foggy salt flat at dawn.")
+        page.locator(tid("generate-button")).click()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'result'",
+            arg=tid("viewport"),
+        )
+        page.wait_for_function(
+            "() => { const t = document.querySelector('[data-testid=play-toggle]');"
+            " return !!t && !t.disabled; }"
+        )
+        controls = page.locator(tid("player-controls"))
+        self.assertTrue(controls.is_visible())
+        top = controls.bounding_box()["y"]
+        view = page.locator(tid("viewport")).bounding_box()
+        self.assertGreaterEqual(top, view["y"] + view["height"] - 1)
+
+        toggle = page.locator(tid("play-toggle"))
+        self.assertEqual(toggle.get_attribute("aria-pressed"), "false")
+        self.assertEqual(toggle.get_attribute("aria-label"), "Play")
+        toggle.click()
+        page.wait_for_function(
+            "() => { const t = document.querySelector('[data-testid=play-toggle]');"
+            " return t.getAttribute('aria-pressed') === 'true' && t.getAttribute('aria-label') === 'Pause'"
+            " && !document.querySelector('[data-testid=before-video]').paused; }"
+        )
+        toggle.click()
+        page.wait_for_function(
+            "() => ['before-video', 'after-video'].every("
+            "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
+        )
+
+        page.evaluate(
+            "() => { const v = document.querySelector('[data-testid=before-video]');"
+            " window.__t0 = v.currentTime; const s = document.querySelector('[data-testid=scrubber]');"
+            " s.value = (Number(s.value) > 500) ? 100 : 900;"
+            " s.dispatchEvent(new Event('input', {bubbles: true})); }"
+        )
+        page.wait_for_function(
+            "() => Math.abs(document.querySelector('[data-testid=before-video]').currentTime"
+            " - window.__t0) > 0.05"
+        )
+        self.assertRegex(page.inner_text(tid("time-readout")), r"^\d+:\d\d / \d+:\d\d$")
+
+        page.keyboard.press("Shift")
+        toggle.focus()
+        outline = page.evaluate(
+            "s => getComputedStyle(document.querySelector(s)).outlineColor", tid("play-toggle")
+        )
+        accent = page.evaluate(
+            """() => {
+                const probe = document.createElement('span');
+                probe.style.color = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+                document.body.appendChild(probe);
+                const c = getComputedStyle(probe).color;
+                probe.remove();
+                return c;
+            }"""
+        )
+        self.assertEqual(outline, accent)
+
+        size = page.viewport_size
+        for name in ("hud", "label-before"):
+            box = page.locator(tid(name)).bounding_box()
+            self.assertGreaterEqual(box["x"], 0, name)
+            self.assertGreaterEqual(box["y"], 0, name)
+            self.assertLessEqual(box["x"] + box["width"], size["width"], name)
+            self.assertLessEqual(box["y"] + box["height"], size["height"], name)
+
 
 if __name__ == "__main__":
     unittest.main()
