@@ -541,6 +541,7 @@ code, pre, .mono { font-family: var(--font-mono); }
   letter-spacing: 0.12em;
   color: var(--text);
 }
+.rec-label[hidden] { display: none; }
 @keyframes record-blink {
   50% { opacity: 0.2; }
 }

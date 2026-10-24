@@ -54,7 +54,10 @@ function render(state) {
   if (elapsed) elapsed.textContent = formatElapsed(shot.elapsed_s);
   syncTimer(shot, !panel.hidden && ["queued", "generating", "optics"].includes(shot.status));
   const dot = q("record-dot");
-  if (dot) dot.hidden = !["queued", "generating", "optics"].includes(shot.status);
+  const recording = ["queued", "generating", "optics"].includes(shot.status);
+  if (dot) dot.hidden = !recording;
+  const recLabel = document.querySelector(".rec-label");
+  if (recLabel) recLabel.hidden = !recording;
   const cancel = q("cancel-button");
   if (cancel) cancel.hidden = !["queued", "generating", "optics"].includes(shot.status);
   panel.dataset.status = shot.status;
