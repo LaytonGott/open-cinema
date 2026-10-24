@@ -121,6 +121,54 @@ class PlayerHistoryTest(unittest.TestCase):
         )
         self.wait_srcs(page, newer)
 
+    def wait_chips(self, page, count, label):
+        page.wait_for_function(
+            "([n, t]) => document.querySelectorAll('[data-testid=version-chip]').length === n"
+            " && document.querySelector('[data-testid=label-after]').textContent === t",
+            arg=[count, label],
+        )
+
+    def chip_apertures(self, page):
+        return page.evaluate(
+            "() => [...document.querySelectorAll('[data-testid=version-chip]')]"
+            ".map(c => parseFloat(c.dataset.aperture))"
+        )
+
+    def test_selection_shows_chips_and_aperture(self):
+        self.harness.reset()
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(self.harness.url)
+
+        self.make_shot(page, 1)
+        older_id = page.locator(tid("history-item")).first.get_attribute("data-shot-id")
+        slider = page.locator(tid("reapply-slider"))
+        slider.wait_for(state="visible")
+        slider.focus()
+        for _ in range(3):
+            slider.press("ArrowRight")
+        page.locator(tid("reapply-button")).click()
+        self.wait_chips(page, 2, "After f/8")
+
+        self.make_shot(page, 2)
+        newer_id = page.locator(tid("history-item")).first.get_attribute("data-shot-id")
+        self.wait_chips(page, 1, "After f/2.8")
+        self.assertEqual(self.chip_apertures(page), [2.8])
+
+        self.select(page, older_id)
+        self.wait_chips(page, 2, "After f/8")
+        self.assertEqual(self.chip_apertures(page), [2.8, 8.0])
+        self.select(page, newer_id)
+        self.wait_chips(page, 1, "After f/2.8")
+
+        page.reload()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'result'",
+            arg=tid("viewport"),
+        )
+        self.wait_chips(page, 1, "After f/2.8")
+
 
 if __name__ == "__main__":
     unittest.main()
