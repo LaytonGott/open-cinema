@@ -407,6 +407,39 @@ class DesignTest(unittest.TestCase):
         self.assertEqual(page.evaluate("s => document.querySelector(s).tagName.toLowerCase()", tid("logo-mark")), "svg")
         self.assertEqual(page.locator("header img").count(), 0)
 
+    def test_accessible_names(self):
+        page = self.open_page(1280, 720)
+        page.wait_for_selector(tid("generate-button"))
+        controls = page.evaluate(
+            """() => {
+                const text = el => (el.textContent || '').trim();
+                const nameOf = el => {
+                    const label = (el.getAttribute('aria-label') || '').trim();
+                    if (label) return label;
+                    const ids = (el.getAttribute('aria-labelledby') || '').split(/\\s+/).filter(Boolean);
+                    const by = ids.map(id => document.getElementById(id)).filter(Boolean).map(text).join(' ').trim();
+                    if (by) return by;
+                    const labels = el.labels ? Array.from(el.labels).map(text).join(' ').trim() : '';
+                    if (labels) return labels;
+                    return el.tagName.toLowerCase() === 'button' ? text(el) : '';
+                };
+                return Array.from(document.querySelectorAll('button, input, select, textarea, [role=slider]'))
+                    .filter(el => el.type !== 'hidden' && getComputedStyle(el).display !== 'none'
+                        && (el.offsetParent !== null || el.getClientRects().length > 0))
+                    .map(el => ({
+                        tag: el.tagName.toLowerCase(),
+                        testid: el.getAttribute('data-testid') || '',
+                        name: nameOf(el),
+                    }));
+            }"""
+        )
+        self.assertTrue(controls)
+        for control in controls:
+            self.assertTrue(
+                control["name"],
+                "no accessible name: <%s> data-testid=%r" % (control["tag"], control["testid"]),
+            )
+
     def test_status_pill_connected(self):
         page = self.open_page(1280, 720)
         page.wait_for_function(
