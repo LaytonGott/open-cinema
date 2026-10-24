@@ -1,4 +1,4 @@
-// Compare slider: keyboard-operable before/after divider (no dragging or clipping here).
+// Compare slider: keyboard- and pointer-operable before/after divider that publishes its position as --split on the player.
 export function makeCompareSlider() {
   const slider = document.createElement("div");
   slider.dataset.testid = "compare-slider";
@@ -16,14 +16,21 @@ export function makeCompareSlider() {
   handle.style.left = "50%";
   slider.append(handle);
 
+  let current = 50;
   function setValue(n) {
     const value = Math.min(100, Math.max(0, Math.round(Number(n))));
     const shown = Number.isNaN(value) ? 50 : value;
     slider.setAttribute("aria-valuenow", String(shown));
     slider.setAttribute("aria-valuetext", shown + "% after");
     handle.style.left = shown + "%";
+    current = shown;
+    slider.syncSplit();
   }
   slider.setValue = setValue;
+  slider.syncSplit = () => {
+    if (!slider.parentElement) return;
+    slider.parentElement.style.setProperty("--split", current + "%");
+  };
 
   let dragging = false;
   function setFromPointer(event) {
