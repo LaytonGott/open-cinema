@@ -14,6 +14,8 @@ const GROUPS = [
 
 function render(state) {
   if (!state.options) return;
+  const lensNum = document.querySelector("[data-testid=lens-figure] .lens-figure-num");
+  if (lensNum) lensNum.textContent = String(state.form.lens_mm);
   for (const g of GROUPS) {
     const el = document.querySelector(`[data-testid=${g.testid}]`);
     if (!el) continue;
