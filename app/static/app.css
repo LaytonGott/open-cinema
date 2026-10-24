@@ -390,6 +390,19 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-testid=comfy-retry]:hover { border-color: var(--muted); }
 [data-testid=comfy-banner][hidden] { display: none; }
 
+[data-testid=error-message] { color: var(--danger); margin: 8px 0; }
+[data-testid=cancel-button],
+[data-testid=retry-button] {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+}
+[data-testid=cancel-button]:hover,
+[data-testid=retry-button]:hover { border-color: var(--muted); }
+[data-testid=cancel-button][hidden],
+[data-testid=retry-button][hidden] { display: none; }
+
 .record-dot {
   display: inline-block;
   width: 10px;
