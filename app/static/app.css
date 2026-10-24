@@ -117,6 +117,19 @@ code, pre, .mono { font-family: var(--font-mono); }
   height: 100%;
   object-fit: contain;
 }
+[data-testid=player-error] {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+[data-testid=player-error][hidden] { display: none; }
 [data-testid=label-before], [data-testid=label-after] {
   position: absolute;
   top: 14px;

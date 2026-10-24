@@ -40,7 +40,14 @@ function updatePlaying() {
   toggle.textContent = playing ? "⏸ Pause" : "▶ Play";
 }
 
+function showError(visible) {
+  const alert = q("player-error");
+  if (alert) alert.hidden = !visible;
+}
+
 function wireVideo(video) {
+  video.addEventListener("error", () => showError(true));
+  video.addEventListener("loadeddata", () => showError(false));
   for (const name of ["loadeddata", "canplay", "emptied"]) {
     video.addEventListener(name, updateReady);
   }
@@ -124,6 +131,7 @@ function resetMedia(before, after, shot, version) {
     pending.remove();
     pending = null;
   }
+  showError(false);
   loadSrc(before, shot && shot.before_url);
   loadSrc(after, version && version.url);
   if (unsync) unsync();
@@ -216,7 +224,12 @@ function build(viewport) {
     if (current) current.currentTime = time;
   });
   unsync = syncVideos(before, after);
-  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter);
+  const error = document.createElement("div");
+  error.dataset.testid = "player-error";
+  error.setAttribute("role", "alert");
+  error.hidden = true;
+  error.textContent = "The video could not be loaded.";
+  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter, error);
   viewport.prepend(player);
   const controls = document.createElement("div");
   controls.dataset.testid = "player-controls";
