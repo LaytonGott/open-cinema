@@ -50,6 +50,37 @@ def clipped_elements(page):
     return page.evaluate(CLIPPED_JS)
 
 
+OVERLAP_PAIRS = (
+    ("generate-button vs history-list", tid("generate-button"), tid("history-list")),
+    ("hud vs status-panel", tid("hud"), tid("status-panel")),
+    ("app name vs comfy-status", "header h1", tid("comfy-status")),
+)
+
+OVERLAPS_JS = """
+(pairs) => {
+  const box = sel => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const s = getComputedStyle(el), r = el.getBoundingClientRect();
+    if (s.display === 'none' || s.visibility === 'hidden' || r.width <= 0 || r.height <= 0) return null;
+    return r;
+  };
+  const out = [];
+  for (const [name, a, b] of pairs) {
+    const ra = box(a), rb = box(b);
+    if (!ra || !rb) continue;
+    if (ra.left < rb.right && rb.left < ra.right && ra.top < rb.bottom && rb.top < ra.bottom) out.push(name);
+  }
+  return out;
+}
+"""
+
+
+def overlaps(page):
+    """Return the names of element pairs whose bounding boxes intersect; a pair with a missing or hidden element is skipped."""
+    return page.evaluate(OVERLAPS_JS, [list(p) for p in OVERLAP_PAIRS])
+
+
 class VisualReviewTest(unittest.TestCase):
     harness = None
     pw = None
@@ -92,3 +123,24 @@ class VisualReviewTest(unittest.TestCase):
                 "A woman in a red coat walks slowly through a rainy neon street at night.",
             )
             self.assertEqual(clipped_elements(page), [], "form %dx%d" % (width, height))
+
+    def test_no_overlaps_working(self):
+        fake = self.harness.fake
+        for width, height in ((1280, 720), (1366, 768)):
+            self.harness.reset()
+            page = self.browser.new_page(viewport={"width": width, "height": height})
+            self.addCleanup(page.close)
+            page.set_default_timeout(15000)
+            page.goto(self.harness.url)
+            page.wait_for_selector(tid("generate-button"))
+            page.click(tid("history-new"))
+            page.fill(tid("shot-description"), "A woman in a red coat crosses a rainy street at night.")
+            fake.reset_cache()
+            fake.hold_at("SamplerCustomAdvanced")
+            try:
+                page.click(tid("generate-button"))
+                page.wait_for_selector(tid("viewport") + "[data-state=working]")
+                self.assertEqual(clipped_elements(page), [], "working %dx%d" % (width, height))
+                self.assertEqual(overlaps(page), [], "working %dx%d" % (width, height))
+            finally:
+                fake.release()
