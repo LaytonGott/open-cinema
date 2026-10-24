@@ -206,6 +206,9 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-testid=optics-controls] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; }
 [data-testid=optics-controls][hidden] { display: none; }
 [data-testid=optics-controls] input { flex: 1; min-width: 0; }
+[data-testid=reapply-slider] { accent-color: var(--accent); }
+[data-testid=reapply-value] { font-family: var(--font-mono); color: var(--text); }
+[data-testid=reapply-status] { font-family: var(--font-mono); color: var(--muted); }
 
 #history {
   grid-area: history;
