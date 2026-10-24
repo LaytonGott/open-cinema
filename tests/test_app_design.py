@@ -155,6 +155,68 @@ class DesignTest(unittest.TestCase):
                 empty["history"]["top"], down["history"]["top"], delta=1, msg="history top moved with banner at " + size
             )
 
+    BRACKETS_JS = """() => {
+        const box = (el) => {
+            const r = el.getBoundingClientRect();
+            return {top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: r.width, h: r.height};
+        };
+        const hint = document.querySelector('[data-testid=viewport-hint]');
+        return {
+            viewport: box(document.querySelector('[data-testid=viewport]')),
+            director: box(document.querySelector('#director')),
+            history: box(document.querySelector('#history')),
+            marks: Array.from(document.querySelectorAll('[data-testid=crop-mark]')).map(box),
+            hint: hint && {visible: hint.offsetParent !== null || getComputedStyle(hint).position === 'fixed',
+                           text: hint.textContent.trim()},
+        };
+    }"""
+
+    @staticmethod
+    def boxes_intersect(a, b):
+        return a["left"] < b["right"] and b["left"] < a["right"] and a["top"] < b["bottom"] and b["top"] < a["bottom"]
+
+    def check_brackets(self, page, tag, hint):
+        lay = page.evaluate(self.BRACKETS_JS)
+        view = lay["viewport"]
+        self.assertGreaterEqual(view["w"], 560, tag + ": width")
+        self.assertTrue(1.7 <= view["w"] / view["h"] <= 1.95, "%s: ratio %s" % (tag, view["w"] / view["h"]))
+        self.assertFalse(self.boxes_intersect(view, lay["director"]), tag + ": director")
+        self.assertFalse(self.boxes_intersect(view, lay["history"]), tag + ": history")
+        self.assertEqual(len(lay["marks"]), 4, tag)
+        for mark in lay["marks"]:
+            self.assertGreater(mark["w"], 0, tag + ": mark width")
+            self.assertGreaterEqual(mark["left"], view["left"] - 1, tag)
+            self.assertGreaterEqual(mark["top"], view["top"] - 1, tag)
+            self.assertLessEqual(mark["right"], view["right"] + 1, tag)
+            self.assertLessEqual(mark["bottom"], view["bottom"] + 1, tag)
+        for mark in page.query_selector_all(tid("crop-mark")):
+            self.assertTrue(mark.is_visible(), tag + ": mark visible")
+        if hint:
+            self.assertTrue(page.is_visible(tid("viewport-hint")), tag + ": hint visible")
+            self.assertTrue(page.inner_text(tid("viewport-hint")).strip(), tag + ": hint text")
+
+    def test_viewport_ratio_and_brackets(self):
+        self.harness.reset()
+        for width, height in ((1280, 720), (1366, 768), (1440, 900), (1536, 864)):
+            size = "%dx%d" % (width, height)
+            page = self.open_page(width, height)
+            page.click(tid("history-new"))
+            page.wait_for_timeout(150)
+            self.check_brackets(page, "empty at " + size, True)
+            self.harness.fake.stop()
+            try:
+                page.evaluate("window.dispatchEvent(new Event('focus'))")
+                page.wait_for_selector(tid("comfy-banner"), state="visible", timeout=10000)
+                self.check_brackets(page, "down at " + size, False)
+            finally:
+                self.harness.fake.start()
+        status, record = self.harness.post("/api/shots", {**SHOT, "description": "A finished shot for the brackets."})
+        self.harness.wait_for_shot(record["id"], "done")
+        page = self.open_page(1280, 720)
+        page.click(tid("history-item"))
+        page.wait_for_timeout(300)
+        self.check_brackets(page, "result", False)
+
     def test_generate_sticky_with_banner(self):
         page = self.open_page(1280, 720)
         self.harness.fake.stop()
