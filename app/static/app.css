@@ -298,14 +298,22 @@ code, pre, .mono { font-family: var(--font-mono); }
 }
 [data-testid=hud] {
   position: absolute;
-  left: 14px;
-  bottom: 14px;
-  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 14px;
+  background: rgba(11, 12, 14, 0.72);
+  z-index: 2;
   font-family: var(--font-mono);
   font-size: 12px;
+  letter-spacing: 0.04em;
   color: var(--text);
-  white-space: pre;
+  white-space: pre-wrap;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+[data-testid=hud]:empty { display: none; }
 [data-testid=hud], [data-testid=elapsed], [data-testid=aperture-value],[data-testid=subject-distance] { font-family: var(--font-mono); }
 [data-testid=time-readout], [data-testid=reapply-value], [data-testid=reapply-status], [data-testid=label-after] { font-family: var(--font-mono); }
 [data-testid=crop-mark] { z-index: 3; }
