@@ -236,7 +236,9 @@ function build(viewport) {
   error.setAttribute("role", "alert");
   error.hidden = true;
   error.textContent = "The video could not be loaded.";
-  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter, error);
+  const slider = makeCompareSlider();
+  player.append(before, after, slider, labelBefore, labelAfter, error);
+  slider.syncSplit();
   viewport.prepend(player);
   const controls = document.createElement("div");
   controls.dataset.testid = "player-controls";
