@@ -69,9 +69,9 @@ code, pre, .mono { font-family: var(--font-mono); }
   overflow-y: auto;
 }
 
-#monitor { grid-area: monitor; min-width: 560px; overflow: auto; }
+#monitor { grid-area: monitor; min-width: 560px; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
 
-[data-testid=optics-controls] { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+[data-testid=optics-controls] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; }
 [data-testid=optics-controls][hidden] { display: none; }
 [data-testid=optics-controls] input { flex: 1; min-width: 0; }
 
@@ -91,6 +91,7 @@ code, pre, .mono { font-family: var(--font-mono); }
   background: var(--surface);
   border: 1px solid var(--line);
   max-width: 100%;
+  min-height: 0;
 }
 [data-testid=crop-mark] {
   position: absolute;
@@ -103,6 +104,8 @@ code, pre, .mono { font-family: var(--font-mono); }
   width: 100%;
   height: 100%;
 }
+[data-testid=player-controls] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; }
+[data-testid=player-controls][hidden] { display: none; }
 [data-testid=player]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -128,28 +131,22 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-testid=label-before] { left: 14px; }
 [data-testid=label-after] { right: 14px; }
 [data-testid=play-toggle] {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  z-index: 1;
+  position: relative;
+  z-index: 2;
 }
 [data-testid=play-toggle]:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 [data-testid=scrubber] {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 54px;
-  width: calc(100% - 28px);
-  z-index: 1;
+  position: relative;
+  z-index: 2;
+  flex: 1 1 160px;
+  min-width: 0;
 }
 [data-testid=time-readout] {
-  position: absolute;
-  left: 14px;
-  bottom: 82px;
-  z-index: 1;
+  position: relative;
+  z-index: 2;
   font-family: var(--font-mono);
   font-size: 12px;
   font-variant-numeric: tabular-nums;

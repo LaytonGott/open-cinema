@@ -191,8 +191,12 @@ function build(viewport) {
     if (current) current.currentTime = time;
   });
   unsync = syncVideos(before, after);
-  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter, toggle, scrubber, readout);
+  player.append(before, after, makeCompareSlider(), labelBefore, labelAfter);
   viewport.prepend(player);
+  const controls = document.createElement("div");
+  controls.dataset.testid = "player-controls";
+  controls.append(toggle, scrubber, readout);
+  viewport.after(controls);
   updateReady();
   return player;
 }
@@ -203,10 +207,12 @@ function render(state) {
   let player = q("player");
   if (viewport.dataset.state !== "result") {
     if (player) player.hidden = true;
+    if (q("player-controls")) q("player-controls").hidden = true;
     return;
   }
   if (!player) player = build(viewport);
   player.hidden = false;
+  q("player-controls").hidden = false;
   const shot = state.shot;
   const version = shownVersionOf(state);
   setSrc(q("before-video"), shot && shot.before_url);
