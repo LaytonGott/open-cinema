@@ -14,6 +14,8 @@
 
 * { box-sizing: border-box; }
 
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+
 html, body { height: auto; overflow: auto; }
 
 body {
