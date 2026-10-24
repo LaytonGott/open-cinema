@@ -8,6 +8,7 @@
   --accent: #f5a524;
   --ok: #5ad19a;
   --danger: #ff6b6b;
+  --rec: #ff3b30;
   --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
@@ -530,8 +531,8 @@ code, pre, .mono { font-family: var(--font-mono); }
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--danger);
-  animation: record-blink 1s steps(2, start) infinite;
+  background: var(--rec);
+  animation: record-blink 0.8s steps(2, start) infinite;
 }
 .record-dot[hidden] { display: none; }
 .rec-label {
@@ -777,4 +778,5 @@ code, pre, .mono { font-family: var(--font-mono); }
     transition: none !important;
     animation: none !important;
   }
+  .record-dot { animation: none; }
 }
