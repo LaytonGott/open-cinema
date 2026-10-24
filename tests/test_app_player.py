@@ -104,11 +104,14 @@ class PlayerTest(unittest.TestCase):
             "() => ['before-video', 'after-video'].map("
             "n => document.querySelector('[data-testid=' + n + ']').paused)"
         )
+        self.assertEqual(toggle.get_attribute("aria-pressed"), "false")
+        self.assertEqual(toggle.get_attribute("aria-label"), "Play")
         toggle.click()
         page.wait_for_function(
             "() => document.querySelector('[data-testid=play-toggle]')"
             ".getAttribute('aria-pressed') === 'true'"
         )
+        self.assertEqual(toggle.get_attribute("aria-label"), "Pause")
         page.wait_for_function(
             "() => ['before-video', 'after-video'].every("
             "n => document.querySelector('[data-testid=' + n + ']').paused === false)"
@@ -119,6 +122,7 @@ class PlayerTest(unittest.TestCase):
             "() => document.querySelector('[data-testid=play-toggle]')"
             ".getAttribute('aria-pressed') === 'false'"
         )
+        self.assertEqual(toggle.get_attribute("aria-label"), "Play")
         page.wait_for_function(
             "() => ['before-video', 'after-video'].every("
             "n => document.querySelector('[data-testid=' + n + ']').paused === true)"
