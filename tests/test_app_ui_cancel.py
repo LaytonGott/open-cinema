@@ -1,6 +1,8 @@
 """Browser test that the cancel button shows only while a shot is working and cancelling ends in the cancelled state."""
+import json
 import time
 import unittest
+import urllib.request
 
 from playwright.sync_api import sync_playwright
 
@@ -59,6 +61,17 @@ class CancelUiTest(unittest.TestCase):
             "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'ok'", arg=STATUS
         )
 
+    @staticmethod
+    def _wait_running(fake):
+        # cancelling a job ComfyUI has not started yet only drops it from the queue, so wait until it runs
+        deadline = time.time() + 15
+        while time.time() < deadline:
+            with urllib.request.urlopen(fake.url + "/queue", timeout=5) as resp:
+                if json.load(resp)["queue_running"]:
+                    return
+            time.sleep(0.05)
+        raise AssertionError("the job never started running")
+
     def test_cancel_button_and_cancelled_state(self):
         fake, page = self.harness.fake, self.page
         cancel = page.locator("[data-testid=cancel-button]")
@@ -71,6 +84,7 @@ class CancelUiTest(unittest.TestCase):
                 "s => document.querySelector(s).dataset.state === 'working'", arg=VIEWPORT
             )
             cancel.wait_for(state="visible")
+            self._wait_running(fake)
             cancel.click()
             page.wait_for_function(
                 "s => document.querySelector(s).dataset.state === 'cancelled'", arg=VIEWPORT
