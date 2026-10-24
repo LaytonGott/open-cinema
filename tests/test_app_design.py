@@ -155,6 +155,46 @@ class DesignTest(unittest.TestCase):
                 empty["history"]["top"], down["history"]["top"], delta=1, msg="history top moved with banner at " + size
             )
 
+    def test_generate_sticky_with_banner(self):
+        page = self.open_page(1280, 720)
+        self.harness.fake.stop()
+        try:
+            page.evaluate("window.dispatchEvent(new Event('focus'))")
+            page.wait_for_selector(tid("comfy-banner"), state="visible", timeout=10000)
+            for where in ("0", "scrollHeight"):
+                page.evaluate("w => { const d = document.querySelector('#director'); d.scrollTop = w === '0' ? 0 : d.scrollHeight; }", where)
+                page.wait_for_timeout(100)
+                lay = page.evaluate(self.LAYOUT_JS)
+                generate = lay["generate"]
+                self.assertIsNotNone(generate, where)
+                self.assertGreaterEqual(generate["top"], 0, where + ": generate top")
+                self.assertLessEqual(generate["bottom"], lay["ih"], where + ": generate bottom")
+                self.assertGreaterEqual(generate["left"], 0, where + ": generate left")
+                self.assertLessEqual(generate["right"], lay["iw"], where + ": generate right")
+        finally:
+            self.harness.fake.start()
+
+    def test_generate_style(self):
+        page = self.open_page(1280, 720)
+        page.click(tid("history-new"))
+        page.wait_for_timeout(150)
+        page.fill(tid("shot-description"), "")
+        style = "s => { const c = getComputedStyle(document.querySelector(s)); return [c.backgroundColor, c.cursor]; }"
+        button = tid("generate-button")
+        self.assertTrue(page.is_disabled(button))
+        disabled_background, disabled_cursor = page.evaluate(style, button)
+        self.assertEqual(disabled_cursor, "not-allowed")
+        page.fill(tid("shot-description"), "A woman in a red coat crosses a rainy street at night.")
+        self.assertTrue(page.is_enabled(button))
+        page.wait_for_function(
+            "s => getComputedStyle(document.querySelector(s)).backgroundColor === 'rgb(245, 165, 36)'",
+            arg=button,
+        )
+        background, cursor = page.evaluate(style, button)
+        self.assertEqual(background, "rgb(245, 165, 36)")
+        self.assertEqual(cursor, "pointer")
+        self.assertNotEqual(disabled_background, background)
+
 
 if __name__ == "__main__":
     unittest.main()
