@@ -132,6 +132,20 @@ code, pre, .mono { font-family: var(--font-mono); }
   min-height: 0;
   background: var(--surface);
   border-top: 1px solid var(--line);
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+}
+#history > [data-testid=history-list] {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
 }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

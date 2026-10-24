@@ -3,7 +3,7 @@ import unittest
 
 from playwright.sync_api import sync_playwright
 
-from tests.app_harness import AppHarness
+from tests.app_harness import SHOT, AppHarness
 
 TOKENS = {
     "--bg": "#0b0c0e",
@@ -94,6 +94,66 @@ class DesignTest(unittest.TestCase):
                 continue
             self.assertTrue(url.startswith(self.harness.url), url)
         self.assertEqual(self.errors, [])
+
+    LAYOUT_JS = """() => {
+        const box = (s) => {
+            const el = document.querySelector(s);
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return {top: r.top, bottom: r.bottom, left: r.left, right: r.right, h: r.height};
+        };
+        const d = document.documentElement;
+        return {
+            sw: d.scrollWidth, sh: d.scrollHeight, iw: window.innerWidth, ih: window.innerHeight,
+            generate: box('[data-testid=generate-button]'),
+            viewport: box('[data-testid=viewport]'),
+            history: box('[data-testid=history-list]'),
+        };
+    }"""
+
+    def check_layout(self, page, tag):
+        lay = page.evaluate(self.LAYOUT_JS)
+        self.assertLessEqual(lay["sw"], lay["iw"], tag + ": scrollWidth")
+        self.assertLessEqual(lay["sh"], lay["ih"], tag + ": scrollHeight")
+        generate = lay["generate"]
+        self.assertIsNotNone(generate, tag)
+        self.assertGreaterEqual(generate["top"], 0, tag + ": generate top")
+        self.assertLessEqual(generate["bottom"], lay["ih"], tag + ": generate bottom")
+        self.assertLessEqual(generate["right"], lay["iw"], tag + ": generate right")
+        self.assertIsNotNone(lay["viewport"], tag)
+        history = lay["history"]
+        self.assertIsNotNone(history, tag)
+        self.assertLessEqual(history["bottom"], lay["ih"] + 1, tag + ": history bottom")
+        self.assertGreaterEqual(history["h"], 60, tag + ": history height")
+        return lay
+
+    def test_layout_fits_four_sizes(self):
+        self.harness.reset()
+        status, record = self.harness.post(
+            "/api/shots", {**SHOT, "description": "An earlier shot for the history strip.", "seed": 3}
+        )
+        self.harness.wait_for_shot(record["id"], "done")
+        for width, height in ((1280, 720), (1366, 768), (1440, 900), (1536, 864)):
+            size = "%dx%d" % (width, height)
+            page = self.open_page(width, height)
+            page.click(tid("history-new"))
+            page.wait_for_timeout(150)
+            empty = self.check_layout(page, "empty at " + size)
+            page.fill(
+                tid("shot-description"),
+                "A woman in a red coat crosses a rainy street at night, neon signs in the puddles.",
+            )
+            self.check_layout(page, "filled at " + size)
+            self.harness.fake.stop()
+            try:
+                page.evaluate("window.dispatchEvent(new Event('focus'))")
+                page.wait_for_selector(tid("comfy-banner"), state="visible", timeout=10000)
+                down = self.check_layout(page, "down at " + size)
+            finally:
+                self.harness.fake.start()
+            self.assertAlmostEqual(
+                empty["history"]["top"], down["history"]["top"], delta=1, msg="history top moved with banner at " + size
+            )
 
 
 if __name__ == "__main__":
