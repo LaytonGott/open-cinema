@@ -1,14 +1,15 @@
 // Option radio groups: camera move, lens and framing, rendered from state.options.
 import { getOptions } from "../api.js";
 import { getState, setState, subscribe } from "../state.js";
+import { CAMERA_ICONS, FRAMING_ICONS } from "./icons.js";
 
 // Aperture stops (f-numbers) offered for a re-apply, in slider order.
 export const APERTURE_STOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16];
 
 const GROUPS = [
-  { testid: "camera-group", key: "camera", list: "cameras", number: false },
+  { testid: "camera-group", key: "camera", list: "cameras", number: false, icons: CAMERA_ICONS },
   { testid: "lens-group", key: "lens_mm", list: "lenses", number: true },
-  { testid: "framing-group", key: "framing", list: "framings", number: false },
+  { testid: "framing-group", key: "framing", list: "framings", number: false, icons: FRAMING_ICONS },
 ];
 
 function render(state) {
@@ -26,7 +27,18 @@ function render(state) {
       b.dataset.value = String(value);
       b.setAttribute("aria-checked", checked ? "true" : "false");
       b.tabIndex = checked ? 0 : -1;
-      b.textContent = g.number ? value + " mm" : opt.label;
+      b.className = "opt";
+      const icons = g.icons;
+      if (icons) {
+        const icon = document.createElement("span");
+        icon.className = "opt-icon";
+        icon.innerHTML = icons[opt.id] || "";
+        b.appendChild(icon);
+      }
+      const label = document.createElement("span");
+      label.className = "opt-label";
+      label.textContent = g.number ? value + " mm" : opt.label;
+      b.appendChild(label);
       const select = (v) => {
         const s = getState();
         setState({ form: { ...s.form, [g.key]: v } });
