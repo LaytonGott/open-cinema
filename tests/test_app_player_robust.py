@@ -115,6 +115,26 @@ class PlayerRobustTest(unittest.TestCase):
         self.assertEqual(page.locator(tid("player")).count(), 0)
         self.assertEqual(errors, [])
 
+    def test_failed_after_video_shows_alert_and_app_keeps_working(self):
+        self.harness.reset()
+        page = self.new_page()
+        page.route(
+            "**/media/*/*",
+            lambda route: route.fulfill(
+                status=200, content_type="video/webm", body=b"not a video"
+            ),
+        )
+        page.goto(self.harness.url)
+        self.generate(page, DESCRIPTION)
+        error = page.locator(tid("player-error"))
+        error.wait_for(state="visible")
+        self.assertEqual(error.get_attribute("role"), "alert")
+        self.assertTrue(error.inner_text().strip())
+        self.assertEqual(page.locator(tid("history-item")).count(), 1)
+        self.assertTrue(page.locator(tid("history-item")).first.is_enabled())
+        page.locator(tid("history-new")).click()
+        self.wait_state(page, "empty")
+
 
 if __name__ == "__main__":
     unittest.main()
