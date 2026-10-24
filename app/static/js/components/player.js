@@ -226,10 +226,38 @@ function build(viewport) {
   return player;
 }
 
+// No shot: release the media and remove the player so build() makes a fresh one later.
+function teardown() {
+  if (unsync) {
+    unsync();
+    unsync = null;
+  }
+  if (pending) {
+    pending.remove();
+    pending = null;
+  }
+  for (const id of ["before-video", "after-video"]) {
+    const video = q(id);
+    if (!video) continue;
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+  }
+  const player = q("player");
+  if (player) player.remove();
+  const controls = q("player-controls");
+  if (controls) controls.remove();
+  lastShotId = null;
+}
+
 function render(state) {
   const viewport = q("viewport");
   if (!viewport) return;
   let player = q("player");
+  if (!state.shot) {
+    teardown();
+    return;
+  }
   if (viewport.dataset.state !== "result") {
     if (player) player.hidden = true;
     if (q("player-controls")) q("player-controls").hidden = true;
