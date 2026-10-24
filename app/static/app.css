@@ -480,6 +480,11 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-testid=stage-generate][data-state=done]::before, [data-testid=stage-optics][data-state=done]::before { content: "✓"; color: var(--ok); }
 [data-testid=stage-generate][data-state=failed]::before, [data-testid=stage-optics][data-state=failed]::before { content: "✕"; color: var(--danger); }
 
+[data-testid=progress-bar] { height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; margin: 12px 0; }
+[data-testid=progress-bar] .progress-fill { height: 100%; background: var(--text); transition: width 200ms ease; }
+[data-status=done] [data-testid=progress-bar] .progress-fill { background: var(--ok); }
+[data-testid=elapsed] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 1.25rem; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
