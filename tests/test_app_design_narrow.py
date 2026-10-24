@@ -3,7 +3,7 @@ import unittest
 
 from playwright.sync_api import sync_playwright
 
-from tests.app_harness import AppHarness
+from tests.app_harness import SHOT, AppHarness
 
 STATUS = "[data-testid=comfy-status]"
 
@@ -103,6 +103,48 @@ class NarrowLayoutTest(unittest.TestCase):
           return out;
         }""")
         self.assertEqual(bad, [])
+
+    def test_widths_no_sideways_scroll(self):
+        record = self.harness.post("/api/shots", SHOT)[1]
+        self.harness.wait_for_shot(record["id"], "done")
+        self.page.reload()
+        self.page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'ok'", arg=STATUS
+        )
+        for width, height in ((900, 800), (768, 1024), (390, 844), (360, 740)):
+            for state in ("empty", "result"):
+                with self.subTest(width=width, height=height, state=state):
+                    self.page.set_viewport_size({"width": width, "height": height})
+                    if state == "empty":
+                        self.page.locator("[data-testid=history-new]").click()
+                    else:
+                        self.page.locator("[data-testid=history-item]").first.click()
+                        self.page.wait_for_function(
+                            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'",
+                            timeout=40000,
+                        )
+                    m = self.page.evaluate("""() => {
+                      const box = t => {
+                        const el = document.querySelector('[data-testid=' + t + ']');
+                        const r = el.getBoundingClientRect();
+                        return {left: r.left, right: r.right, width: r.width, height: r.height,
+                                display: getComputedStyle(el).display};
+                      };
+                      const ids = ['camera-group', 'lens-group', 'framing-group', 'aperture-slider', 'generate-button'];
+                      return {
+                        html: document.documentElement.scrollWidth, body: document.body.scrollWidth,
+                        inner: window.innerWidth, boxes: Object.fromEntries(ids.map(i => [i, box(i)])),
+                      };
+                    }""")
+                    self.assertLessEqual(m["html"], m["inner"], m)
+                    self.assertLessEqual(m["body"], m["inner"], m)
+                    gen = m["boxes"]["generate-button"]
+                    self.assertNotEqual(gen["display"], "none", m)
+                    self.assertGreater(gen["width"], 0, m)
+                    self.assertGreater(gen["height"], 0, m)
+                    for name, b in m["boxes"].items():
+                        self.assertGreaterEqual(b["left"], 0, (name, m))
+                        self.assertLessEqual(b["right"], m["inner"], (name, m))
 
 
 if __name__ == "__main__":
