@@ -589,6 +589,47 @@ class DesignTest(unittest.TestCase):
             metres[lens] = page.get_attribute(tid("subject-distance"), "data-metres")
         self.assertNotEqual(metres[24], metres[85])
 
+    def test_lens_checked_and_keyboard(self):
+        self.harness.reset()
+        page = self.open_page(1280, 720)
+        group = tid("lens-group")
+        figure = tid("lens-figure") + " .lens-figure-num"
+        checked = group + " [aria-checked=true]"
+
+        def wait_figure(text):
+            page.wait_for_function(
+                "([s, t]) => document.querySelector(s).textContent.trim() === t",
+                arg=[figure, text],
+            )
+
+        page.click("%s [data-value='50']" % group)
+        wait_figure("50")
+        self.assertEqual(page.locator(checked).count(), 1)
+        self.assertEqual(page.locator(checked).inner_text().strip(), "50 mm")
+
+        accent = page.evaluate(
+            """() => {
+                const probe = document.createElement('span');
+                probe.style.color = 'var(--accent)';
+                document.body.appendChild(probe);
+                const c = getComputedStyle(probe).color;
+                probe.remove();
+                return c;
+            }"""
+        )
+        border = "s => getComputedStyle(document.querySelector(s)).borderBottomColor"
+        self.assertEqual(page.evaluate(border, checked), accent)
+        self.assertNotEqual(page.evaluate(border, "%s [data-value='24']" % group), accent)
+
+        page.focus(checked)
+        page.keyboard.press("ArrowRight")
+        wait_figure("85")
+        self.assertEqual(page.locator(checked).count(), 1)
+        page.keyboard.press("ArrowLeft")
+        wait_figure("50")
+        self.assertEqual(page.locator(checked).count(), 1)
+        self.assertEqual(page.locator(checked).inner_text().strip(), "50 mm")
+
 
 if __name__ == "__main__":
     unittest.main()
