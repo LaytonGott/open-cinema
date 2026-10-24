@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from tests.app_harness import AppHarness  # noqa: E402
+from tests.app_harness import SHOT, AppHarness  # noqa: E402
 
 SIZES = [(1280, 720), (1366, 768)]
 SENTENCE = "A woman in a red coat crosses a rainy street at night."
@@ -26,6 +26,15 @@ def shoot_size(h, browser, fake, w, ht, out):
         page.screenshot(path=str(Path(out) / f"empty-{w}x{ht}.png"))
         page.get_by_test_id("shot-description").fill(SENTENCE)
         page.screenshot(path=str(Path(out) / f"form-{w}x{ht}.png"))
+        fake.reset_cache()  # identical fixture videos: without this ComfyUI serves the nodes from its cache
+        fake.hold_at("SamplerCustomAdvanced")
+        page.get_by_test_id("generate-button").click()
+        page.wait_for_selector('[data-testid="status-panel"][data-status="generating"]', timeout=15000)
+        page.screenshot(path=str(Path(out) / f"working-{w}x{ht}.png"))
+        fake.release()
+        page.wait_for_selector('[data-testid="viewport"][data-state="result"]', timeout=40000)
+        page.wait_for_timeout(300)
+        page.screenshot(path=str(Path(out) / f"result-{w}x{ht}.png"))
     finally:
         context.close()
 
@@ -38,6 +47,8 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     from playwright.sync_api import sync_playwright
     with AppHarness() as h:
+        status, rec = h.post("/api/shots", {**SHOT, "description": "An earlier shot for the history strip.", "seed": 3})
+        h.wait_for_shot(rec["id"], "done")
         with sync_playwright() as pw:
             browser = pw.chromium.launch()
             try:
