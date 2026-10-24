@@ -21,6 +21,7 @@ export function makeCompareSlider() {
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
     const arrow = document.createElementNS(SVG_NS, "polyline");
     arrow.setAttribute("points", points);
     svg.append(arrow);
