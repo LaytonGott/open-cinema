@@ -178,3 +178,25 @@ class VisualReviewTest(unittest.TestCase):
                         self.assertTrue(apart, "%s boxes %d and %d intersect" % (label, i, j))
             finally:
                 fake.release()
+
+    def test_no_overlaps_failed(self):
+        fake = self.harness.fake
+        for width, height in ((1280, 720), (1366, 768)):
+            self.harness.reset()
+            page = self.browser.new_page(viewport={"width": width, "height": height})
+            self.addCleanup(page.close)
+            page.set_default_timeout(15000)
+            page.goto(self.harness.url)
+            page.wait_for_selector(tid("generate-button"))
+            page.click(tid("history-new"))
+            page.fill(tid("shot-description"), "A woman in a red coat crosses a rainy street at night.")
+            fake.reset_cache()
+            fake.fail("OpenOptics_DepthOfField", "Out of memory in Depth of Field")
+            try:
+                page.click(tid("generate-button"))
+                page.wait_for_selector(tid("viewport") + "[data-state=failed]")
+                label = "failed %dx%d" % (width, height)
+                self.assertEqual(clipped_elements(page), [], label)
+                self.assertEqual(overlaps(page), [], label)
+            finally:
+                fake.clear_failures()
