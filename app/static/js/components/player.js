@@ -47,7 +47,14 @@ function showError(visible) {
 
 function wireVideo(video) {
   video.addEventListener("error", () => showError(true));
-  video.addEventListener("loadeddata", () => showError(false));
+  video.addEventListener("loadeddata", () => {
+    // keep the alert while the other video is still in an error state
+    const failed = ["before-video", "after-video"].some((id) => {
+      const other = q(id);
+      return other && other !== video && other.error;
+    });
+    showError(failed);
+  });
   for (const name of ["loadeddata", "canplay", "emptied"]) {
     video.addEventListener(name, updateReady);
   }
