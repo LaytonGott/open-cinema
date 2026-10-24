@@ -373,6 +373,30 @@ class DesignTest(unittest.TestCase):
         finally:
             fake.release()
 
+    def test_status_panel_failed_tracker(self):
+        self.harness.reset()
+        fake = self.harness.fake
+        fake.clear_failures()
+        self.addCleanup(fake.clear_failures)
+        message = "Out of memory in Depth of Field"
+        fake.fail("OpenOptics_DepthOfField", message)
+        page = self.open_page(1280, 720)
+        page.locator(tid("shot-description")).fill("A rider crosses a foggy salt flat at dawn.")
+        page.locator(tid("generate-button")).click()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'failed'",
+            arg=tid("viewport"),
+        )
+        self.assertEqual(page.locator(tid("stage-generate")).get_attribute("data-state"), "done")
+        self.assertEqual(page.locator(tid("stage-optics")).get_attribute("data-state"), "failed")
+        error = page.locator(tid("error-message"))
+        self.assertTrue(error.is_visible())
+        self.assertIn(message, error.inner_text())
+        retry = page.locator(tid("retry-button"))
+        self.assertTrue(retry.is_visible())
+        self.assertEqual(retry.inner_text().strip(), "Retry optics")
+        self.assertFalse(page.locator(tid("cancel-button")).is_visible())
+
     def test_header(self):
         page = self.open_page(1280, 720)
         height = page.evaluate("() => document.querySelector('header').getBoundingClientRect().height")
