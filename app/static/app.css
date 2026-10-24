@@ -531,6 +531,12 @@ code, pre, .mono { font-family: var(--font-mono); }
   animation: record-blink 1s steps(2, start) infinite;
 }
 .record-dot[hidden] { display: none; }
+.rec-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
 @keyframes record-blink {
   50% { opacity: 0.2; }
 }
