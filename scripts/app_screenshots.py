@@ -35,6 +35,16 @@ def shoot_size(h, browser, fake, w, ht, out):
         page.wait_for_selector('[data-testid="viewport"][data-state="result"]', timeout=40000)
         page.wait_for_timeout(300)
         page.screenshot(path=str(Path(out) / f"result-{w}x{ht}.png"))
+        fake.reset_cache()
+        fake.fail("OpenOptics_DepthOfField", "Out of memory in Depth of Field")
+        try:
+            page.get_by_test_id("history-new").click()
+            page.get_by_test_id("shot-description").fill(SENTENCE)
+            page.get_by_test_id("generate-button").click()
+            page.wait_for_selector('[data-testid="viewport"][data-state="failed"]', timeout=40000)
+            page.screenshot(path=str(Path(out) / f"failed-{w}x{ht}.png"))
+        finally:
+            fake.clear_failures()
     finally:
         context.close()
 

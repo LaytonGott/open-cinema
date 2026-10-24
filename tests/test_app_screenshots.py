@@ -37,6 +37,16 @@ class AppScreenshotsTest(unittest.TestCase):
                     self.assertTrue(path.exists(), f"{path.name} missing")
                     self.assertEqual(png_size(path), (w, h), path.name)
 
+    def test_failed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run([sys.executable, str(ROOT / "scripts" / "app_screenshots.py"), "--out", tmp],
+                                    capture_output=True, text=True, timeout=240)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for w, h in [(1280, 720), (1366, 768)]:
+                path = Path(tmp) / f"failed-{w}x{h}.png"
+                self.assertTrue(path.exists(), f"{path.name} missing")
+                self.assertEqual(png_size(path), (w, h), path.name)
+
 
 if __name__ == "__main__":
     unittest.main()
