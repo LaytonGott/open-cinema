@@ -310,6 +310,36 @@ class DesignTest(unittest.TestCase):
         self.assertEqual(cursor, "pointer")
         self.assertNotEqual(disabled_background, background)
 
+    def test_aperture_scale_and_iris(self):
+        self.harness.reset()
+        page = self.open_page(1280, 720)
+        self.assertEqual(page.locator(tid("aperture-scale") + " > span").count(), 8)
+        slider = page.locator(tid("aperture-slider"))
+        slider.focus()
+        page.keyboard.press("ArrowRight")
+        page.wait_for_function(
+            "s => document.querySelector(s).textContent.trim() === 'f/4'", arg=tid("aperture-value")
+        )
+        self.assertEqual(slider.get_attribute("aria-valuetext"), "f/4")
+        page.wait_for_function(
+            "s => document.querySelector(s).textContent.includes('f/4')", arg=tid("hud")
+        )
+        iris_js = (
+            "s => { const el = document.querySelector(s);"
+            " return [parseFloat(el.style.getPropertyValue('--iris')),"
+            " getComputedStyle(el).width]; }"
+        )
+        values = {}
+        for key, index, label in (("min", "0", "f/1.4"), ("max", "7", "f/16")):
+            page.fill(tid("aperture-slider"), index)
+            page.wait_for_function(
+                "([s, t]) => document.querySelector(s).textContent.trim() === t",
+                arg=[tid("aperture-value"), label],
+            )
+            values[key] = page.evaluate(iris_js, tid("aperture-iris"))
+        self.assertGreater(values["min"][0], values["max"][0])
+        self.assertEqual(values["min"][1], values["max"][1])
+
     def test_header(self):
         page = self.open_page(1280, 720)
         height = page.evaluate("() => document.querySelector('header').getBoundingClientRect().height")
