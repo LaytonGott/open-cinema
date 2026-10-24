@@ -6,6 +6,9 @@ import { checkHealth } from "./components/header.js";
 
 const RUNNING_STATUSES = ["queued", "generating", "optics"];
 
+// Bumped by selectShot, newShot and submitShot; a selectShot whose token is stale is ignored.
+let navigationToken = 0;
+
 // Show an ApiError from a POST as the state error; anything else is rethrown.
 export function handlePostError(err) {
   if (err instanceof api.ApiError) {
@@ -19,6 +22,7 @@ export function handlePostError(err) {
 }
 
 export async function submitShot() {
+  navigationToken++;
   const { description, camera, lens_mm, aperture, framing } = getState().form;
   setState({ submitting: true, error: null });
   try {
@@ -63,6 +67,7 @@ export async function reapplyShown(aperture) {
 }
 
 export function newShot() {
+  navigationToken++;
   stopFollowing();
   setState({ shot: null, error: null });
   const field = document.querySelector("[data-testid=shot-description]");
@@ -71,8 +76,10 @@ export function newShot() {
 
 export async function selectShot(id) {
   stopFollowing();
+  const token = ++navigationToken;
   try {
     const record = await api.getShot(id);
+    if (token !== navigationToken) return;
     setShot(record);
     setState({ error: null });
     if (RUNNING_STATUSES.includes(record.status)) {
