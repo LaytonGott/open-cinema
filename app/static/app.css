@@ -76,6 +76,38 @@ code, pre, .mono { font-family: var(--font-mono); }
   min-height: 0;
   background: var(--surface);
   border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 0;
+}
+
+.actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin: auto -16px 0;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.actions [data-testid=submit-error] { margin: 8px 0 0; overflow-wrap: anywhere; white-space: normal; }
+
+[data-testid=generate-button] {
+  width: 100%;
+  background: var(--accent);
+  color: var(--bg);
+  border: 0;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 10px 16px;
+  transition: background 150ms, color 150ms;
+}
+[data-testid=generate-button]:disabled {
+  background: var(--raised);
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  cursor: not-allowed;
 }
 
 #monitor { grid-area: monitor; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
