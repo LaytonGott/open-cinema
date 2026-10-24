@@ -432,6 +432,17 @@ code, pre, .mono { font-family: var(--font-mono); }
   text-decoration: underline;
 }
 
+/* tracker step icons */
+[data-testid=stage-generate]::before, [data-testid=stage-optics]::before {
+  display: inline-block;
+  width: 1.25em;
+  font-family: var(--font-mono);
+}
+[data-testid=stage-generate][data-state=pending]::before, [data-testid=stage-optics][data-state=pending]::before { content: "○"; color: var(--muted); }
+[data-testid=stage-generate][data-state=active]::before, [data-testid=stage-optics][data-state=active]::before { content: "◉"; color: var(--text); }
+[data-testid=stage-generate][data-state=done]::before, [data-testid=stage-optics][data-state=done]::before { content: "✓"; color: var(--ok); }
+[data-testid=stage-generate][data-state=failed]::before, [data-testid=stage-optics][data-state=failed]::before { content: "✕"; color: var(--danger); }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
