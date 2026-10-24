@@ -74,6 +74,10 @@ class VersionChipsUiTest(unittest.TestCase):
     def test_click_first_chip_shows_its_version(self):
         page, chips = self._two_versions()
         after = page.locator(tid("after-video"))
+        # the new version is swapped in once it has loaded; on a busy machine that can come after the chip appears
+        page.wait_for_function(
+            "() => /after_2[.]/.test(document.querySelector('[data-testid=after-video]').getAttribute('src') || '')"
+        )
         second_src = after.get_attribute("src")
         chips.nth(0).click()
         self._wait_label(page, "After f/2.8")

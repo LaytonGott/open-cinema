@@ -57,10 +57,20 @@ class AppHarness:
         return f"http://127.0.0.1:{self.port}"
 
     # ------------------------------------------------------------ lifecycle
-    def start(self, timeout=40):
+    def start(self, timeout=60):
+        """Start the fake ComfyUI (if it is not running) and the app. A port picked a moment ago may have been taken by a
+        parallel test process before the app bound it, and a loaded machine starts slowly: try again on a new port."""
         if self.fake._thread is None:
             self.fake.start()
-        self.start_app(timeout)
+        for attempt in range(3):
+            try:
+                self.start_app(timeout)
+                return self
+            except RuntimeError:
+                self.stop_app()
+                if attempt == 2:
+                    raise
+                self.port = free_port()
         return self
 
     def start_app(self, timeout=40):

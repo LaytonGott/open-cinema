@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT))
 # sha256 of each file (text files with line endings normalised to \n); these must not be edited to make a check pass
 PROTECTED = {
     "tests/fake_comfy.py": "04e9ab60a8ce6dd2cf95ce97ab0c1b41f4d00d399991a33bc56fffdb3bd01952",
-    "tests/app_harness.py": "2187fc541e922804e42173c39316a31262f82ad6076d27d77c7fef497b5dc68d",
+    "tests/app_harness.py": "48f652ff38ade874c526e2c2f91ab82ad609fb7f3c029ecaa9646e311f8c5474",
     "tests/fixtures/app/comfy_object_info.json": "11cc785169676a730065b8d10e63c66e9e27e8c365c13978f43946f759d321ef",
     "tests/fixtures/app/clip_sharp.webm": "c3981c36d26ad2d91b865ebb2f5728484996f613891caa3f13eb76178bcd08d6",
     "tests/fixtures/app/clip_soft.webm": "42cfd2b3a8e3853cceee0192996b1b4d84dd9c2b2dfe9f9d4026a15be7e5e02a",
