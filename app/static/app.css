@@ -210,6 +210,8 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-testid=reapply-slider] { accent-color: var(--accent); }
 [data-testid=reapply-value] { font-family: var(--font-mono); color: var(--text); }
 [data-testid=reapply-status] { font-family: var(--font-mono); color: var(--muted); }
+[data-testid=reapply-button] { background: transparent; border: 1px solid var(--line); color: var(--text); cursor: pointer; }
+[data-testid=reapply-button]:disabled { opacity: .45; cursor: not-allowed; border-style: dashed; }
 
 #history {
   grid-area: history;
