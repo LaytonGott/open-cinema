@@ -300,6 +300,32 @@ class DesignTest(unittest.TestCase):
         )
         self.assertEqual(color, "rgb(90, 209, 154)")
 
+    def test_status_pill_contrast(self):
+        page = self.open_page(1280, 720)
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).textContent.trim().startsWith('ComfyUI: connected')",
+            arg=tid("comfy-status"),
+        )
+        ratio = page.evaluate(
+            """s => {
+                const parse = c => c.match(/[\\d.]+/g).map(Number);
+                const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+                const lum = c => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+                const el = document.querySelector(s);
+                const fg = parse(getComputedStyle(el).color);
+                let node = el;
+                let bg = parse(getComputedStyle(node).backgroundColor);
+                while ((bg.length > 3 ? bg[3] : 1) === 0 && node.parentElement) {
+                    node = node.parentElement;
+                    bg = parse(getComputedStyle(node).backgroundColor);
+                }
+                const a = lum(fg), b = lum(bg);
+                return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+            }""",
+            tid("comfy-status"),
+        )
+        self.assertGreaterEqual(ratio, 4.5)
+
 
 if __name__ == "__main__":
     unittest.main()
