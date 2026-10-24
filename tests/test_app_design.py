@@ -257,6 +257,16 @@ class DesignTest(unittest.TestCase):
         self.assertEqual(cursor, "pointer")
         self.assertNotEqual(disabled_background, background)
 
+    def test_header(self):
+        page = self.open_page(1280, 720)
+        height = page.evaluate("() => document.querySelector('header').getBoundingClientRect().height")
+        self.assertGreaterEqual(height, 48)
+        self.assertLessEqual(height, 56)
+        self.assertIn("Open Cinema", page.inner_text("header"))
+        self.assertEqual(page.locator(tid("logo-mark")).count(), 1)
+        self.assertEqual(page.evaluate("s => document.querySelector(s).tagName.toLowerCase()", tid("logo-mark")), "svg")
+        self.assertEqual(page.locator("header img").count(), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
