@@ -85,3 +85,35 @@ class CreateShotComfyStoppedTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(after["shots"], before["shots"])
         self.assertEqual(after["shots"], [])
+
+
+class ReapplyNodeMissingTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.fake = FakeComfy()
+        cls.harness = AppHarness(fake=cls.fake).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.harness.stop()
+        cls.fake.close()
+
+    def test_reapply_refused_when_optics_node_missing_and_shot_unchanged(self):
+        h = self.harness
+        h.reset()
+        status, created = h.post("/api/shots", {**SHOT, "aperture": 2.8})
+        self.assertEqual(status, 201)
+        sid = created["id"]
+        h.wait_for_shot(sid, "done")
+        status, snapshot = h.get(f"/api/shots/{sid}")
+        self.assertEqual(status, 200)
+        self.fake.remove_node("OpenOptics_DepthOfField")
+        status, body = h.post(f"/api/shots/{sid}/reapply", {"aperture": 8})
+        self.assertEqual(status, 503)
+        self.assertEqual(body["error"]["code"], "comfy_nodes_missing")
+        self.assertTrue(body["error"]["message"].startswith("ComfyUI is missing these nodes"))
+        self.assertIn("OpenOptics_DepthOfField", body["error"]["message"])
+        status, after = h.get(f"/api/shots/{sid}")
+        self.assertEqual(status, 200)
+        for key in ("versions", "current_version", "status", "message", "progress", "error", "before_url"):
+            self.assertEqual(after.get(key), snapshot.get(key), key)
