@@ -3,6 +3,7 @@ import * as api from "./api.js";
 import { followShot, stopFollowing } from "./follow.js";
 import { getState, setState, setShot } from "./state.js";
 import { checkHealth } from "./components/header.js";
+import { showToast } from "./components/toast.js";
 
 const RUNNING_STATUSES = ["queued", "generating", "optics"];
 
@@ -83,18 +84,18 @@ export function newShot() {
 }
 
 export async function selectShot(id) {
-  stopFollowing();
   const token = ++navigationToken;
   try {
     const record = await api.getShot(id);
     if (token !== navigationToken) return;
+    stopFollowing();
     setShot(record);
     setState({ error: null });
     if (RUNNING_STATUSES.includes(record.status)) {
       followShot(id);
     }
   } catch (err) {
-    handlePostError(err);
+    showToast(err instanceof api.ApiError ? err.message : "Can't reach the app server");
   }
 }
 
