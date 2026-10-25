@@ -41,7 +41,8 @@ export async function submitShot() {
 }
 
 export async function retryShot() {
-  setState({ error: null });
+  if (getState().submitting) return;
+  setState({ submitting: true, error: null });
   const token = navigationToken;
   try {
     const shot = getState().shot;
@@ -57,6 +58,8 @@ export async function retryShot() {
     followShot(record.id);
   } catch (err) {
     if (token === navigationToken) handlePostError(err);
+  } finally {
+    setState({ submitting: false });
   }
 }
 
