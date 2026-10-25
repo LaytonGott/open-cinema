@@ -8,6 +8,8 @@ import shutil
 import sys
 from pathlib import Path
 
+RUNNING_STATUSES = ("queued", "generating", "optics")
+
 
 def new_shot_id(existing=()):
     """Return a new shot id `YYYYMMDD-HHMMSS-xxxx` (UTC time, 4 random lowercase hex chars) not in `existing`."""
@@ -32,10 +34,14 @@ class ShotStore:
         return self.root / shot_id
 
     def _write(self, record):
+        """Write `shot.json` from a copy of `record` without `_started` (a monotonic clock means nothing in another process); `elapsed_s` is 0.0 in the file for a queued, generating or optics shot. The record itself is unchanged."""
         directory = self.shot_dir(record["id"])
         directory.mkdir(parents=True, exist_ok=True)
+        data = {k: v for k, v in record.items() if k != "_started"}
+        if data.get("status") in RUNNING_STATUSES:
+            data["elapsed_s"] = 0.0
         tmp = directory / "shot.json.tmp"
-        tmp.write_text(json.dumps(record, indent=2), encoding="utf-8")
+        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
         os.replace(tmp, directory / "shot.json")
 
     def add(self, record):
@@ -70,7 +76,7 @@ class ShotStore:
         shutil.rmtree(self.shot_dir(shot_id), ignore_errors=True)
 
     def load_all(self):
-        """Load every `shots/*/shot.json`, skipping unreadable files with a stderr warning; returns None."""
+        """Load every `shots/*/shot.json`, skipping unreadable files with a stderr warning; drops `_started` and sets `elapsed_s` to 0.0 for queued, generating or optics shots (finished shots keep theirs); returns None."""
         loaded = []
         for path in sorted(self.root.glob("*/shot.json")):
             try:
@@ -82,6 +88,9 @@ class ShotStore:
                 print(f"warning: skipping {path}: not a JSON object", file=sys.stderr)
                 continue
             record.setdefault("id", path.parent.name)
+            record.pop("_started", None)
+            if record.get("status") in RUNNING_STATUSES:
+                record["elapsed_s"] = 0.0
             loaded.append(record)
 
         def key(r):
@@ -94,7 +103,7 @@ class ShotStore:
         self._seq = max(seqs, default=0)
 
     def recover_interrupted(self):
-        """Mark loaded shots left queued, generating or optics as failed ("interrupted") and save them; returns the list of recovered shot ids."""
+        """Mark loaded shots left queued, generating or optics as failed ("interrupted") and save them (`elapsed_s` stays 0.0 seconds); returns the list of recovered shot ids."""
         message = "Open Cinema was stopped while this shot was running. Submit the shot again."
         recovered = []
         for record in self.list():
