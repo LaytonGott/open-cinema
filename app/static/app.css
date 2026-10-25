@@ -1,4 +1,5 @@
 :root {
+  --monitor-reserve: 340px;
   --bg: #0b0c0e;
   --surface: #14161a;
   --raised: #1b1e24;
@@ -283,6 +284,7 @@ code, pre, .mono { font-family: var(--font-mono); }
 }
 [data-testid=status-panel][hidden] { display: none; }
 
+[data-testid=version-list] { display: flex; flex-wrap: wrap; gap: 6px; }
 [data-testid=optics-controls] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; }
 [data-testid=optics-controls][hidden] { display: none; }
 [data-testid=optics-controls] input { flex: 1; min-width: 0; }
@@ -397,7 +399,7 @@ code, pre, .mono { font-family: var(--font-mono); }
 
 [data-testid=viewport] {
   aspect-ratio: 20 / 11;
-  width: min(100%, calc((100vh - 52px - 104px - 120px) * 20 / 11));
+  width: min(100%, max(320px, calc((100vh - var(--monitor-reserve)) * 20 / 11)));
   margin: auto;
   position: relative;
   overflow: hidden;
@@ -460,7 +462,7 @@ code, pre, .mono { font-family: var(--font-mono); }
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  width: min(100%, calc((100vh - 52px - 104px - 120px) * 20 / 11));
+  width: min(100%, max(320px, calc((100vh - var(--monitor-reserve)) * 20 / 11)));
   padding: 6px 12px;
   background: var(--surface);
   border: 1px solid var(--line);
