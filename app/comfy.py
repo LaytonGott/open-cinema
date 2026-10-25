@@ -53,9 +53,13 @@ def submit_and_follow(client, graph, on_event, on_job=None, guard=None):
     return job
 
 
-def upload_video(client, path):
-    """Return client.assets.from_file(path), the Asset used as the LoadVideo `file` value."""
-    return client.assets.from_file(path)
+def upload_video(client, path, guard=None):
+    """Return client.assets.from_file(path), the Asset used as the LoadVideo `file` value.
+
+    The upload runs through guard (default: a new OutageGuard), which retries transient errors.
+    """
+    guard = guard or OutageGuard()
+    return guard.call(client.assets.from_file, path)
 
 
 def download_output(job, node_id, dest_dir, stem):

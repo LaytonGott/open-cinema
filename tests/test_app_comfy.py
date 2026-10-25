@@ -153,6 +153,22 @@ class UploadVideoTest(unittest.TestCase):
         self.assertIs(result, sentinel)
         self.assertEqual(assets.calls, ["clip.mp4"])
 
+    def test_retry_upload(self):
+        sentinel = object()
+
+        class FlakyAssets(StubAssets):
+            def from_file(self, path):
+                self.calls.append(path)
+                if len(self.calls) <= 2:
+                    raise httpx.ConnectError("down")
+                return self.result
+
+        assets = FlakyAssets(sentinel)
+        guard = OutageGuard(sleep=lambda s: None)
+        result = upload_video(StubAssetsClient(assets), "clip.mp4", guard)
+        self.assertIs(result, sentinel)
+        self.assertEqual(len(assets.calls), 3)
+
 
 if __name__ == "__main__":
     unittest.main()
