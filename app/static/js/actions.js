@@ -41,6 +41,7 @@ export async function submitShot() {
 
 export async function retryShot() {
   setState({ error: null });
+  const token = navigationToken;
   try {
     const shot = getState().shot;
     if (!shot) return;
@@ -50,23 +51,26 @@ export async function retryShot() {
     } else {
       record = await api.createShot(shot.params);
     }
+    if (token !== navigationToken) return;
     setShot(record);
     followShot(record.id);
   } catch (err) {
-    handlePostError(err);
+    if (token === navigationToken) handlePostError(err);
   }
 }
 
 export async function reapplyShown(aperture) {
   setState({ error: null });
+  const token = navigationToken;
   try {
     const shot = getState().shot;
     if (!shot) return;
     const record = await api.reapplyShot(shot.id, aperture);
+    if (token !== navigationToken) return;
     setShot(record);
     followShot(record.id);
   } catch (err) {
-    handlePostError(err);
+    if (token === navigationToken) handlePostError(err);
   }
 }
 
