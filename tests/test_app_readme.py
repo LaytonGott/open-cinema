@@ -40,6 +40,25 @@ class ReadmeAppSectionTest(unittest.TestCase):
         blocks = re.findall(r"```[^\n]*\n(.*?)```", _section(), re.S)
         self.assertTrue(any("python -m app" in b for b in blocks))
 
+    def test_step_one_files_and_folders(self):
+        section = _section()
+        for text in ("v0.41", "ComfyUI-GGUF", "LoadDA3Model", "DA3Inference", "DA3Render",
+                     "custom_nodes", "docs/benchmarks.md"):
+            self.assertIn(text, section)
+        step_one = next(line for line in section.splitlines() if line.startswith("1. "))
+        pairs = [
+            ("ltx-2-19b-distilled_Q4_K_M.gguf", "models\\diffusion_models"),
+            ("gemma_3_12B_it_fp8_scaled.safetensors", "models\\text_encoders"),
+            ("ltx-2-19b-embeddings_connector_distill_bf16.safetensors", "models\\checkpoints"),
+            ("LTX2_audio_vae_bf16.safetensors", "models\\checkpoints"),
+            ("LTX2_video_vae_bf16.safetensors", "models\\vae"),
+            ("ltx-2-spatial-upscaler-x2-1.0.safetensors", "models\\latent_upscale_models"),
+            ("depth_anything_3_mono_large.safetensors", "models\\geometry_estimation"),
+        ]
+        for name, folder in pairs:
+            self.assertIn(name, step_one)
+            self.assertIn(folder, step_one)
+
     def test_no_todo(self):
         self.assertNotIn("TODO", _section())
 
