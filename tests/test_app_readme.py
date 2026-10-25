@@ -64,6 +64,20 @@ class ReadmeAppSectionTest(unittest.TestCase):
         for text in ("npm run app", "isn't running", "Retry", "python -m app", "--comfyui"):
             self.assertIn(text, section)
 
+    def test_accept_needles_present(self):
+        section = _section()
+        needles = ("python -m app", "--comfyui", "http://127.0.0.1:8000", "run_nvidia_gpu.bat", "custom_nodes",
+                   "ComfyUI-GGUF", "pip install", "comfy-sdk", "comfy-api-proxy", "npm run app",
+                   "playwright install chromium", "npm test", "isn't running", "Retry",
+                   "ltx-2-19b-distilled_Q4_K_M.gguf", "gemma_3_12B_it_fp8_scaled.safetensors",
+                   "ltx-2-19b-embeddings_connector_distill_bf16.safetensors", "LTX2_video_vae_bf16.safetensors",
+                   "LTX2_audio_vae_bf16.safetensors", "ltx-2-spatial-upscaler-x2-1.0.safetensors",
+                   "depth_anything_3_mono_large.safetensors", "models", "diffusion_models", "text_encoders",
+                   "latent_upscale_models", "geometry_estimation")
+        for needle in needles:
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
     def test_no_todo(self):
         self.assertNotIn("TODO", _section())
 
