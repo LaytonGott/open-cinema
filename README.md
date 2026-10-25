@@ -82,7 +82,15 @@ This is an estimate: it assumes a thin lens and a subject facing the camera. The
     `npm run app` does the same as `python -m app` and accepts the same options (e.g. `npm run app -- --comfyui http://127.0.0.1:8188`).
 
 5. What you will see: the header says "ComfyUI: connected". The first shot takes several minutes because the LTX-2 models load. The second shot is faster. Changing the aperture takes seconds, because only Depth of Field runs again.
-6. When ComfyUI isn't running, the app shows a banner with a Retry button; start ComfyUI and press Retry. Common errors: a missing model (the message names the input, so put that file in the folder from step 1) and out of memory (close other programs that use the GPU, or use a smaller shot, and run it again).
+6. When ComfyUI isn't running, the app shows a banner "Can't reach ComfyUI at <url>. Start ComfyUI, then retry." with a Retry button. Generate shot stays disabled until you press Retry and the header turns to "ComfyUI: connected".
+
+    Common errors:
+
+    - "ComfyUI refused the request: ... Value not in list: <input>" means a model is missing. The message names the input (for example `unet_name`): put the file from step 1 in its folder and restart ComfyUI.
+    - "Node <id> failed: CUDA out of memory" means the GPU ran out of memory. Close other programs that use the GPU, then run the shot again.
+    - "Lost the connection to ComfyUI. Start ComfyUI, then retry."
+    - "Could not download the video from ComfyUI."
+    - "Something went wrong inside Open Cinema. Check the console for details." means an unexpected error: see the app's console.
 7. To run the app's tests, install the test packages and the browser once, then run the suite:
 
     ```
