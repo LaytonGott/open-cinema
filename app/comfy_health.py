@@ -39,12 +39,13 @@ async def check_health(comfyui_url):
                 if resp.status != 200:
                     return result
                 data = await resp.json(content_type=None)
-    except (aiohttp.ClientConnectorError, OSError):
-        return result
     except (asyncio.TimeoutError, aiohttp.ServerTimeoutError):
+        # Before the OSError clause: TimeoutError is an OSError on Python 3.12.
         if connected:
             result["reachable"] = True
             result["message"] = "ComfyUI is busy and answered slowly."
+        return result
+    except (aiohttp.ClientConnectorError, OSError):
         return result
     except Exception:
         return result
