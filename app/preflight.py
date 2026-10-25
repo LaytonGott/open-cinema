@@ -22,6 +22,33 @@ def graph_class_types(*graphs):
     return sorted(found)
 
 
+async def _fetch_object_info(comfyui_url, class_types):
+    """Fetch ``GET {comfyui_url}/object_info/<class_type>`` for each, concurrently (5 s total timeout).
+
+    Returns a list parallel to ``class_types``: the decoded JSON answer of a 200,
+    or None for a 404 or any other non-200 below 500. Raises ObjectInfoUnreachable
+    on a connection error, a timeout or an HTTP 5xx.
+    """
+    base = comfyui_url.rstrip("/")
+    timeout = aiohttp.ClientTimeout(total=5)
+
+    async def fetch(session, class_type):
+        async with session.get(f"{base}/object_info/{quote(class_type, safe='')}") as resp:
+            if resp.status >= 500:
+                raise ObjectInfoUnreachable(f"ComfyUI answered HTTP {resp.status}")
+            if resp.status != 200:
+                return None
+            return await resp.json(content_type=None)
+
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            return list(await asyncio.gather(*(fetch(session, c) for c in class_types)))
+    except ObjectInfoUnreachable:
+        raise
+    except (aiohttp.ClientError, asyncio.TimeoutError, OSError, ValueError) as exc:
+        raise ObjectInfoUnreachable(str(exc)) from exc
+
+
 async def missing_nodes(comfyui_url, class_types):
     """Ask ComfyUI which of ``class_types`` it does not have.
 
@@ -30,28 +57,31 @@ async def missing_nodes(comfyui_url, class_types):
     types (a 404, or a 200 answer that is not a dict containing that class type).
     Raises ObjectInfoUnreachable on a connection error, a timeout or an HTTP 5xx.
     """
-    base = comfyui_url.rstrip("/")
-    timeout = aiohttp.ClientTimeout(total=5)
+    answers = await _fetch_object_info(comfyui_url, class_types)
+    return sorted(c for c, data in zip(class_types, answers)
+                  if not (isinstance(data, dict) and c in data))
 
-    async def is_missing(session, class_type):
-        async with session.get(f"{base}/object_info/{quote(class_type, safe='')}") as resp:
-            if resp.status == 404:
-                return True
-            if resp.status >= 500:
-                raise ObjectInfoUnreachable(f"ComfyUI answered HTTP {resp.status}")
-            if resp.status != 200:
-                return True
-            data = await resp.json(content_type=None)
-            return not (isinstance(data, dict) and class_type in data)
 
-    try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            flags = await asyncio.gather(*(is_missing(session, c) for c in class_types))
-    except ObjectInfoUnreachable:
-        raise
-    except (aiohttp.ClientError, asyncio.TimeoutError, OSError, ValueError) as exc:
-        raise ObjectInfoUnreachable(str(exc)) from exc
-    return sorted(c for c, missing in zip(class_types, flags) if missing)
+async def missing_choices(comfyui_url, graphs):
+    """Find combo choices in ``graphs`` that ComfyUI does not list.
+
+    ``graphs`` is a list of graph dicts. Fetches ``/object_info/<class_type>``
+    for every distinct class type (a 404 class is left out of the info), merges
+    the answers into one object_info dict and returns the sorted list of unique
+    ``(input_name, value, class_type)`` tuples from ``find_missing_choices`` over
+    all graphs. Raises ObjectInfoUnreachable on a connection error, a timeout or
+    an HTTP 5xx.
+    """
+    class_types = graph_class_types(*graphs)
+    answers = await _fetch_object_info(comfyui_url, class_types)
+    info = {}
+    for data in answers:
+        if isinstance(data, dict):
+            info.update(data)
+    found = set()
+    for graph in graphs:
+        found.update(find_missing_choices(graph, info))
+    return sorted(found, key=lambda t: (t[0], str(t[1]), t[2]))
 
 
 def nodes_missing_message(names):
