@@ -86,12 +86,24 @@ class ShotStore:
         return list(self._records.values())
 
     def remove(self, shot_id):
-        """Forget shot `shot_id` and delete its folder; returns None."""
+        """Forget shot `shot_id` and delete its folder; returns None. Moves `shot.json` to `shot.json.deleted` first so the shot can never load again, then renames the folder to a sibling `.deleting-<id>-<hex>` (skipped if the rename fails, e.g. a locked file on Windows) and removes it; leftovers are removed by `load_all`."""
         self._records.pop(shot_id, None)
-        shutil.rmtree(self.shot_dir(shot_id), ignore_errors=True)
+        shot_dir = self.shot_dir(shot_id)
+        try:
+            os.replace(shot_dir / "shot.json", shot_dir / "shot.json.deleted")
+        except OSError:
+            pass
+        target = self.root / f".deleting-{shot_id}-{secrets.token_hex(2)}"
+        try:
+            os.rename(shot_dir, target)
+        except OSError:
+            target = shot_dir
+        shutil.rmtree(target, ignore_errors=True)
 
     def load_all(self):
-        """Load every `shots/*/shot.json`, skipping unreadable files with a stderr warning; drops `_started` and sets `elapsed_s` to 0.0 for queued, generating or optics shots (finished shots keep theirs); returns None."""
+        """Load every `shots/*/shot.json`, skipping unreadable files with a stderr warning; first removes leftover `.deleting-*` folders from interrupted deletes; drops `_started` and sets `elapsed_s` to 0.0 for queued, generating or optics shots (finished shots keep theirs); returns None."""
+        for leftover in self.root.glob(".deleting-*"):
+            shutil.rmtree(leftover, ignore_errors=True)
         loaded = []
         for path in sorted(self.root.glob("*/shot.json")):
             try:
