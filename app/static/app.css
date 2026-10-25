@@ -397,6 +397,19 @@ code, pre, .mono { font-family: var(--font-mono); }
 #director :focus-visible,
 #history :focus-visible { outline-offset: -2px; }
 
+[data-testid=shot-brief] {
+  max-height: 20vh;
+  max-width: 100%;
+  min-width: 0;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+[data-testid=shot-brief] p { margin: 4px 0 0; }
+[data-testid=shot-brief] .brief-text { white-space: pre-wrap; }
+
 [data-testid=viewport] {
   aspect-ratio: 20 / 11;
   width: min(100%, max(320px, calc((100vh - var(--monitor-reserve)) * 20 / 11)));
