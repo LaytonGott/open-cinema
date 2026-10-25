@@ -110,7 +110,7 @@ class ShotRunnerTest(unittest.TestCase):
             runner.client = object()
             seen = {}
 
-            def fake_submit(client, graph, on_event, on_job=None):
+            def fake_submit(client, graph, on_event, on_job=None, guard=None):
                 seen["graph"] = graph
                 return "job"
 
@@ -174,7 +174,7 @@ class ShotRunnerTest(unittest.TestCase):
             with mock.patch("app.comfy.make_client", lambda: "client"), \
                     mock.patch("app.comfy.upload_video", lambda c, p: "up.mp4"), \
                     mock.patch("app.comfy.submit_and_follow",
-                               lambda client, graph, on_event, on_job=None: "job"), \
+                               lambda client, graph, on_event, on_job=None, guard=None: "job"), \
                     mock.patch("app.comfy.download_output", fake_download):
                 asyncio.run(runner.run_shot("s1"))
             record = store.get("s1")

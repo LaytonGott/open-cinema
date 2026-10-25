@@ -46,7 +46,7 @@ class RunnerCurrentTest(unittest.TestCase):
             job = FakeJob()
             seen = []
 
-            def stub(client, graph, on_event, on_job=None):
+            def stub(client, graph, on_event, on_job=None, guard=None):
                 on_job(job)
                 seen.append(runner.current)
                 return "job"
@@ -59,14 +59,14 @@ class RunnerCurrentTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             runner, record = make(tmp)
 
-            def ok(client, graph, on_event, on_job=None):
+            def ok(client, graph, on_event, on_job=None, guard=None):
                 on_job(FakeJob())
                 return "job"
 
             self.run_stage(runner, record, ok)
             self.assertIsNone(runner.current)
 
-            def boom(client, graph, on_event, on_job=None):
+            def boom(client, graph, on_event, on_job=None, guard=None):
                 on_job(FakeJob())
                 raise RuntimeError("boom")
 
@@ -80,7 +80,7 @@ class RunnerCurrentTest(unittest.TestCase):
             runner.cancel_requested = "s1"
             job = FakeJob()
 
-            def stub(client, graph, on_event, on_job=None):
+            def stub(client, graph, on_event, on_job=None, guard=None):
                 on_job(job)
                 return "job"
 

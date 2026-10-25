@@ -40,14 +40,18 @@ class OutageGuard:
     """Retry transient failures until they last `window` seconds, then give up.
 
     `pause` is the sleep in seconds between retries; `clock` returns seconds
-    (monotonic) and `sleep` takes seconds.
+    (monotonic) and `sleep` takes seconds. `stop` is an optional
+    `threading.Event`: once it is set (the app is shutting down) a failure is
+    re-raised at once and the pause between retries ends early, so a retrying
+    worker thread never holds the process up.
     """
 
-    def __init__(self, window=25.0, pause=1.5, clock=time.monotonic, sleep=time.sleep):
+    def __init__(self, window=25.0, pause=1.5, clock=time.monotonic, sleep=None, stop=None):
         self.window = window
         self.pause = pause
         self.clock = clock
-        self.sleep = sleep
+        self.stop = stop
+        self.sleep = sleep or (stop.wait if stop is not None else time.sleep)
         self._first = None
 
     def ok(self):
@@ -61,7 +65,7 @@ class OutageGuard:
         `ComfyUnreachable` (chained from `exc`) once the streak has lasted
         `window` seconds; otherwise sleeps `pause` seconds and returns.
         """
-        if not is_transient(exc):
+        if not is_transient(exc) or (self.stop is not None and self.stop.is_set()):
             raise exc
         now = self.clock()
         if self._first is None:

@@ -1,11 +1,13 @@
 """Sequential shot runner: a queue of shot ids and one worker task."""
 import asyncio
 import logging
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 from app import comfy, comfy_health, errors, graphs, progress
+from app.outage import OutageGuard
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ class ShotRunner:
         self.items = {}
         self.current = None
         self.cancel_requested = None
+        self.stopping = threading.Event()  # set on shutdown: retrying worker threads give up at once
 
     async def _call(self, func, *args):
         """Run `func(*args)` in a thread and return its result.
@@ -78,6 +81,7 @@ class ShotRunner:
 
     async def stop(self):
         """Cancel the worker task and wait for it (nothing is cancelled in ComfyUI)."""
+        self.stopping.set()
         task, self.task = self.task, None
         if task is None:
             return
@@ -240,7 +244,7 @@ class ShotRunner:
             job = await self._call(
                 comfy.submit_and_follow, self.client, graph,
                 self.thread_callback(loop, record, "generate"),
-                self.on_job_for(record))
+                self.on_job_for(record), OutageGuard(stop=self.stopping))
             path = await self._call(
                 comfy.download_output, job, graphs.GENERATION_OUTPUT_NODE,
                 self.store.shot_dir(shot_id), "before")
@@ -359,7 +363,7 @@ class ShotRunner:
             job = await self._call(
                 comfy.submit_and_follow, client, graph,
                 self.thread_callback(loop, record, "optics"),
-                self.on_job_for(record))
+                self.on_job_for(record), OutageGuard(stop=self.stopping))
             path = await self._call(
                 comfy.download_output, job, graphs.OPTICS_OUTPUT_NODE,
                 self.store.shot_dir(shot_id), f"after_{n}")
