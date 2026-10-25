@@ -107,7 +107,7 @@ class ShotRunner:
         for event in list(self._watchers.get(record["id"], ())):
             event.set()
 
-    def apply_event(self, record, stage, kind, data):
+    def apply_event(self, record, stage, kind, data, graph=None):
         """Apply one `submit_and_follow` event to the shot `record` (loop thread).
 
         `stage` is "generate" or "optics"; `kind` is "status" (`data` a str,
@@ -117,14 +117,18 @@ class ShotRunner:
         old and new, and `message` comes from `message_for_node`. A frame whose
         `nodes_total` is 0 is a step frame (its `value` is a per-node fraction):
         it changes only `message`. A missing `nodes_total` counts as overall.
-        Returns None.
+        `graph` (the submitted ComfyUI graph, node id to node) turns
+        `current_node` into the class type for `message_for_node`; without it
+        the class type is None. Returns None.
         """
         if kind != "progress":
             self.update(record)
             return
+        node = ((graph or {}).get(data["current_node"]) or {}).get("class_type")
         if data.get("nodes_total", 1) <= 0:
             self.update(record, message=progress.message_for_node(
-                stage, data["current_node"], data["step"], data["steps"]))
+                stage, node, data["step"], data["steps"],
+                previous=record.get("message")))
             return
         fraction = max(0.0, min(1.0, data["value"]))
         if stage == "optics" and record.get("_reapply"):
@@ -142,14 +146,16 @@ class ShotRunner:
             record,
             progress=progress.monotonic(record.get("progress", 0.0), overall),
             message=progress.message_for_node(
-                stage, data["current_node"], data["step"], data["steps"]),
+                stage, node, data["step"], data["steps"],
+                previous=record.get("message")),
         )
 
-    def thread_callback(self, loop, record, stage):
+    def thread_callback(self, loop, record, stage, graph=None):
         """Return a function `(kind, data)` that, from any thread, schedules
-        `apply_event(record, stage, kind, data)` on `loop`."""
+        `apply_event(record, stage, kind, data, graph)` on `loop`."""
         def callback(kind, data):
-            loop.call_soon_threadsafe(self.apply_event, record, stage, kind, data)
+            loop.call_soon_threadsafe(
+                self.apply_event, record, stage, kind, data, graph)
         return callback
 
     async def _worker(self):
@@ -224,7 +230,7 @@ class ShotRunner:
         try:
             job = await self._call(
                 comfy.submit_and_follow, self.client, graph,
-                self.thread_callback(loop, record, "generate"),
+                self.thread_callback(loop, record, "generate", graph),
                 self.on_job_for(record), OutageGuard(stop=self.stopping))
             path = await self._call(
                 comfy.download_output, job, graphs.GENERATION_OUTPUT_NODE,
@@ -343,7 +349,7 @@ class ShotRunner:
         try:
             job = await self._call(
                 comfy.submit_and_follow, client, graph,
-                self.thread_callback(loop, record, "optics"),
+                self.thread_callback(loop, record, "optics", graph),
                 self.on_job_for(record), OutageGuard(stop=self.stopping))
             path = await self._call(
                 comfy.download_output, job, graphs.OPTICS_OUTPUT_NODE,

@@ -26,15 +26,40 @@ def monotonic(previous, new):
     return max(previous, new)
 
 
-def message_for_node(stage, class_type, value=None, maximum=None):
-    """Return the human status line (str) for the stage ("generate" or "optics") and running node class type."""
-    if stage == "generate":
+_NODE_MESSAGES = {}
+for _text, _types in (
+    ("Loading the LTX-2 models", (
+        "UnetLoaderGGUF", "LTXAVTextEncoderLoader", "VAELoader",
+        "LTXVAudioVAELoader", "LatentUpscaleModelLoader", "CLIPTextEncode")),
+    ("Upscaling the video", ("LTXVLatentUpsampler",)),
+    ("Decoding the video", ("VAEDecodeTiled", "LTXVAudioVAEDecode")),
+    ("Reading the video", ("LoadVideo", "GetVideoComponents")),
+    ("Estimating depth", ("LoadDA3Model", "DA3Inference", "DA3Render")),
+    ("Scaling depth to metres", (
+        "OpenOptics_DepthToMetric", "OpenOptics_DepthTemporalSmooth")),
+    ("Applying depth of field", ("OpenOptics_DepthOfField",)),
+    ("Saving the video", ("CreateVideo", "SaveVideo")),
+):
+    for _type in _types:
+        _NODE_MESSAGES[_type] = _text
+
+_STAGE_DEFAULTS = {"generate": "Generating video", "optics": "Estimating depth"}
+
+
+def message_for_node(stage, class_type, value=None, maximum=None, previous=None):
+    """Return the human status line (str) for the running node `class_type` of `stage` ("generate" or "optics").
+
+    SamplerCustomAdvanced gives "Generating video: step {value} of {maximum}"
+    when both are given. An unknown or None class type keeps `previous`
+    (None and "Waiting for ComfyUI" do not count), else the stage default.
+    Never returns "Waiting for ComfyUI".
+    """
+    if class_type == "SamplerCustomAdvanced":
         if value is not None and maximum is not None:
             return f"Generating video: step {value} of {maximum}"
         return "Generating video"
-    if stage == "optics":
-        if str(class_type).startswith("DA3"):
-            return "Estimating depth"
-        if class_type in ("OpenOptics_DepthOfField", "CreateVideo", "SaveVideo"):
-            return "Applying depth of field"
-    return "Waiting for ComfyUI"
+    if class_type in _NODE_MESSAGES:
+        return _NODE_MESSAGES[class_type]
+    if previous is not None and previous != "Waiting for ComfyUI":
+        return previous
+    return _STAGE_DEFAULTS.get(stage, "Generating video")

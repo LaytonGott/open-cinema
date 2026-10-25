@@ -48,10 +48,11 @@ class ProgressFramesTest(unittest.TestCase):
     def test_generate_stage_stays_below_one_after_both_samplers(self):
         with tempfile.TemporaryDirectory() as tmp:
             runner, record = self.make(tmp)
+            graph = {node: {"class_type": "SamplerCustomAdvanced"} for node in ("15", "24")}
             for node in ("15", "24"):
                 sampler = {"current_node": node, "value": 1.0, "step": 8, "steps": 8,
                            "nodes_total": 0, "nodes_done": 0}
-                runner.apply_event(record, "generate", "progress", sampler)
+                runner.apply_event(record, "generate", "progress", sampler, graph)
             self.assertEqual(record["progress"], 0.0)
             self.assertEqual(record["stages"][0]["progress"], 0.0)
             self.assertEqual(record["message"], "Generating video: step 8 of 8")

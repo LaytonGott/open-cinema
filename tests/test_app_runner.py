@@ -60,6 +60,9 @@ class ShotRunnerTest(unittest.TestCase):
                 {"id": "optics", "progress": 0.0}]})
             runner = ShotRunner(store)
 
+            graph = {"KSampler": {"class_type": "SamplerCustomAdvanced"},
+                     "DA3Node": {"class_type": "DA3Inference"}}
+
             def event(value, step=None, steps=None):
                 return {"current_node": "KSampler", "value": value,
                         "step": step, "steps": steps}
@@ -68,7 +71,7 @@ class ShotRunnerTest(unittest.TestCase):
             self.assertEqual(record["progress"], 0.0)
             seen = []
             for value, step in ((0.25, 2), (0.5, 4), (0.2, 1), (1.0, 8)):
-                runner.apply_event(record, "generate", "progress", event(value, step, 8))
+                runner.apply_event(record, "generate", "progress", event(value, step, 8), graph)
                 seen.append(record["progress"])
                 if value == 0.2:
                     self.assertEqual(record["message"], "Generating video: step 1 of 8")
@@ -78,7 +81,7 @@ class ShotRunnerTest(unittest.TestCase):
             self.assertAlmostEqual(seen[3], 0.85, places=6)
             self.assertEqual(record["stages"][0]["progress"], 1.0)
             runner.apply_event(record, "optics", "progress", {
-                "current_node": "DA3Node", "value": 0.5, "step": None, "steps": None})
+                "current_node": "DA3Node", "value": 0.5, "step": None, "steps": None}, graph)
             self.assertAlmostEqual(record["progress"], 0.925, places=6)
             self.assertEqual(record["message"], "Estimating depth")
 
