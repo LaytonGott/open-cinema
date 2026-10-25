@@ -9,26 +9,11 @@ let button = null;
 let status = null;
 let current = null;
 let lastKey = null;
-let pendingAperture = null;
+// The aperture asked for in a re-apply is not part of the public record, so the page keeps it itself, per shot id.
+const pendingByShot = {};
+const seenRunning = new Set();
 let list = null;
 let listKey = null;
-
-// The aperture asked for in a re-apply is not part of the public record, so the page keeps it itself: in memory, and in
-// sessionStorage so a reload while the re-apply runs still shows the target.
-function rememberRequested(shotId, aperture) {
-  pendingAperture = aperture;
-  try { sessionStorage.setItem("requestedAperture:" + shotId, String(aperture)); } catch (err) { /* storage may be blocked */ }
-}
-
-function requestedFor(shotId) {
-  if (pendingAperture !== null) return pendingAperture;
-  try {
-    const stored = sessionStorage.getItem("requestedAperture:" + shotId);
-    return stored === null ? null : Number(stored);
-  } catch (err) {
-    return null;
-  }
-}
 
 function showValue() {
   const text = "f/" + APERTURE_STOPS[Number(slider.value)];
@@ -45,9 +30,12 @@ function updateButton() {
 function showStatus(state, version) {
   const shot = state.shot;
   let text = "";
+  // A shot record fetched before the re-apply started can still read "done" when its shot is shown again, so the
+  // entry goes only once the shot has been seen running.
+  if (shot && shot.status === "optics") seenRunning.add(shot.id);
+  else if (shot && seenRunning.delete(shot.id)) delete pendingByShot[shot.id];
   if (shot && shot.status === "optics") {
-    const requested = requestedFor(shot.id);
-    const target = requested !== null ? requested : APERTURE_STOPS[Number(slider.value)];
+    const target = shot.id in pendingByShot ? pendingByShot[shot.id] : APERTURE_STOPS[Number(slider.value)];
     text = "Applying f/" + target + " ...";
   } else if (shot && shot.status === "done" && shot.reapply_error) {
     const err = shot.reapply_error;
@@ -110,7 +98,7 @@ function render(state) {
     button.textContent = "Apply aperture";
     button.addEventListener("click", () => {
       const aperture = APERTURE_STOPS[Number(slider.value)];
-      rememberRequested(current.shot.id, aperture);
+      pendingByShot[current.shot.id] = aperture;
       reapplyShown(aperture);
     });
     status = document.createElement("span");

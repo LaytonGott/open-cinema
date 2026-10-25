@@ -120,9 +120,12 @@ class ReapplyStatusTest(unittest.TestCase):
                 arg=tid("reapply-status"),
             )
             page.reload()
+            # The requested aperture is not kept across a reload: the status shows the slider's value.
             page.wait_for_function(
-                "s => document.querySelector(s) && document.querySelector(s).textContent.trim() === 'Applying f/8 ...'",
-                arg=tid("reapply-status"),
+                "([s, v]) => { const value = document.querySelector(v) && document.querySelector(v).textContent.trim();"
+                " return !!value && !!document.querySelector(s) &&"
+                " document.querySelector(s).textContent.trim() === 'Applying ' + value + ' ...'; }",
+                arg=[tid("reapply-status"), tid("reapply-value")],
             )
         finally:
             h.fake.release()

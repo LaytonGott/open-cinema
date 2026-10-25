@@ -78,15 +78,23 @@ class ReapplySurviveTest(unittest.TestCase):
             arg=tid("reapply-status"),
         )
 
-    def check_running(self, page):
+    def check_running(self, page, after_reload=False):
         page.wait_for_function(
             "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'result'",
             arg=tid("viewport"),
         )
-        page.wait_for_function(
-            "s => document.querySelector(s).textContent.trim() === 'Applying f/8 ...'",
-            arg=tid("reapply-status"),
-        )
+        if after_reload:
+            # The requested aperture is not kept across a reload: the status shows the slider's value.
+            page.wait_for_function(
+                "([s, v]) => { const value = document.querySelector(v).textContent.trim();"
+                " return !!value && document.querySelector(s).textContent.trim() === 'Applying ' + value + ' ...'; }",
+                arg=[tid("reapply-status"), tid("reapply-value")],
+            )
+        else:
+            page.wait_for_function(
+                "s => document.querySelector(s).textContent.trim() === 'Applying f/8 ...'",
+                arg=tid("reapply-status"),
+            )
         self.assertTrue(page.locator(tid("reapply-button")).is_disabled())
         page.wait_for_function(
             "() => { const t = document.querySelector('[data-testid=play-toggle]');"
@@ -133,7 +141,7 @@ class ReapplySurviveTest(unittest.TestCase):
         try:
             self.start_reapply(page)
             page.reload()
-            self.check_running(page)
+            self.check_running(page, after_reload=True)
         finally:
             fake.release()
         self.check_finished(page)
