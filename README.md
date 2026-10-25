@@ -99,6 +99,16 @@ This is an estimate: it assumes a thin lens and a subject facing the camera. The
     npm test
     ```
 
+**Command line options**
+
+- `--comfyui` (default `http://127.0.0.1:8188`): ComfyUI base URL.
+- `--host` (default `127.0.0.1`): host the app listens on.
+- `--port` (default `8000`): port the app listens on, 0-65535.
+- `--proxy-port` (default `0`): port of the API proxy, 0-65535; 0 means any free port.
+- `--proxy-url` (default none): URL of the API proxy.
+- `--data-dir` (default `app/data`): folder for stored shots.
+- `-h, --help`: show the options and exit.
+
 ## Tests
 
 Run all tests with `npm test`. Run the GPU benchmarks with `npm run test:bench` (it sets `OPEN_OPTICS_BENCH=1`).
