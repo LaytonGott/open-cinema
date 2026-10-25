@@ -58,3 +58,48 @@ def nodes_missing_message(names):
     """Return the message telling the user which ComfyUI nodes are missing (names sorted, joined by ', ')."""
     return (f"ComfyUI is missing these nodes: {', '.join(sorted(names))}. "
             "Install the custom node pack that provides them and restart ComfyUI.")
+
+
+def find_missing_choices(graph, object_info):
+    """Find combo inputs whose value ComfyUI does not list as an option.
+
+    ``graph`` is a dict ``id -> {"class_type", "inputs"}``; ``object_info`` is a
+    dict ``class_type -> info`` with ``info["input"]["required"/"optional"]``.
+    Link values (lists) are ignored, as are combos with no options, input
+    ``file`` of LoadVideo and every combo input of SaveVideo. Returns a sorted
+    list of unique ``(input_name, value, class_type)`` tuples.
+    """
+    found = set()
+    for node in graph.values():
+        class_type = node["class_type"]
+        if class_type == "SaveVideo":
+            continue
+        groups = (object_info.get(class_type) or {}).get("input") or {}
+        definitions = {}
+        for group in ("required", "optional"):
+            definitions.update(groups.get(group) or {})
+        for name, value in node.get("inputs", {}).items():
+            if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+                continue
+            if class_type == "LoadVideo" and name == "file":
+                continue
+            definition = definitions.get(name)
+            if not isinstance(definition, (list, tuple)) or not definition:
+                continue
+            first = definition[0]
+            if isinstance(first, list):
+                options = first
+            elif first == "COMBO" and len(definition) > 1 and isinstance(definition[1], dict):
+                options = definition[1].get("options")
+            else:
+                continue
+            if options and value not in options:
+                found.add((name, value, class_type))
+    return sorted(found, key=lambda t: (t[0], str(t[1]), t[2]))
+
+
+def models_missing_message(items):
+    """Return the message listing ``(name, value, class_type)`` choices ComfyUI does not list."""
+    listed = ", ".join(f"{name} '{value}' ({class_type})" for name, value, class_type in items)
+    return (f"ComfyUI does not list these files: {listed}. "
+            "Put them in ComfyUI's models folders (see the README) and restart ComfyUI.")
