@@ -31,11 +31,35 @@ class ShotRunner:
     async def _call(self, func, *args):
         """Run `func(*args)` in a thread, wait for it to end and return its result.
 
-        The thread is always awaited to its end, so a queued shot never starts
-        on top of a running job. `errors.ComfyUnreachable` comes only from the
-        outage guard inside the thread; other exceptions propagate unchanged.
+        The thread is a daemon, so it never blocks interpreter exit; cancelling
+        the awaiting task does not wait for it. `errors.ComfyUnreachable` comes
+        only from the outage guard inside the thread; other exceptions
+        propagate unchanged.
         """
-        return await asyncio.to_thread(func, *args)
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+
+        def resolve(result, error):
+            if future.cancelled():
+                return
+            if error is not None:
+                future.set_exception(error)
+            else:
+                future.set_result(result)
+
+        def work():
+            result = error = None
+            try:
+                result = func(*args)
+            except BaseException as exc:
+                error = exc
+            try:
+                loop.call_soon_threadsafe(resolve, result, error)
+            except RuntimeError:  # the loop is closed
+                pass
+
+        threading.Thread(target=work, daemon=True).start()
+        return await future
 
     def on_job_for(self, record):
         """Return the `on_job` callback for the shot `record` (called in a worker thread).
@@ -337,7 +361,7 @@ class ShotRunner:
         self.cancel_requested = shot_id
         current = self.current
         if current is not None and current["shot_id"] == shot_id:
-            await asyncio.to_thread(current["job"].cancel)
+            await self._call(current["job"].cancel)
         return record
 
     async def run_optics(self, record, aperture, n):
