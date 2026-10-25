@@ -64,6 +64,18 @@ class ColdStartFlowTest(unittest.TestCase):
         page.locator("[data-testid=shot-description]").fill("A lighthouse keeper climbs the stairs at dawn.")
         self.assertTrue(page.locator("[data-testid=generate-button]").is_disabled())
 
+    def test_2_retry(self):
+        page = self.page
+        self.fake.start()
+        page.locator("[data-testid=comfy-retry]").click()
+        page.wait_for_function(
+            "() => { const e = document.querySelector('[data-testid=comfy-status]'); return e && e.getAttribute('data-state') === 'ok'; }",
+            timeout=10000,
+        )
+        self.assertIn("ComfyUI: connected", page.locator("[data-testid=comfy-status]").inner_text())
+        banner = page.locator("[data-testid=comfy-banner]")
+        self.assertTrue(banner.count() == 0 or not banner.is_visible())
+
 
 if __name__ == "__main__":
     unittest.main()
