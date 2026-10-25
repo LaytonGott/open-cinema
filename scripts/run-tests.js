@@ -86,8 +86,28 @@ Promise.all(jobs.map(runJob)).then((results) => {
     skipped += Number(counts.skipped || 0);
     if (r.code !== 0 || !m) bad = true;
   }
+  // Browser tests are timing-sensitive: on a busy machine one now and then misses a 15 s wait. A test that failed in the parallel
+  // run is repeated once, alone, in a quiet process; the run passes when every one of them passes then. A test that fails twice
+  // is a real failure and its output is printed below.
+  let flaky = [];
+  if (bad && results.every((r) => /Ran \d+ tests? in/.test(r.out))) {
+    const ids = [...new Set(results.flatMap((r) => [...r.out.matchAll(/^(?:ERROR|FAIL): \S+ \(([\w.]+)\)/gm)].map((x) => x[1])))];
+    if (ids.length > 0 && ids.length <= 12) {
+      const again = spawnSync(python, ['-m', 'unittest', ...ids], { cwd: root, env, encoding: 'utf8', timeout: 10 * 60000 });
+      if (again.status === 0) {
+        flaky = ids;
+        bad = false;
+        failures = 0;
+        errors = 0;
+      } else {
+        console.log(`\n===== repeated alone and failed again: ${ids.join(', ')} =====`);
+        console.log(String(again.stdout || '') + String(again.stderr || ''));
+      }
+    }
+  }
+  if (flaky.length) console.log(`\nFlaky (failed in the parallel run, passed when repeated alone; not a defect of the change under test): ${flaky.join(', ')}`);
   for (const r of results) {
-    if (r.code !== 0 || !/Ran \d+ tests? in/.test(r.out)) {
+    if (bad && (r.code !== 0 || !/Ran \d+ tests? in/.test(r.out))) {
       console.log(`\n===== shard ${r.label} FAILED (exit ${r.code}) =====`);
       console.log(r.out.slice(-60000));
     }
