@@ -152,7 +152,7 @@ async def create_shot(request):
 
 
 async def reapply_shot(request):
-    """Re-apply the optics of the shot in the path with the body's ``aperture`` (f-number) and return its public record with status 202 (404 ``not_found``, 400 ``invalid_shot``, 409 ``not_ready`` or ``busy``, 503 ``comfy_nodes_missing`` if ComfyUI lacks a node the optics graph needs, 503 ``comfy_unreachable`` if ComfyUI cannot be asked)."""
+    """Re-apply the optics of the shot in the path with the body's ``aperture`` (f-number) and return its public record with status 202 (404 ``not_found``, 400 ``invalid_shot``, 409 ``not_ready`` or ``busy``, 503 ``comfy_nodes_missing`` if ComfyUI lacks a node the optics graph needs, 503 ``comfy_models_missing`` if ComfyUI does not list a model file it uses, 503 ``comfy_unreachable`` if ComfyUI cannot be asked)."""
     shot_id = request.match_info["id"]
     record = None
     for r in request.app[STORE].list():
@@ -189,6 +189,12 @@ async def reapply_shot(request):
         return error_response(503, "comfy_unreachable", f"Can't reach ComfyUI at {url}. Start ComfyUI, then retry.")
     if missing:
         return error_response(503, "comfy_nodes_missing", preflight.nodes_missing_message(missing))
+    try:
+        items = await preflight.missing_choices(url, [graph])
+    except preflight.ObjectInfoUnreachable:
+        return error_response(503, "comfy_unreachable", f"Can't reach ComfyUI at {url}. Start ComfyUI, then retry.")
+    if items:
+        return error_response(503, "comfy_models_missing", preflight.models_missing_message(items))
     runner = request.app[RUNNER]
     runner.begin_reapply(record, aperture)
     runner.enqueue(shot_id, aperture)
