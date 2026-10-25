@@ -86,7 +86,7 @@ This is an estimate: it assumes a thin lens and a subject facing the camera. The
 
     Common errors:
 
-    - "ComfyUI refused the request: ... Value not in list: <input>" means a model is missing. The message names the input (for example `unet_name`): put the file from step 1 in its folder and restart ComfyUI.
+    - "ComfyUI refused the request: ... Value not in list: <input>" means a missing model. The message names the input (for example `unet_name`): put the file from step 1 in its folder and restart ComfyUI.
     - "Node <id> failed: CUDA out of memory" means the GPU ran out of memory. Close other programs that use the GPU, then run the shot again.
     - "Lost the connection to ComfyUI. Start ComfyUI, then retry."
     - "Could not download the video from ComfyUI."

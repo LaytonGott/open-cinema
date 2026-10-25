@@ -85,6 +85,17 @@ class ReadmeAppSectionTest(unittest.TestCase):
                      "only Depth of Field runs again"):
             self.assertIn(text, step)
 
+    def test_step_six_errors(self):
+        from app.errors import DOWNLOAD_MESSAGE, INTERNAL_MESSAGE, UNREACHABLE_MESSAGE
+        step = self._step(6)
+        lowered = step.lower()
+        for text in ("isn't running", "Retry", "missing model", "Value not in list", "out of memory"):
+            with self.subTest(text=text):
+                self.assertIn(text.lower(), lowered)
+        for text in (UNREACHABLE_MESSAGE, DOWNLOAD_MESSAGE, INTERNAL_MESSAGE, "Can't reach ComfyUI at"):
+            with self.subTest(text=text):
+                self.assertIn(text, step)
+
     def test_npm_run_app_and_not_running(self):
         section = _section()
         for text in ("npm run app", "isn't running", "Retry", "python -m app", "--comfyui"):
