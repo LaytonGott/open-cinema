@@ -62,15 +62,17 @@ def upload_video(client, path, guard=None):
     return guard.call(client.assets.from_file, path)
 
 
-def download_output(job, node_id, dest_dir, stem):
+def download_output(job, node_id, dest_dir, stem, guard=None):
     """Save the output of node_id from job into dest_dir as stem + extension; return the Path.
 
     The extension comes from the output's name ('.mp4' when it has none).
+    The download runs through guard (default: a new OutageGuard), which retries transient errors.
     Raises LookupError if job.outputs has no entry for node_id.
     """
+    guard = guard or OutageGuard()
     for output in job.outputs:
         if output.node_id == node_id:
             path = Path(dest_dir) / (stem + (Path(output.name).suffix or ".mp4"))
-            output.to_file(path)
+            guard.call(output.to_file, path)
             return path
     raise LookupError(f"no output for node {node_id}")

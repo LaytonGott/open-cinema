@@ -129,6 +129,27 @@ class DownloadOutputTest(unittest.TestCase):
         with self.assertRaises(LookupError):
             download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", "dest", "s")
 
+    def test_retry_download(self):
+        class FlakyOutput(StubOutput):
+            def to_file(self, path):
+                self.saved.append(path)
+                if len(self.saved) == 1:
+                    request = httpx.Request("GET", "http://comfy/view")
+                    response = httpx.Response(503, request=request)
+                    raise httpx.HTTPStatusError("503", request=request, response=response)
+                return path
+
+        out = FlakyOutput("2", "x.mp4")
+        guard = OutageGuard(sleep=lambda s: None)
+        path = download_output(StubOutputsJob([out]), "2", "dest", "after", guard)
+        self.assertEqual(path, Path("dest") / "after.mp4")
+        self.assertEqual(len(out.saved), 2)
+
+    def test_download_lookup_error_propagates(self):
+        guard = OutageGuard(sleep=lambda s: None)
+        with self.assertRaises(LookupError):
+            download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", "dest", "s", guard)
+
 
 class StubAssets:
     def __init__(self, result):
