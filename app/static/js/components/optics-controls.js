@@ -13,6 +13,23 @@ let pendingAperture = null;
 let list = null;
 let listKey = null;
 
+// The aperture asked for in a re-apply is not part of the public record, so the page keeps it itself: in memory, and in
+// sessionStorage so a reload while the re-apply runs still shows the target.
+function rememberRequested(shotId, aperture) {
+  pendingAperture = aperture;
+  try { sessionStorage.setItem("requestedAperture:" + shotId, String(aperture)); } catch (err) { /* storage may be blocked */ }
+}
+
+function requestedFor(shotId) {
+  if (pendingAperture !== null) return pendingAperture;
+  try {
+    const stored = sessionStorage.getItem("requestedAperture:" + shotId);
+    return stored === null ? null : Number(stored);
+  } catch (err) {
+    return null;
+  }
+}
+
 function showValue() {
   const text = "f/" + APERTURE_STOPS[Number(slider.value)];
   value.textContent = text;
@@ -29,7 +46,8 @@ function showStatus(state, version) {
   const shot = state.shot;
   let text = "";
   if (shot && shot.status === "optics") {
-    const target = shot.reapply_aperture != null ? shot.reapply_aperture : pendingAperture !== null ? pendingAperture : APERTURE_STOPS[Number(slider.value)];
+    const requested = requestedFor(shot.id);
+    const target = requested !== null ? requested : APERTURE_STOPS[Number(slider.value)];
     text = "Applying f/" + target + " ...";
   } else if (shot && shot.status === "done" && shot.reapply_error) {
     const err = shot.reapply_error;
@@ -91,8 +109,9 @@ function render(state) {
     button.setAttribute("aria-label", "Apply aperture");
     button.textContent = "Apply aperture";
     button.addEventListener("click", () => {
-      pendingAperture = APERTURE_STOPS[Number(slider.value)];
-      reapplyShown(pendingAperture);
+      const aperture = APERTURE_STOPS[Number(slider.value)];
+      rememberRequested(current.shot.id, aperture);
+      reapplyShown(aperture);
     });
     status = document.createElement("span");
     status.setAttribute("data-testid", "reapply-status");
