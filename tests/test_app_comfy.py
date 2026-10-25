@@ -1,9 +1,11 @@
 import unittest
 from pathlib import Path
 
+import httpx
 from comfy_sdk import events
 
 from app.comfy import download_output, submit_and_follow, upload_video
+from app.outage import OutageGuard
 
 
 class StubJob:
@@ -53,6 +55,42 @@ class SubmitAndFollowTest(unittest.TestCase):
     def test_on_job_optional(self):
         job = StubJob()
         self.assertIs(submit_and_follow(StubClient(job), {}, lambda *a: None), job)
+
+    def test_retry_events(self):
+        class FlakyEventsJob(StubJob):
+            def __init__(self):
+                super().__init__()
+                self.event_calls = 0
+
+            def events(self):
+                self.event_calls += 1
+                if self.event_calls == 1:
+                    raise httpx.ConnectError("down")
+                yield from super().events()
+
+        job = FlakyEventsJob()
+        got = []
+        guard = OutageGuard(sleep=lambda s: None)
+        submit_and_follow(StubClient(job), {}, lambda *a: got.append(a), guard=guard)
+        self.assertEqual(job.event_calls, 2)
+        self.assertEqual(got[0], ("status", "running"))
+        self.assertEqual(len(got), 2)
+        self.assertEqual(job.result_calls, 1)
+
+    def test_retry_result(self):
+        class FlakyResultJob(StubJob):
+            def result(self):
+                super().result()
+                if self.result_calls == 1:
+                    request = httpx.Request("GET", "http://comfy.test/history")
+                    response = httpx.Response(503, request=request)
+                    raise httpx.HTTPStatusError("503", request=request, response=response)
+
+        job = FlakyResultJob()
+        guard = OutageGuard(sleep=lambda s: None)
+        returned = submit_and_follow(StubClient(job), {}, lambda *a: None, guard=guard)
+        self.assertIs(returned, job)
+        self.assertEqual(job.result_calls, 2)
 
 
 class StubOutput:

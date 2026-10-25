@@ -5,35 +5,51 @@ from pathlib import Path
 import comfy_sdk
 from comfy_sdk import events
 
+from app.outage import OutageGuard
+
 
 def make_client():
     """Return a comfy_sdk.Comfy client (it reads COMFY_BASE_URL, set by app.proxy)."""
     return comfy_sdk.Comfy()
 
 
-def submit_and_follow(client, graph, on_event, on_job=None):
+def submit_and_follow(client, graph, on_event, on_job=None, guard=None):
     """Submit graph, follow its events, wait for the result and return the job.
 
     Calls on_job(job) once if given, so a caller can cancel. Calls
     on_event('status', status_str) for each StatusChange and
     on_event('progress', d) for each Progress, where d is a dict with exactly the
     keys current_node, value, step and steps (current_node, step and steps may be
-    None). Other event types are ignored. Exceptions propagate unchanged.
+    None). Other event types are ignored. Transient failures are retried through
+    guard (default: a new OutageGuard); other exceptions propagate unchanged.
     """
-    job = client.submit(client.workflows.from_json(graph))
+    guard = guard or OutageGuard()
+    job = guard.call(client.submit, client.workflows.from_json(graph))
     if on_job is not None:
         on_job(job)
-    for ev in job.events():
-        if isinstance(ev, events.StatusChange):
-            on_event("status", ev.status)
-        elif isinstance(ev, events.Progress):
-            on_event("progress", {
-                "current_node": ev.current_node,
-                "value": ev.value,
-                "step": ev.step,
-                "steps": ev.steps,
-            })
-    job.result()
+    done = False
+    while not done:
+        stream = iter(job.events())
+        while True:
+            try:
+                ev = next(stream)
+            except StopIteration:
+                done = True
+                break
+            except Exception as exc:
+                guard.failed(exc)
+                break
+            guard.ok()
+            if isinstance(ev, events.StatusChange):
+                on_event("status", ev.status)
+            elif isinstance(ev, events.Progress):
+                on_event("progress", {
+                    "current_node": ev.current_node,
+                    "value": ev.value,
+                    "step": ev.step,
+                    "steps": ev.steps,
+                })
+    guard.call(job.result)
     return job
 
 
