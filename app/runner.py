@@ -140,10 +140,17 @@ class ShotRunner:
         only `elapsed_s` is refreshed) or "progress" (`data` a dict with
         `current_node`, `value` as a fraction 0 to 1, `step` and `steps`).
         Progress never falls: the stage and overall values keep the larger of
-        old and new, and `message` comes from `message_for_node`. Returns None.
+        old and new, and `message` comes from `message_for_node`. A frame whose
+        `nodes_total` is 0 is a step frame (its `value` is a per-node fraction):
+        it changes only `message`. A missing `nodes_total` counts as overall.
+        Returns None.
         """
         if kind != "progress":
             self.update(record)
+            return
+        if data.get("nodes_total", 1) <= 0:
+            self.update(record, message=progress.message_for_node(
+                stage, data["current_node"], data["step"], data["steps"]))
             return
         fraction = max(0.0, min(1.0, data["value"]))
         if stage == "optics" and record.get("_reapply"):
