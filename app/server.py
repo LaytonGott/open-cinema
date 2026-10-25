@@ -11,6 +11,7 @@ from pathlib import Path
 
 from aiohttp import web
 
+from app import graphs, preflight
 from app.cli import parse_args
 from app.comfy_health import check_health
 from app.proxy import start_proxy, stop_proxy, use_proxy
@@ -151,7 +152,7 @@ async def create_shot(request):
 
 
 async def reapply_shot(request):
-    """Re-apply the optics of the shot in the path with the body's ``aperture`` (f-number) and return its public record with status 202 (404 ``not_found``, 400 ``invalid_shot``, 409 ``not_ready`` or ``busy``)."""
+    """Re-apply the optics of the shot in the path with the body's ``aperture`` (f-number) and return its public record with status 202 (404 ``not_found``, 400 ``invalid_shot``, 409 ``not_ready`` or ``busy``, 503 ``comfy_nodes_missing`` if ComfyUI lacks a node the optics graph needs, 503 ``comfy_unreachable`` if ComfyUI cannot be asked)."""
     shot_id = request.match_info["id"]
     record = None
     for r in request.app[STORE].list():
@@ -178,6 +179,16 @@ async def reapply_shot(request):
         return error_response(409, "not_ready", "The shot has no image yet, so its optics cannot be re-applied.")
     if record["status"] in ("queued", "generating", "optics"):
         return error_response(409, "busy", "The shot is still being processed. Try again when it is finished.")
+    graph = graphs.build_optics_graph(
+        "check.mp4", record["params"]["lens_mm"], aperture,
+        record["derived"]["subject_distance_m"], "opencinema/check")
+    url = request.app[COMFYUI_URL]
+    try:
+        missing = await preflight.missing_nodes(url, preflight.graph_class_types(graph))
+    except preflight.ObjectInfoUnreachable:
+        return error_response(503, "comfy_unreachable", f"Can't reach ComfyUI at {url}. Start ComfyUI, then retry.")
+    if missing:
+        return error_response(503, "comfy_nodes_missing", preflight.nodes_missing_message(missing))
     runner = request.app[RUNNER]
     runner.begin_reapply(record, aperture)
     runner.enqueue(shot_id, aperture)
