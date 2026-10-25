@@ -42,12 +42,14 @@ function renderHud(state) {
   const framing = found ? found.label : p.framing;
   const version = state.shot ? shownVersionOf(state) : null;
   const aperture = version && version.aperture != null ? version.aperture : p.aperture;
-  let text = p.lens_mm + " mm  f/" + aperture + "  " + String(framing || "").toUpperCase();
-  const d = state.shot && state.shot.derived ? state.shot.derived.subject_distance_m : null;
+  const parts = [p.lens_mm + " mm", "f/" + aperture];
+  let d = state.shot && state.shot.derived ? state.shot.derived.subject_distance_m : null;
+  if (!(typeof d === "number" && isFinite(d))) d = state.estimateM;
   if (typeof d === "number" && isFinite(d)) {
-    text += "  about " + (d < 10 ? d.toFixed(1) : String(Math.round(d))) + " m";
+    parts.push((d < 10 ? d.toFixed(1) : d.toFixed(0)) + " m");
   }
-  hud.textContent = text;
+  parts.push(String(framing || "").toUpperCase());
+  hud.textContent = parts.join("  ");
 }
 
 export function initViewport() {
