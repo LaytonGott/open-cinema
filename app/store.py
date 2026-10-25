@@ -39,9 +39,9 @@ class ShotStore:
         os.replace(tmp, directory / "shot.json")
 
     def add(self, record):
-        """Store a new record (dict with an `id`), filling `created_at` (UTC ISO string) and `seq` if missing; returns the record."""
+        """Store a new record (dict with an `id`), filling `created_at` (UTC string like `2026-01-02T03:04:05Z`) and `seq` if missing; returns the record."""
         if "created_at" not in record:
-            record["created_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds")
+            record["created_at"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         if "seq" not in record:
             self._seq += 1
             record["seq"] = self._seq
