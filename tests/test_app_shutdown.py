@@ -69,5 +69,15 @@ class ShutdownTest(unittest.IsolatedAsyncioTestCase):
                 self.assertLess(time.monotonic() - started, 8)
 
 
+class MainInterruptTest(unittest.TestCase):
+    def test_main_returns_zero_on_keyboard_interrupt(self):
+        def interrupt(coro):
+            coro.close()
+            raise KeyboardInterrupt
+
+        with mock.patch.object(asyncio, "run", interrupt):
+            self.assertEqual(server.main([]), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
