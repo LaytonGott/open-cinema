@@ -21,6 +21,13 @@ WebM clip (a sharp one for graphs without Depth of Field, a soft one for graphs 
     fake.stop()                     # the port now refuses connections, as when ComfyUI is not running
     fake.start()                    # same port again
 
+Things a real ComfyUI does that tests can switch on:
+    fake.real_progress = True             # ws `progress_state` frames (every node of the prompt with a state) next to `progress`,
+                                          # and a held node keeps announcing itself, as ComfyUI does while it works
+    fake.stall_health(20)                 # GET /system_stats answers only after 20 s (a busy ComfyUI: model load, swap, VAE decode)
+    fake.drop_connections(["/history", "/queue"], 6)   # for 6 s those paths close the connection (the proxy then answers 503)
+    fake.remove_node("DA3Inference")      # the custom node is not installed: /object_info lacks it, a graph with it is refused
+
 Every executed node is recorded in `fake.executed` as {"prompt_id", "node_id", "class_type", "inputs"} (inputs are the
 graph's inputs for that node, links as [node_id, slot]); every accepted graph is in `fake.prompts`.
 This file is a test fixture: do not edit it to make a test pass.
@@ -183,6 +190,9 @@ class FakeComfy:
         self._gate: asyncio.Event | None = None
         self._interrupt: set[str] = set()
         self._worker: asyncio.Task | None = None
+        self.real_progress = False
+        self._stall_until = 0.0
+        self._drop: tuple | None = None
 
     # ---------------------------------------------------------------- control (thread-safe)
     @property
@@ -206,6 +216,17 @@ class FakeComfy:
 
     def reset_cache(self):
         self._cache.clear()
+
+    def stall_health(self, seconds):
+        """GET /system_stats waits until `seconds` from now before it answers."""
+        self._stall_until = time.time() + seconds
+
+    def drop_connections(self, prefixes, seconds):
+        """For `seconds`, a request whose path starts with one of `prefixes` gets its connection closed without an answer."""
+        self._drop = (tuple(prefixes), time.time() + seconds)
+
+    def remove_node(self, class_type):
+        self.object_info.pop(class_type, None)
 
     def count(self, class_type):
         return sum(1 for e in self.executed if e["class_type"] == class_type)
@@ -271,7 +292,16 @@ class FakeComfy:
         self._queue = asyncio.Queue()
         self._gate = asyncio.Event()
         self._gate.set()
-        app = web.Application(client_max_size=512 * 1024 * 1024)
+        @web.middleware
+        async def faults(request, handler):
+            drop = self._drop
+            if drop and time.time() < drop[1] and request.path.startswith(drop[0]):
+                if request.transport is not None:
+                    request.transport.close()
+                raise web.HTTPServiceUnavailable()
+            return await handler(request)
+
+        app = web.Application(client_max_size=512 * 1024 * 1024, middlewares=[faults])
         app.add_routes([
             web.post("/prompt", self.post_prompt),
             web.get("/history/{id}", self.get_history),
@@ -378,6 +408,9 @@ class FakeComfy:
         return web.json_response({name: self.object_info[name]})
 
     async def system_stats(self, request):
+        wait = self._stall_until - time.time()
+        if wait > 0:
+            await asyncio.sleep(wait)
         return web.json_response({"system": {"os": "fake", "comfyui_version": "fake-0.41.0", "python_version": "3.13", "ram_total": 1, "ram_free": 1},
                                   "devices": [{"name": "fake cuda:0 NVIDIA GeForce RTX 3090", "type": "cuda", "index": 0, "vram_total": 25769803776, "vram_free": 20000000000}]})
 
@@ -515,6 +548,18 @@ class FakeComfy:
         await emit("execution_cached", {"nodes": cached, "timestamp": int(time.time() * 1000)})
         outputs = {}
         executed_now = []
+        states = {n: ("finished" if n in cached else "pending") for n in order}
+
+        async def announce(current=None, value=0, maximum=1):
+            """ComfyUI's `progress_state`: every node of the prompt with its state."""
+            nodes = {}
+            for nid in order:
+                running = nid == current
+                nodes[nid] = {"value": value if running else (1 if states[nid] == "finished" else 0), "max": maximum if running else 1,
+                              "state": "running" if running else states[nid], "node_id": nid, "prompt_id": prompt_id,
+                              "display_node_id": nid, "parent_node_id": None, "real_node_id": nid}
+            await self._send(client, "progress_state", {"prompt_id": prompt_id, "nodes": nodes})
+
         try:
             for node_id in order:
                 node = prompt[node_id]
@@ -525,12 +570,23 @@ class FakeComfy:
                     if self.object_info[ctype].get("output_node") and self._cache[sigs[node_id]].get("ui"):
                         outputs[node_id] = self._cache[sigs[node_id]]["ui"]
                     continue
-                if self._hold_at == ctype:
-                    self._gate.clear()
-                    await self._wait_gate(prompt_id)
-                    if prompt_id in self._interrupt:
-                        raise asyncio.CancelledError("interrupted")
-                await emit("executing", {"node": node_id, "display_node": node_id})
+                if self.real_progress:
+                    await emit("executing", {"node": node_id, "display_node": node_id})
+                    await announce(node_id)
+                    if self._hold_at == ctype:
+                        self._gate.clear()
+                        while not self._gate.is_set() and prompt_id not in self._interrupt:
+                            await announce(node_id)
+                            await asyncio.sleep(0.6)
+                        if prompt_id in self._interrupt:
+                            raise asyncio.CancelledError("interrupted")
+                else:
+                    if self._hold_at == ctype:
+                        self._gate.clear()
+                        await self._wait_gate(prompt_id)
+                        if prompt_id in self._interrupt:
+                            raise asyncio.CancelledError("interrupted")
+                    await emit("executing", {"node": node_id, "display_node": node_id})
                 if ctype in self._failures:
                     await emit("execution_error", {"node_id": node_id, "node_type": ctype, "executed": executed_now, "exception_message": self._failures[ctype],
                                                    "exception_type": "RuntimeError", "traceback": [], "current_inputs": {}, "current_outputs": [],
@@ -541,10 +597,13 @@ class FakeComfy:
                     for step in range(1, self.steps + 1):
                         await asyncio.sleep(self.delay)
                         await emit("progress", {"value": step, "max": self.steps, "node": node_id})
+                        if self.real_progress:
+                            await announce(node_id, step, self.steps)
                 else:
                     await asyncio.sleep(self.delay)
                 self.executed.append({"prompt_id": prompt_id, "node_id": node_id, "class_type": ctype, "inputs": json.loads(json.dumps(node["inputs"]))})
                 executed_now.append(node_id)
+                states[node_id] = "finished"
                 ui = None
                 if self.object_info[ctype].get("output_node"):
                     ui = self._save_output(prompt, node_id, node)
