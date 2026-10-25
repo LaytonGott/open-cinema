@@ -5,6 +5,8 @@ import unittest
 from aiohttp import web
 
 from app import preflight
+from tests.app_harness import SHOT, AppHarness
+from tests.fake_comfy import FakeComfy
 
 
 async def _serve(handler):
@@ -59,3 +61,27 @@ class PreflightModesTest(unittest.TestCase):
         sock.close()
         with self.assertRaises(preflight.ObjectInfoUnreachable):
             asyncio.run(preflight.missing_nodes(f"http://127.0.0.1:{port}", ["DA3Inference"]))
+
+
+class CreateShotComfyStoppedTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.fake = FakeComfy()
+        cls.harness = AppHarness(fake=cls.fake).start()
+        cls.fake.stop()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.harness.stop()
+        cls.fake.close()
+
+    def test_create_shot_503_and_no_shot_when_comfy_stopped(self):
+        status, before = self.harness.get("/api/shots")
+        self.assertEqual(status, 200)
+        status, body = self.harness.post("/api/shots", SHOT)
+        self.assertEqual(status, 503)
+        self.assertEqual(body["error"]["code"], "comfy_unreachable")
+        status, after = self.harness.get("/api/shots")
+        self.assertEqual(status, 200)
+        self.assertEqual(after["shots"], before["shots"])
+        self.assertEqual(after["shots"], [])
