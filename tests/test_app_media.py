@@ -58,15 +58,39 @@ class MediaTest(unittest.TestCase):
 
     def test_not_found(self):
         sid = self.shot_id
-        for path in (
-            f"/media/{sid}/..%2Fshot.json",
-            f"/media/{sid}/shot.json%00",
-            f"/media/{sid}/nope.mp4",
-            "/media/unknown-shot-id/before.mp4",
-        ):
-            status, _, body = fetch(self.harness, path)
-            self.assertEqual(status, 404, path)
-            self.assertEqual(json.loads(body)["error"]["code"], "not_found", path)
+        shot_dir = self.harness.data_dir / "shots" / sid
+        part = shot_dir / "before.mp4.part"
+        tmp = shot_dir / "x.mp4.tmp"
+        directory = shot_dir / "dir.mp4"
+        try:
+            part.write_bytes(b"x")
+            tmp.write_bytes(b"x")
+            directory.mkdir()
+            for path in (
+                f"/media/{sid}/..%2Fshot.json",
+                f"/media/{sid}/shot.json%00",
+                f"/media/{sid}/nope.mp4",
+                "/media/unknown-shot-id/before.mp4",
+                f"/media/{sid}/shot.json",
+                f"/media/{sid}/C:x.mp4",
+                f"/media/{sid}/..%5Cx.mp4",
+                f"/media/{sid}/before.mp4.part",
+                f"/media/{sid}/x.mp4.tmp",
+                f"/media/{sid}/dir.mp4",
+                f"/media/{sid}/%2e%2e.mp4",
+            ):
+                status, _, body = fetch(self.harness, path)
+                self.assertEqual(status, 404, path)
+                self.assertEqual(json.loads(body)["error"]["code"], "not_found", path)
+        finally:
+            part.unlink(missing_ok=True)
+            tmp.unlink(missing_ok=True)
+            if directory.exists():
+                directory.rmdir()
+
+    def test_video_names_still_served(self):
+        status, _, _ = fetch(self.harness, self.record["before_url"])
+        self.assertEqual(status, 200)
 
 
 if __name__ == "__main__":
