@@ -19,7 +19,13 @@ export function syncVideos(master, follower) {
   }
 
   function jump() {
-    follower.currentTime = master.currentTime;
+    if (follower.seeking) {
+      mirrorPlayState();
+      return;
+    }
+    if (Math.abs(master.currentTime - follower.currentTime) > 0.15 || master.paused) {
+      follower.currentTime = master.currentTime;
+    }
     mirrorPlayState();
   }
 
