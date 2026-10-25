@@ -90,6 +90,13 @@ function setSrc(video, url) {
 let unsync = null;
 let pending = null;
 
+// Free the media resources of a video that is being dropped.
+function releaseVideo(video) {
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+}
+
 // Switching the shown version: load a clone beside the old video and swap once it can show a frame.
 function setAfterSrc(after, before, url) {
   if (!url || after.getAttribute("src") === url) return;
@@ -97,7 +104,10 @@ function setAfterSrc(after, before, url) {
     setSrc(after, url);
     return;
   }
-  if (pending) pending.remove();
+  if (pending) {
+    releaseVideo(pending);
+    pending.remove();
+  }
   const next = cloneAfterVideo(after, url);
   pending = next;
   next.removeAttribute("data-testid");
@@ -112,6 +122,7 @@ function setAfterSrc(after, before, url) {
     const wasPlaying = !before.paused;
     next.dataset.testid = "after-video";
     after.replaceWith(next);
+    releaseVideo(after);
     if (unsync) unsync();
     unsync = syncVideos(before, next);
     if (wasPlaying) {
