@@ -402,9 +402,15 @@ async def _serve(args):
         return 0
     finally:
         if runner is not None:
-            await runner.cleanup()
+            try:
+                await asyncio.wait_for(runner.cleanup(), 4)
+            except asyncio.TimeoutError:
+                pass
         if proxy_runner is not None:
-            await stop_proxy(proxy_runner)
+            try:
+                await asyncio.wait_for(stop_proxy(proxy_runner), 4)
+            except asyncio.TimeoutError:
+                pass
 
 
 def main(argv=None) -> int:

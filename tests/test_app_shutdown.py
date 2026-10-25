@@ -1,9 +1,14 @@
+import argparse
 import asyncio
 import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
+from aiohttp import web
+
+from app import server
 from app.runner import ShotRunner
 from app.store import ShotStore
 
@@ -31,6 +36,37 @@ class ShutdownTest(unittest.IsolatedAsyncioTestCase):
             started = time.monotonic()
             await runner.stop()
             self.assertLess(time.monotonic() - started, 2)
+
+    async def test_serve_finishes_when_cleanup_hangs(self):
+        stops = []
+
+        def install(loop, stop):
+            stops.append(stop)
+
+        async def hang(self):
+            await asyncio.sleep(30)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(
+                proxy_url="http://127.0.0.1:1",
+                proxy_port=0,
+                comfyui="http://127.0.0.1:1",
+                data_dir=tmp,
+                host="127.0.0.1",
+                port=0,
+            )
+            with mock.patch.object(server, "_install_stop_handlers", install), mock.patch.object(
+                web.AppRunner, "cleanup", hang
+            ):
+                task = asyncio.ensure_future(server._serve(args))
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline and not stops:
+                    await asyncio.sleep(0.01)
+                await asyncio.sleep(0.5)
+                started = time.monotonic()
+                stops[0].set()
+                self.assertEqual(await asyncio.wait_for(task, 8), 0)
+                self.assertLess(time.monotonic() - started, 8)
 
 
 if __name__ == "__main__":
