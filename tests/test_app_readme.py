@@ -59,6 +59,11 @@ class ReadmeAppSectionTest(unittest.TestCase):
             self.assertIn(name, step_one)
             self.assertIn(folder, step_one)
 
+    def test_npm_run_app_and_not_running(self):
+        section = _section()
+        for text in ("npm run app", "isn't running", "Retry", "python -m app", "--comfyui"):
+            self.assertIn(text, section)
+
     def test_no_todo(self):
         self.assertNotIn("TODO", _section())
 
