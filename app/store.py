@@ -104,6 +104,7 @@ class ShotStore:
             stage = "optics" if status == "optics" else "generate"
             record["status"] = "failed"
             record["error"] = {"code": "interrupted", "message": message, "stage": stage}
+            record["message"] = message
             for entry in record.get("stages") or []:
                 if isinstance(entry, dict) and entry.get("id") == stage:
                     entry["state"] = "failed"
