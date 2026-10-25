@@ -1,4 +1,5 @@
 """Browser tests of visual polish details in the director app."""
+import time
 import unittest
 
 from playwright.sync_api import sync_playwright
@@ -124,6 +125,30 @@ class PolishTests(unittest.TestCase):
         page.wait_for_function(
             "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'", timeout=60000
         )
+
+    def test_try_again_sends_one_request(self):
+        page, harness = self.page, self.harness
+        harness.fake.reset_cache()
+        harness.fake.fail("SamplerCustomAdvanced", "CUDA out of memory")
+        page.locator("[data-testid=shot-description]").fill("A shot that fails in generation.")
+        page.locator("[data-testid=generate-button]").click()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'failed'", timeout=40000
+        )
+        harness.fake.clear_failures()
+        count = len(harness.get("/api/shots")[1]["shots"])
+        posts = []
+        page.on(
+            "request",
+            lambda r: posts.append(r.url) if r.method == "POST" and r.url.rstrip("/").endswith("/api/shots") else None,
+        )
+        page.locator("[data-testid=retry-button]").dblclick()
+        deadline = time.time() + 30
+        while time.time() < deadline and len(harness.get("/api/shots")[1]["shots"]) < count + 1:
+            time.sleep(0.1)
+        page.wait_for_timeout(500)
+        self.assertEqual(len(posts), 1)
+        self.assertEqual(len(harness.get("/api/shots")[1]["shots"]), count + 1)
 
 
 if __name__ == "__main__":
