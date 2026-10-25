@@ -292,7 +292,23 @@ function render(state) {
     return;
   }
   if (viewport.dataset.state !== "result") {
-    if (player) player.hidden = true;
+    if (player) {
+      player.hidden = true;
+      for (const id of ["before-video", "after-video"]) {
+        const video = q(id);
+        if (video) releaseVideo(video);
+      }
+      if (pending) {
+        releaseVideo(pending);
+        pending.remove();
+        pending = null;
+      }
+      if (unsync) {
+        unsync();
+        unsync = null;
+      }
+      lastShotId = null;
+    }
     if (q("player-controls")) q("player-controls").hidden = true;
     return;
   }
