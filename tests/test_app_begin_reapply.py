@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 
+from app.record import public_record
 from app.runner import ShotRunner
 from app.store import ShotStore
 
@@ -29,7 +30,10 @@ class BeginReapplyTest(unittest.TestCase):
             self.assertEqual(saved["stages"][1]["state"], "active")
             self.assertEqual(saved["stages"][1]["progress"], 0.0)
             self.assertEqual(saved["error"], "old error")
-            self.assertEqual(saved["reapply_aperture"], 4.0)
+            self.assertEqual(saved["_reapply_aperture"], 4.0)
+            public = public_record(record)
+            self.assertFalse([k for k in public if k.startswith("_")])
+            self.assertNotIn("reapply_aperture", public)
 
 
 if __name__ == "__main__":

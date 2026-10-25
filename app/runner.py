@@ -185,7 +185,7 @@ class ShotRunner:
                     self.update(record, status="failed", error=error,
                                 message=error["message"])
                 elif record is not None:
-                    record.pop("reapply_aperture", None)
+                    record.pop("_reapply_aperture", None)
                     error = errors.map_error(exc, "optics")
                     if record.get("versions"):
                         record.pop("_reapply", None)
@@ -275,13 +275,13 @@ class ShotRunner:
     def begin_reapply(self, record, aperture):
         """Mark the shot `record` as starting a re-apply at `aperture` (f-number).
 
-        Sets `_reapply`, `reapply_aperture` (the target f-number, removed when
+        Sets `_reapply`, `_reapply_aperture` (the target f-number, removed when
         the re-apply ends), the generate stage 'done', the optics stage 'active'
         with progress 0.0, status 'optics', progress 0.0 and message
         'Estimating depth', and saves. Leaves `error` untouched. Returns None.
         """
         record["_reapply"] = True
-        record["reapply_aperture"] = aperture
+        record["_reapply_aperture"] = aperture
         self._set_stage(record, "generate", "done")
         self._set_stage(record, "optics", "active", 0.0)
         self.update(record, status="optics", progress=0.0,
@@ -295,7 +295,7 @@ class ShotRunner:
         to status 'done', progress 1.0, message 'Done', `_reapply` is removed
         and the optics stage is 'done'.
         """
-        record.pop("reapply_aperture", None)
+        record.pop("_reapply_aperture", None)
         if not record.get("versions"):
             self.update(record, status="cancelled", message="Cancelled.")
             return
@@ -357,7 +357,7 @@ class ShotRunner:
             "created_at": created})
         self._set_stage(record, "optics", "done", 1.0)
         record.pop("_reapply", None)
-        record.pop("reapply_aperture", None)
+        record.pop("_reapply_aperture", None)
         self.update(record, current_version=n, status="done", progress=1.0,
                     message="Done", error=None, reapply_error=None)
 
