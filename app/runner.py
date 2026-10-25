@@ -225,6 +225,7 @@ class ShotRunner:
                         self.update(record, status="done", progress=1.0,
                                     message="Done", reapply_error=error)
                     else:
+                        record.pop("_reapply", None)
                         self._set_stage(record, "optics", "failed")
                         self.update(record, status="failed", error=error,
                                     message=error["message"])
