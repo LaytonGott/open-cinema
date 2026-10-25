@@ -238,7 +238,8 @@ class ShotRunner:
     async def run_generation(self, record):
         """Generate the "before" video of the shot `record` in ComfyUI.
 
-        Sets status 'generating' and the generate stage 'active', submits the
+        Sets status 'generating', message 'Generating video' and the generate
+        stage 'active' (the queued record keeps 'Waiting for ComfyUI'), submits the
         generation graph, downloads its output to the shot folder as
         `before<ext>`, then sets `before_url`, the generate stage 'done'
         (progress 1.0) and the overall progress to at least 0.85. Errors
@@ -246,7 +247,7 @@ class ShotRunner:
         """
         shot_id = record["id"]
         self._set_stage(record, "generate", "active")
-        self.update(record, status="generating", message="Waiting for ComfyUI")
+        self.update(record, status="generating", message="Generating video")
         graph = graphs.build_generation_graph(
             record["derived"]["prompt"], record["params"]["seed"],
             f"opencinema/{shot_id}/before")
