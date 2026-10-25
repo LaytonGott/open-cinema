@@ -19,7 +19,8 @@ def submit_and_follow(client, graph, on_event, on_job=None, guard=None):
     Calls on_job(job) once if given, so a caller can cancel. Calls
     on_event('status', status_str) for each StatusChange and
     on_event('progress', d) for each Progress, where d is a dict with exactly the
-    keys current_node, value, step and steps (current_node, step and steps may be
+    keys current_node, value, step, steps, nodes_total and nodes_done (current_node,
+    step and steps may be None; nodes_total and nodes_done are 0 when the event has
     None). Other event types are ignored. Transient failures are retried through
     guard (default: a new OutageGuard); other exceptions propagate unchanged.
     """
@@ -44,10 +45,12 @@ def submit_and_follow(client, graph, on_event, on_job=None, guard=None):
                 on_event("status", ev.status)
             elif isinstance(ev, events.Progress):
                 on_event("progress", {
-                    "current_node": ev.current_node,
+                    "current_node": None if ev.current_node is None else str(ev.current_node),
                     "value": ev.value,
                     "step": ev.step,
                     "steps": ev.steps,
+                    "nodes_total": ev.nodes_total or 0,
+                    "nodes_done": ev.nodes_done or 0,
                 })
     guard.call(job.result)
     return job

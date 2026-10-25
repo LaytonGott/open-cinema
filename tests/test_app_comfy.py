@@ -45,12 +45,25 @@ class SubmitAndFollowTest(unittest.TestCase):
         returned = submit_and_follow(client, {"g": 1}, lambda *a: got.append(a), jobs.append)
         self.assertEqual(got, [
             ("status", "running"),
-            ("progress", {"current_node": "n1", "value": 0.5, "step": 2, "steps": 4}),
+            ("progress", {"current_node": "n1", "value": 0.5, "step": 2, "steps": 4,
+                          "nodes_total": 0, "nodes_done": 0}),
         ])
         self.assertEqual(client.graphs, [{"g": 1}])
         self.assertEqual(jobs, [job])
         self.assertEqual(job.result_calls, 1)
         self.assertIs(returned, job)
+
+    def test_forwards_node_counts(self):
+        class CountsJob(StubJob):
+            def events(self):
+                yield events.Progress(value=0.4, nodes_done=3, nodes_total=12,
+                                      current_node="4", step=2, steps=8)
+
+        got = []
+        submit_and_follow(StubClient(CountsJob()), {}, lambda *a: got.append(a))
+        self.assertEqual(got, [("progress", {
+            "current_node": "4", "value": 0.4, "step": 2, "steps": 8,
+            "nodes_total": 12, "nodes_done": 3})])
 
     def test_on_job_optional(self):
         job = StubJob()
