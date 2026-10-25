@@ -315,14 +315,17 @@ class ShotRunner:
         the re-apply ends), the generate stage 'done', the optics stage 'active'
         with progress 0.0, status 'optics', progress 0.0 and message
         'Waiting for ComfyUI' (run_optics sets 'Estimating depth' when the run
-        really starts), clears `error` to None, and saves. Returns None.
+        really starts), clears `error` to None, starts a new elapsed clock
+        (`_started` is reset, so `elapsed_s` is 0.0 seconds), and saves.
+        Returns None.
         """
         record["_reapply"] = True
         record["_reapply_aperture"] = aperture
         self._set_stage(record, "generate", "done")
         self._set_stage(record, "optics", "active", 0.0)
+        record.pop("_started", None)
         self.update(record, status="optics", progress=0.0, error=None,
-                    message="Waiting for ComfyUI")
+                    message="Waiting for ComfyUI", elapsed_s=0.0)
 
     def _finish_cancel(self, record):
         """Finish a cancelled shot `record` and save it. Returns None.
