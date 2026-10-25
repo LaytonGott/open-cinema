@@ -3,7 +3,7 @@
 import json
 
 import httpx
-from comfy_sdk.exceptions import InvalidWorkflow, JobFailed
+from comfy_sdk.exceptions import ComfyError, InvalidWorkflow, JobFailed
 
 UNREACHABLE_MESSAGE = "Lost the connection to ComfyUI. Start ComfyUI, then retry."
 DOWNLOAD_MESSAGE = "Could not download the video from ComfyUI."
@@ -45,6 +45,13 @@ def map_error(exc, stage):
         else:
             message = str(exc)
         return {"code": "job_failed", "message": message, "stage": stage}
+    if isinstance(exc, ComfyError):
+        status = getattr(exc, "http_status", None)
+        if status in (502, 503, 504):
+            return {"code": "comfy_unreachable", "message": UNREACHABLE_MESSAGE, "stage": stage}
+        code = getattr(exc, "code", None)
+        if code == "output_unavailable" or (status == 404 and "output_unavailable" in _text(str(exc))):
+            return {"code": "download_failed", "message": DOWNLOAD_MESSAGE, "stage": stage}
     if isinstance(exc, (httpx.TransportError, ConnectionError, TimeoutError, ComfyUnreachable)):
         return {"code": "comfy_unreachable", "message": UNREACHABLE_MESSAGE, "stage": stage}
     if isinstance(exc, (LookupError, OSError)):
