@@ -59,6 +59,25 @@ class ReadmeAppSectionTest(unittest.TestCase):
             self.assertIn(name, step_one)
             self.assertIn(folder, step_one)
 
+    def _step(self, number: int) -> str:
+        """Return the text of the top-level numbered item `number` in the section."""
+        parts = re.split(r"^(?=\d+\. )", _section(), flags=re.M)
+        return next(p for p in parts if p.startswith(f"{number}. "))
+
+    def test_step_two_install(self):
+        self.assertIn("pip install -r app/requirements.txt", self._step(2))
+
+    def test_step_three_comfyui(self):
+        step = self._step(3)
+        for text in ("run_nvidia_gpu.bat", "To see the GUI go to"):
+            self.assertIn(text, step)
+
+    def test_step_four_start_app(self):
+        step = self._step(4)
+        for text in ("python -m app", "npm run app", "--comfyui", "http://127.0.0.1:8188",
+                     "http://127.0.0.1:8000"):
+            self.assertIn(text, step)
+
     def test_npm_run_app_and_not_running(self):
         section = _section()
         for text in ("npm run app", "isn't running", "Retry", "python -m app", "--comfyui"):
