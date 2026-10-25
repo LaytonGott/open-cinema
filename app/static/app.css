@@ -608,6 +608,7 @@ code, pre, .mono { font-family: var(--font-mono); }
 }
 [data-testid=cancel-button]:hover,
 [data-testid=retry-button]:hover { border-color: var(--muted); }
+[data-testid=retry-button]:disabled { opacity: .45; cursor: not-allowed; border-style: dashed; }
 [data-testid=cancel-button][hidden],
 [data-testid=retry-button][hidden] { display: none; }
 

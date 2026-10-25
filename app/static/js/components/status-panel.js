@@ -72,6 +72,7 @@ function render(state) {
   if (retry) {
     const retryable = shot.status === "failed" || shot.status === "cancelled";
     retry.hidden = !retryable;
+    retry.disabled = state.submitting === true;
     retry.textContent = shot.status === "failed" && shot.before_url ? "Retry optics" : "Try again";
   }
   const pct = Math.round(shot.progress * 100);
