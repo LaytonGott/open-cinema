@@ -15,6 +15,7 @@ class ColdStartFlowTest(unittest.TestCase):
     playwright = None
     browser = None
     page = None
+    page_errors = []
 
     @classmethod
     def setUpClass(cls):
@@ -28,6 +29,8 @@ class ColdStartFlowTest(unittest.TestCase):
             cls.playwright = sync_playwright().start()
             cls.browser = cls.playwright.chromium.launch(headless=True)
             cls.page = cls.browser.new_page(viewport={"width": 1366, "height": 768})
+            cls.page_errors = []
+            cls.page.on("pageerror", lambda error: cls.page_errors.append(str(error)))
         except BaseException:
             cls.tearDownClass()
             raise
@@ -75,6 +78,9 @@ class ColdStartFlowTest(unittest.TestCase):
         self.assertIn("ComfyUI: connected", page.locator("[data-testid=comfy-status]").inner_text())
         banner = page.locator("[data-testid=comfy-banner]")
         self.assertTrue(banner.count() == 0 or not banner.is_visible())
+
+    def test_3_no_page_errors(self):
+        self.assertEqual(self.page_errors, [])
 
 
 if __name__ == "__main__":
