@@ -8,6 +8,8 @@ from comfy_sdk.exceptions import ComfyError, InvalidWorkflow, JobFailed
 UNREACHABLE_MESSAGE = "Lost the connection to ComfyUI. Start ComfyUI, then retry."
 DOWNLOAD_MESSAGE = "Could not download the video from ComfyUI."
 INTERNAL_MESSAGE = "Something went wrong inside Open Cinema. Check the console for details."
+OOM_MESSAGE = "ComfyUI ran out of memory. Close other programs that use the GPU or memory, then retry. "
+_OOM_MARKERS = ("out of memory", "allocation on device", "paging file")
 
 
 class ComfyUnreachable(Exception):
@@ -28,7 +30,9 @@ def map_error(exc, stage):
     """Map an exception to `{"code": str, "message": str, "stage": str}`.
 
     `stage` is 'generate' or 'optics' and is returned unchanged. The message of
-    an 'internal' error never contains the exception text.
+    an 'internal' error never contains the exception text. A 'job_failed' message
+    whose ComfyUI text mentions running out of memory ('out of memory',
+    'Allocation on device' or 'paging file', any case) starts with `OOM_MESSAGE`.
     """
     if isinstance(exc, InvalidWorkflow):
         message = "ComfyUI refused the request: " + str(exc)
@@ -43,7 +47,10 @@ def map_error(exc, stage):
             detail = getattr(error, "message", None) or str(exc)
             message = f"Node {where} failed: {detail}" if where else f"A node failed: {detail}"
         else:
-            message = str(exc)
+            detail = str(exc)
+            message = detail
+        if any(marker in detail.lower() for marker in _OOM_MARKERS):
+            message = OOM_MESSAGE + message
         return {"code": "job_failed", "message": message, "stage": stage}
     if isinstance(exc, ComfyError):
         status = getattr(exc, "http_status", None)
