@@ -9,15 +9,17 @@ const RUNNING_STATUSES = ["queued", "generating", "optics"];
 // Bumped by selectShot, newShot and submitShot; a selectShot whose token is stale is ignored.
 let navigationToken = 0;
 
-// Show an ApiError from a POST as the state error; anything else is rethrown.
+// Show an ApiError from a POST as the state error; anything else is shown too and never rethrown.
 export function handlePostError(err) {
   if (err instanceof api.ApiError) {
     setState({ error: err.message });
     if (err.status === 503 && err.code === "comfy_unreachable") {
       setState({ comfy: { state: "down", device: null, message: err.message } });
     }
+  } else if (err instanceof TypeError) {
+    setState({ error: "Can't reach the app server" });
   } else {
-    throw err;
+    setState({ error: (err && err.message) || String(err) });
   }
 }
 
@@ -38,9 +40,10 @@ export async function submitShot() {
 }
 
 export async function retryShot() {
-  const shot = getState().shot;
   setState({ error: null });
   try {
+    const shot = getState().shot;
+    if (!shot) return;
     let record;
     if (shot.status === "failed" && shot.before_url) {
       record = await api.reapplyShot(shot.id, shot.params.aperture);
@@ -55,9 +58,10 @@ export async function retryShot() {
 }
 
 export async function reapplyShown(aperture) {
-  const shot = getState().shot;
   setState({ error: null });
   try {
+    const shot = getState().shot;
+    if (!shot) return;
     const record = await api.reapplyShot(shot.id, aperture);
     setShot(record);
     followShot(record.id);
@@ -91,14 +95,13 @@ export async function selectShot(id) {
 }
 
 export async function cancelCurrentShot() {
+  setState({ error: null });
   try {
-    const record = await api.cancelShot(getState().shot.id);
+    const shot = getState().shot;
+    if (!shot) return;
+    const record = await api.cancelShot(shot.id);
     setShot(record);
   } catch (err) {
-    if (err instanceof api.ApiError) {
-      setState({ error: err.message });
-    } else {
-      throw err;
-    }
+    handlePostError(err);
   }
 }
