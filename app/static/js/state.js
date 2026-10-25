@@ -17,6 +17,7 @@ let state = {
   history: [],
   submitting: false,
   error: null,
+  estimateM: null,
 };
 
 const listeners = new Set();
