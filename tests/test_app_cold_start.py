@@ -10,7 +10,8 @@ BANNER = "[data-testid=comfy-banner]"
 GENERATE = "[data-testid=generate-button]"
 
 
-class ColdStartTest(unittest.TestCase):
+class _ColdStartHarness:
+    """Class setup: the app started while the fake ComfyUI is down, plus a headless browser."""
     harness = None
     pw = None
     browser = None
@@ -42,6 +43,7 @@ class ColdStartTest(unittest.TestCase):
                 pass
         cls.browser = cls.pw = cls.harness = None
 
+class ColdStartTest(_ColdStartHarness, unittest.TestCase):
     def test_log_says_where_the_app_and_comfyui_are(self):
         expected = f"Open Cinema is running at {self.harness.url} (ComfyUI at {self.fake_url})"
         self.assertIn(expected, self.harness.log())
@@ -60,6 +62,23 @@ class ColdStartTest(unittest.TestCase):
         self.assertIn(f"Can't reach ComfyUI at {self.fake_url}", banner.inner_text())
         page.fill("[data-testid=shot-description]", "A lone rider on a ridge at dusk")
         self.assertTrue(page.locator(GENERATE).is_disabled())
+
+
+class RetryAfterColdStartTest(_ColdStartHarness, unittest.TestCase):
+    def test_retry_connects_without_reloading(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.set_default_timeout(15000)
+        page.goto(self.harness.url)
+        wait_state = "([s, v]) => document.querySelector(s) && document.querySelector(s).dataset.state === v"
+        page.wait_for_function(wait_state, arg=[STATUS, "down"])
+        self.harness.fake.start()
+        page.click("[data-testid=comfy-retry]")
+        page.wait_for_function(wait_state, arg=[STATUS, "ok"])
+        self.assertIn("ComfyUI: connected", page.locator(STATUS).inner_text())
+        page.locator(BANNER).wait_for(state="hidden")
+        page.fill("[data-testid=shot-description]", "A lone rider on a ridge at dusk")
+        self.assertTrue(page.locator(GENERATE).is_enabled())
 
 
 if __name__ == "__main__":
