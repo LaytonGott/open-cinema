@@ -34,5 +34,16 @@ class ReapplyProgressTest(unittest.TestCase):
                 record["progress"], progress.optics_progress(0.5), places=6)
 
 
+class BeginReapplyClearsErrorTest(unittest.TestCase):
+    def test_begin_reapply_clears_error_and_waits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ShotStore(tmp)
+            record = make_record(store, status="failed", error="boom",
+                                 message="boom")
+            ShotRunner(store).begin_reapply(record, 4.0)
+            self.assertIsNone(record["error"])
+            self.assertEqual(record["message"], "Waiting for ComfyUI")
+
+
 if __name__ == "__main__":
     unittest.main()

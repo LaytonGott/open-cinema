@@ -289,14 +289,15 @@ class ShotRunner:
         Sets `_reapply`, `_reapply_aperture` (the target f-number, removed when
         the re-apply ends), the generate stage 'done', the optics stage 'active'
         with progress 0.0, status 'optics', progress 0.0 and message
-        'Estimating depth', and saves. Leaves `error` untouched. Returns None.
+        'Waiting for ComfyUI' (run_optics sets 'Estimating depth' when the run
+        really starts), clears `error` to None, and saves. Returns None.
         """
         record["_reapply"] = True
         record["_reapply_aperture"] = aperture
         self._set_stage(record, "generate", "done")
         self._set_stage(record, "optics", "active", 0.0)
-        self.update(record, status="optics", progress=0.0,
-                    message="Estimating depth")
+        self.update(record, status="optics", progress=0.0, error=None,
+                    message="Waiting for ComfyUI")
 
     def _finish_cancel(self, record):
         """Finish a cancelled shot `record` and save it. Returns None.
