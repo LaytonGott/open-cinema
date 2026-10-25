@@ -304,15 +304,19 @@ class ShotRunner:
         Without versions the status becomes 'cancelled' with message
         'Cancelled.'. With versions (a cancelled re-apply) the shot goes back
         to status 'done', progress 1.0, message 'Done', `_reapply` is removed
-        and the optics stage is 'done'.
+        and the optics stage is 'done'. Every other 'active' stage goes back to
+        'pending' and `error` is set to None; `reapply_error` is left alone.
         """
         record.pop("_reapply_aperture", None)
+        for entry in record.get("stages") or []:
+            if entry.get("state") == "active":
+                entry["state"] = "pending"
         if not record.get("versions"):
-            self.update(record, status="cancelled", message="Cancelled.")
+            self.update(record, status="cancelled", message="Cancelled.", error=None)
             return
         record.pop("_reapply", None)
         self._set_stage(record, "optics", "done")
-        self.update(record, status="done", progress=1.0, message="Done")
+        self.update(record, status="done", progress=1.0, message="Done", error=None)
 
     async def cancel(self, shot_id):
         """Cancel shot `shot_id`. Returns its record, or None if it is missing or not queued/generating/optics.

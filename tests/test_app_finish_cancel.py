@@ -24,6 +24,9 @@ class FinishCancelTest(unittest.TestCase):
             saved = other.get("s1")
             self.assertEqual(saved["status"], "cancelled")
             self.assertEqual(saved["message"], "Cancelled.")
+            self.assertIsNone(saved["error"])
+            self.assertNotIn("active", [s["state"] for s in saved["stages"]])
+            self.assertEqual(saved["stages"][1]["state"], "pending")
 
     def test_finish_cancel_with_versions(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -44,6 +47,8 @@ class FinishCancelTest(unittest.TestCase):
             for path in Path(tmp).rglob("shot.json"):
                 self.assertNotIn("_reapply", json.loads(path.read_text()))
             self.assertEqual(saved["stages"][1]["state"], "done")
+            self.assertIsNone(saved["error"])
+            self.assertNotIn("active", [s["state"] for s in saved["stages"]])
             self.assertEqual(len(saved["versions"]), 1)
 
 
