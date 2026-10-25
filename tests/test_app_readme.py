@@ -78,6 +78,13 @@ class ReadmeAppSectionTest(unittest.TestCase):
                      "http://127.0.0.1:8000"):
             self.assertIn(text, step)
 
+    def test_step_five_what_you_see(self):
+        step = self._step(5)
+        for text in ("ComfyUI: connected", "several minutes", "LTX-2 models load",
+                     "second shot is faster", "Changing the aperture takes seconds",
+                     "only Depth of Field runs again"):
+            self.assertIn(text, step)
+
     def test_npm_run_app_and_not_running(self):
         section = _section()
         for text in ("npm run app", "isn't running", "Retry", "python -m app", "--comfyui"):
