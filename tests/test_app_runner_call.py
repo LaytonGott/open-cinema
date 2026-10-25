@@ -6,53 +6,42 @@ from app import errors, runner
 
 
 def make_runner():
-    r = runner.ShotRunner(store=None, comfyui_url="http://comfy.invalid")
-    r.watch_interval = 0.01
-    return r
+    return runner.ShotRunner(store=None, comfyui_url="http://comfy.invalid")
 
 
 class CallTest(unittest.IsolatedAsyncioTestCase):
     async def test_result_returned(self):
-        async def check(url):
-            return {"reachable": True}
-
-        with mock.patch.object(runner.comfy_health, "check_health", check):
-            self.assertEqual(await make_runner()._call(lambda a, b: a + b, 1, 2), 3)
+        self.assertEqual(await make_runner()._call(lambda a, b: a + b, 1, 2), 3)
 
     async def test_no_url_just_awaits(self):
         r = runner.ShotRunner(store=None)
         self.assertEqual(await r._call(lambda: "ok"), "ok")
 
-    async def test_unreachable_after_three_failures(self):
-        release = threading.Event()
-        count = 0
+    async def test_slow_thread_with_unreachable_health_still_returns(self):
+        done = threading.Event()
+        timer = threading.Timer(0.2, done.set)
 
         async def check(url):
-            nonlocal count
-            count += 1
             return {"reachable": False}
 
-        with mock.patch.object(runner.comfy_health, "check_health", check):
-            try:
-                with self.assertRaises(errors.ComfyUnreachable):
-                    await make_runner()._call(release.wait)
-            finally:
-                release.set()
-        self.assertEqual(count, 3)
+        with mock.patch("app.comfy_health.check_health", check):
+            timer.start()
+            self.addCleanup(timer.cancel)
+            self.assertTrue(await make_runner()._call(done.wait, 5))
 
-    async def test_success_resets_counter(self):
-        release = threading.Event()
-        results = [False, False, True, False, False, True]
+    async def test_unreachable_from_thread_propagates(self):
+        def func():
+            raise errors.ComfyUnreachable("gone")
 
-        async def check(url):
-            if not results:
-                release.set()
-                return {"reachable": True}
-            return {"reachable": results.pop(0)}
+        with self.assertRaises(errors.ComfyUnreachable):
+            await make_runner()._call(func)
 
-        with mock.patch.object(runner.comfy_health, "check_health", check):
-            self.assertTrue(await make_runner()._call(release.wait, 5))
-        self.assertEqual(results, [])
+    async def test_other_exception_propagates_unchanged(self):
+        def func():
+            raise ValueError("boom")
+
+        with self.assertRaises(ValueError):
+            await make_runner()._call(func)
 
 
 if __name__ == "__main__":

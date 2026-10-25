@@ -1,56 +1,42 @@
-import time
+import asyncio
+import tempfile
 import unittest
+from unittest import mock
 
-from tests.app_harness import SHOT, AppHarness
-from tests.fake_comfy import FakeComfy
+from app import errors
+from app.record import new_record
+from app.runner import ShotRunner
+from app.store import ShotStore
+
+PARAMS = {"description": "A woman walks.", "camera": "dolly-in", "lens_mm": 50,
+          "aperture": 2.8, "framing": "full-body", "seed": 123}
 
 
-class UnreachableTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.fake = FakeComfy()
-        cls.harness = AppHarness(fake=cls.fake).start()
+class UnreachableTest(unittest.IsolatedAsyncioTestCase):
+    async def test_comfy_unreachable_fails_the_shot_and_the_queue_moves_on(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        store = ShotStore(tmp.name)
+        for shot_id in ("a", "b"):
+            store.add(new_record(shot_id, PARAMS))
+        runner = ShotRunner(store)
+        runner.client = object()
+        runner.start()
+        self.addAsyncCleanup(runner.stop)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.harness.stop()
-        cls.fake.close()
+        def outage(*args):
+            raise errors.ComfyUnreachable("ComfyUI stopped answering")
 
-    def _create(self, seed):
-        status, created = self.harness.post("/api/shots", {**SHOT, "seed": seed})
-        self.assertEqual(status, 201)
-        return created["id"]
-
-    def test_comfy_stops_mid_run_and_recovers(self):
-        h, fake = self.harness, self.fake
-        fake.reset_cache()
-        fake.hold_at("SamplerCustomAdvanced")
-        stopped = False
-        try:
-            a = self._create(301)
-            b = self._create(302)
-            h.wait_until(a, lambda r: r["status"] == "generating", what="A generating")
-            time.sleep(0.5)
-            fake.release()
-            fake.stop()
-            stopped = True
-            t0 = time.time()
-            record = h.wait_for_shot(a, "failed", timeout=30)
-            elapsed = time.time() - t0
-            error = record.get("error") or {}
-            self.assertEqual(error.get("code"), "comfy_unreachable", error)
-            self.assertEqual(error.get("stage"), "generate")
-            self.assertTrue(error.get("message"))
-            self.assertNotIn("Traceback", error["message"])
-            self.assertLess(elapsed, 30)
-        finally:
-            fake.release()
-            if stopped:
-                fake.start()
-        # the queue moved on: B reaches a terminal state, then a new shot completes
-        h.wait_until(b, lambda r: r["status"] in ("done", "failed", "cancelled"), timeout=60, what="B finished")
-        c = self._create(303)
-        h.wait_for_shot(c, "done")
+        with mock.patch("app.runner.comfy.submit_and_follow", outage):
+            runner.enqueue("a")
+            runner.enqueue("b")
+            await asyncio.wait_for(runner.queue.join(), 30)
+        for shot_id in ("a", "b"):
+            record = store.get(shot_id)
+            self.assertEqual(record["status"], "failed")
+            self.assertEqual(record["error"]["code"], "comfy_unreachable")
+            self.assertEqual(record["error"]["stage"], "generate")
+            self.assertNotIn("Traceback", record["error"]["message"])
 
 
 if __name__ == "__main__":

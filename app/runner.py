@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app import comfy, comfy_health, errors, graphs, progress
+from app import comfy, errors, graphs, progress
 from app.outage import OutageGuard
 
 logger = logging.getLogger(__name__)
@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 class ShotRunner:
     """Runs queued shots one at a time, in the order they were enqueued."""
-
-    watch_interval = 2.0
 
     def __init__(self, store, comfyui_url=None):
         self.store = store
@@ -30,37 +28,13 @@ class ShotRunner:
         self.stopping = threading.Event()  # set on shutdown: retrying worker threads give up at once
 
     async def _call(self, func, *args):
-        """Run `func(*args)` in a thread and return its result.
+        """Run `func(*args)` in a thread, wait for it to end and return its result.
 
-        While it runs, ComfyUI is health-checked every `watch_interval`
-        seconds; after 3 failed checks in a row the thread is abandoned and
-        `errors.ComfyUnreachable` is raised. A successful check resets the
-        count. Without `comfyui_url` the thread is just awaited.
+        The thread is always awaited to its end, so a queued shot never starts
+        on top of a running job. `errors.ComfyUnreachable` comes only from the
+        outage guard inside the thread; other exceptions propagate unchanged.
         """
-        task = asyncio.ensure_future(asyncio.to_thread(func, *args))
-        if self.comfyui_url is None:
-            return await task
-        failures = 0
-        try:
-            while True:
-                done, _ = await asyncio.wait({task}, timeout=self.watch_interval)
-                if done:
-                    try:
-                        return task.result()
-                    except Exception as exc:
-                        # whatever the SDK raised when the connection dropped, an
-                        # unreachable ComfyUI is the cause
-                        if isinstance(exc, errors.ComfyUnreachable) or (
-                                await comfy_health.check_health(self.comfyui_url)).get("reachable"):
-                            raise
-                        raise errors.ComfyUnreachable("ComfyUI stopped answering") from exc
-                health = await comfy_health.check_health(self.comfyui_url)
-                failures = 0 if health.get("reachable") else failures + 1
-                if failures >= 3:
-                    raise errors.ComfyUnreachable("ComfyUI stopped answering")
-        except BaseException:
-            task.add_done_callback(lambda t: t.cancelled() or t.exception())
-            raise
+        return await asyncio.to_thread(func, *args)
 
     def on_job_for(self, record):
         """Return the `on_job` callback for the shot `record` (called in a worker thread).
