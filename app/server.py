@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import mimetypes
+import re
 import signal
 import sys
 from pathlib import Path
@@ -29,6 +30,7 @@ mimetypes.add_type("video/mp4", ".mp4")
 
 STATIC_DIR = Path(__file__).parent / "static"
 KEEPALIVE_S = 15
+MEDIA_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.(mp4|webm)$")
 
 COMFYUI_URL = web.AppKey("comfyui_url", str)
 STORE = web.AppKey("store", ShotStore)
@@ -280,16 +282,20 @@ async def shot_events(request):
 
 
 async def get_media(request):
-    """Serve the file ``name`` from the folder of shot ``id`` (Range supported), or 404 ``not_found``."""
+    """Serve the video ``name`` (matching ``MEDIA_NAME``) from the folder of shot ``id`` (Range supported).
+
+    Answers 404 ``not_found`` for any other name, an unknown shot, a missing file or a path that leaves the shot folder.
+    """
     shot_id = request.match_info["id"]
     name = request.match_info["name"]
     message = f"There is no media {name} for shot {shot_id}."
-    if not name or "/" in name or "\\" in name or ".." in name:
+    if not MEDIA_NAME.match(name) or ".." in name:
         return error_response(404, "not_found", message)
     if request.app[STORE].get(shot_id) is None:
         return error_response(404, "not_found", message)
-    path = request.app[STORE].shot_dir(shot_id) / name
-    if not path.is_file():
+    shot_dir = request.app[STORE].shot_dir(shot_id)
+    path = shot_dir / name
+    if not path.is_file() or path.resolve().parent != shot_dir.resolve():
         return error_response(404, "not_found", message)
     return web.FileResponse(path)
 
