@@ -3,6 +3,7 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from app.store import ShotStore, new_shot_id
 
@@ -61,6 +62,32 @@ class ShotStoreTests(unittest.TestCase):
         store.remove("20250101-000000-aaaa")
         self.assertFalse(folder.exists())
         self.assertIsNone(store.get("20250101-000000-aaaa"))
+
+
+class ShotStoreLockedDeleteTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = tmp.name
+        self.shot_id = "20250101-000000-aaaa"
+        self.store = ShotStore(self.dir)
+        self.store.add({"id": self.shot_id})
+        self.folder = self.store.shot_dir(self.shot_id)
+        (self.folder / "before.mp4").write_bytes(b"video")
+
+    def test_locked_file_and_folder_leave_no_half_shot(self):
+        with mock.patch("app.store.shutil.rmtree"), mock.patch("app.store.os.rename", side_effect=PermissionError):
+            self.store.remove(self.shot_id)
+        self.assertIsNone(self.store.get(self.shot_id))
+        self.assertNotIn(self.shot_id, [r["id"] for r in self.store.list()])
+        fresh = ShotStore(self.dir)
+        fresh.load_all()
+        self.assertEqual(fresh.list(), [])
+
+    def test_locked_file_original_folder_is_gone(self):
+        with mock.patch("app.store.shutil.rmtree"):
+            self.store.remove(self.shot_id)
+        self.assertFalse(self.folder.exists())
 
 
 class GitignoreTests(unittest.TestCase):
