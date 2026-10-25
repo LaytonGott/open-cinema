@@ -360,7 +360,7 @@ def _install_stop_handlers(loop, stop):
         def handler(signum, frame):
             loop.call_soon_threadsafe(stop.set)
 
-        for name in ("SIGTERM", "SIGBREAK"):
+        for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
             signal.signal(getattr(signal, name), handler)
         return
     for sig in (signal.SIGINT, signal.SIGTERM):

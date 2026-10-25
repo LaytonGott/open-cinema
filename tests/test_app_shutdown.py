@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import signal
 import tempfile
 import threading
 import time
@@ -77,6 +78,35 @@ class MainInterruptTest(unittest.TestCase):
 
         with mock.patch.object(asyncio, "run", interrupt):
             self.assertEqual(server.main([]), 0)
+
+
+class InstallStopHandlersTest(unittest.TestCase):
+    def test_windows_registers_sigint(self):
+        registered = {}
+
+        class FakeLoop:
+            def __init__(self):
+                self.calls = []
+
+            def call_soon_threadsafe(self, fn, *a):
+                self.calls.append(fn)
+
+        loop = FakeLoop()
+        stop = asyncio.Event()
+
+        def record(signum, handler):
+            registered[signum] = handler
+
+        fake_sigbreak = getattr(signal, "SIGBREAK", 21)
+        with mock.patch.object(server.sys, "platform", "win32"), mock.patch.object(
+            signal, "signal", record
+        ), mock.patch.object(signal, "SIGBREAK", fake_sigbreak, create=True):
+            server._install_stop_handlers(loop, stop)
+
+        self.assertIn(signal.SIGINT, registered)
+        self.assertIn(signal.SIGTERM, registered)
+        registered[signal.SIGINT](signal.SIGINT, None)
+        self.assertEqual(loop.calls, [stop.set])
 
 
 if __name__ == "__main__":
