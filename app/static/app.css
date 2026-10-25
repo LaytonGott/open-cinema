@@ -195,6 +195,12 @@ code, pre, .mono { font-family: var(--font-mono); }
   border-bottom: 5px solid var(--accent);
 }
 
+[data-testid=camera-group],
+[data-testid=framing-group] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr));
+  gap: 8px;
+}
 #director [data-testid=camera-group] .opt,
 #director [data-testid=framing-group] .opt {
   position: relative;
