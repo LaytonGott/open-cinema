@@ -79,16 +79,16 @@ class ShotRunner:
         self.task = asyncio.get_running_loop().create_task(self._worker())
 
     async def stop(self):
-        """Cancel the worker task and wait for it (nothing is cancelled in ComfyUI)."""
+        """Cancel the worker task and return without waiting for SDK threads.
+
+        Running threads are daemons and the ComfyUI job is not cancelled.
+        """
         self.stopping.set()
         task, self.task = self.task, None
         if task is None:
             return
         task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        await asyncio.wait({task}, timeout=1)
 
     def enqueue(self, shot_id, aperture=None):
         """Queue shot `shot_id`; the worker runs it after earlier items.
