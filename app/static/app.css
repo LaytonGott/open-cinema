@@ -876,6 +876,21 @@ code, pre, .mono { font-family: var(--font-mono); }
 .lens-figure-num { font-size: 2.5rem; line-height: 1; font-variant-numeric: tabular-nums; min-width: 3ch; }
 .lens-figure-unit { font-size: 0.8rem; color: var(--muted); }
 
+[data-testid=toast] {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: 90vw;
+  padding: 10px 16px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+[data-testid=toast][hidden] { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
