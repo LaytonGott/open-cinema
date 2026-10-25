@@ -6,6 +6,7 @@ import os
 import secrets
 import shutil
 import sys
+import time
 from pathlib import Path
 
 RUNNING_STATUSES = ("queued", "generating", "optics")
@@ -18,6 +19,20 @@ def new_shot_id(existing=()):
         shot_id = f"{now:%Y%m%d-%H%M%S}-{secrets.token_hex(2)}"
         if shot_id not in existing:
             return shot_id
+
+
+def replace_with_retry(src, dst, tries=3, delay=0.05):
+    """Move file `src` onto `dst` (paths) with `os.replace`, retrying up to `tries` times with `delay` seconds (float) between attempts; returns None, or raises `OSError` if every attempt fails."""
+    last_error = None
+    for attempt in range(tries):
+        try:
+            os.replace(src, dst)
+            return
+        except OSError as error:
+            last_error = error
+            if attempt < tries - 1:
+                time.sleep(delay)
+    raise OSError(f"Could not save {dst}: it is locked by another program. Close it and retry.") from last_error
 
 
 class ShotStore:
@@ -42,7 +57,7 @@ class ShotStore:
             data["elapsed_s"] = 0.0
         tmp = directory / "shot.json.tmp"
         tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        os.replace(tmp, directory / "shot.json")
+        replace_with_retry(tmp, directory / "shot.json")
 
     def add(self, record):
         """Store a new record (dict with an `id`), filling `created_at` (UTC string like `2026-01-02T03:04:05Z`) and `seq` if missing; returns the record."""
