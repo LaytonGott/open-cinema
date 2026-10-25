@@ -23,6 +23,7 @@ class ShotRunner:
         self.client = None
         self._watchers = {}
         self.items = {}
+        self.graph_types = {}  # shot id -> {node id: class type} of the running graph
         self.current = None
         self.cancel_requested = None
         self.stopping = threading.Event()  # set on shutdown: retrying worker threads give up at once
@@ -107,7 +108,7 @@ class ShotRunner:
         for event in list(self._watchers.get(record["id"], ())):
             event.set()
 
-    def apply_event(self, record, stage, kind, data, graph=None):
+    def apply_event(self, record, stage, kind, data):
         """Apply one `submit_and_follow` event to the shot `record` (loop thread).
 
         `stage` is "generate" or "optics"; `kind` is "status" (`data` a str,
@@ -117,17 +118,18 @@ class ShotRunner:
         old and new, and `message` comes from `message_for_node`. A frame whose
         `nodes_total` is 0 is a step frame (its `value` is a per-node fraction):
         it changes only `message`. A missing `nodes_total` counts as overall.
-        `graph` (the submitted ComfyUI graph, node id to node) turns
-        `current_node` into the class type for `message_for_node`; without it
-        the class type is None. Returns None.
+        `self.graph_types[record['id']]` (node id to class type, set while the
+        shot's graph runs) turns `current_node` into the class type for
+        `message_for_node`; without it the class type is None. Returns None.
         """
         if kind != "progress":
             self.update(record)
             return
-        node = ((graph or {}).get(data["current_node"]) or {}).get("class_type")
+        class_type = self.graph_types.get(record["id"], {}).get(
+            str(data["current_node"]))
         if data.get("nodes_total", 1) <= 0:
             self.update(record, message=progress.message_for_node(
-                stage, node, data["step"], data["steps"],
+                stage, class_type, data["step"], data["steps"],
                 previous=record.get("message")))
             return
         fraction = max(0.0, min(1.0, data["value"]))
@@ -146,16 +148,16 @@ class ShotRunner:
             record,
             progress=progress.monotonic(record.get("progress", 0.0), overall),
             message=progress.message_for_node(
-                stage, node, data["step"], data["steps"],
+                stage, class_type, data["step"], data["steps"],
                 previous=record.get("message")),
         )
 
-    def thread_callback(self, loop, record, stage, graph=None):
+    def thread_callback(self, loop, record, stage):
         """Return a function `(kind, data)` that, from any thread, schedules
-        `apply_event(record, stage, kind, data, graph)` on `loop`."""
+        `apply_event(record, stage, kind, data)` on `loop`."""
         def callback(kind, data):
             loop.call_soon_threadsafe(
-                self.apply_event, record, stage, kind, data, graph)
+                self.apply_event, record, stage, kind, data)
         return callback
 
     async def _worker(self):
@@ -224,19 +226,22 @@ class ShotRunner:
         graph = graphs.build_generation_graph(
             record["derived"]["prompt"], record["params"]["seed"],
             f"opencinema/{shot_id}/before")
+        self.graph_types[shot_id] = {
+            str(k): v["class_type"] for k, v in graph.items()}
         loop = asyncio.get_running_loop()
-        if self.client is None:
-            self.client = comfy.make_client()
         try:
+            if self.client is None:
+                self.client = comfy.make_client()
             job = await self._call(
                 comfy.submit_and_follow, self.client, graph,
-                self.thread_callback(loop, record, "generate", graph),
+                self.thread_callback(loop, record, "generate"),
                 self.on_job_for(record), OutageGuard(stop=self.stopping))
             path = await self._call(
                 comfy.download_output, job, graphs.GENERATION_OUTPUT_NODE,
                 self.store.shot_dir(shot_id), "before")
         finally:
             self.current = None
+            self.graph_types.pop(shot_id, None)
         self._set_stage(record, "generate", "done", 1.0)
         self.update(
             record,
@@ -346,16 +351,19 @@ class ShotRunner:
         loop = asyncio.get_running_loop()
         client, graph = await self._call(
             self.prepare_optics, record, aperture, n)
+        self.graph_types[shot_id] = {
+            str(k): v["class_type"] for k, v in graph.items()}
         try:
             job = await self._call(
                 comfy.submit_and_follow, client, graph,
-                self.thread_callback(loop, record, "optics", graph),
+                self.thread_callback(loop, record, "optics"),
                 self.on_job_for(record), OutageGuard(stop=self.stopping))
             path = await self._call(
                 comfy.download_output, job, graphs.OPTICS_OUTPUT_NODE,
                 self.store.shot_dir(shot_id), f"after_{n}")
         finally:
             self.current = None
+            self.graph_types.pop(shot_id, None)
         created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         record.setdefault("versions", []).append({
             "n": n, "aperture": aperture,
