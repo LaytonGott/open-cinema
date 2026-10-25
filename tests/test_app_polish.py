@@ -150,6 +150,23 @@ class PolishTests(unittest.TestCase):
         self.assertEqual(len(posts), 1)
         self.assertEqual(len(harness.get("/api/shots")[1]["shots"]), count + 1)
 
+    def test_hud_reads_lens_aperture_distance_framing(self):
+        page = self.page
+        pattern = r"^\d+ mm\s+f/\d+(\.\d)?\s+\d+(\.\d)? m\s+[A-Z ]+$"
+        js_text = "() => document.querySelector('[data-testid=hud]').textContent.trim()"
+        page.wait_for_function(
+            "([s, p]) => { const el = document.querySelector(s); return !!el && new RegExp(p).test(el.textContent.trim()); }",
+            arg=["[data-testid=hud]", pattern],
+        )
+        js_tail = r"() => document.querySelector('[data-testid=hud]').textContent.trim().replace(/^.*? m\s+/, '')"
+        before = page.evaluate(js_tail)
+        page.locator("[data-testid=framing-group] button[role=radio][aria-checked=false]:not([data-value*='-'])").first.click()
+        page.wait_for_function(
+            "b => document.querySelector('[data-testid=hud]').textContent.trim().replace(/^.*? m\\s+/, '') !== b",
+            arg=before,
+        )
+        self.assertRegex(page.evaluate(js_text), pattern)
+
 
 if __name__ == "__main__":
     unittest.main()
