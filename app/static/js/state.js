@@ -22,6 +22,10 @@ let state = {
 
 const listeners = new Set();
 
+export function formatDistance(metres) {
+  return metres < 10 ? metres.toFixed(1) : metres.toFixed(0);
+}
+
 export function getState() {
   return state;
 }

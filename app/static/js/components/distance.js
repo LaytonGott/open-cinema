@@ -1,6 +1,6 @@
 // Subject distance readout: asks the server for the estimate whenever lens or framing changes.
 import { getEstimate } from "../api.js";
-import { getState, setState, subscribe } from "../state.js";
+import { formatDistance, getState, setState, subscribe } from "../state.js";
 
 export function initDistance() {
   const el = document.querySelector('[data-testid="subject-distance"]');
@@ -10,7 +10,7 @@ export function initDistance() {
   let lastKey = null;
 
   function format(metres) {
-    return "Subject about " + (metres >= 10 ? metres.toFixed(0) : metres.toFixed(1)) + " m";
+    return "Subject about " + formatDistance(metres) + " m";
   }
 
   async function update(state) {

@@ -1,5 +1,5 @@
 // Viewport: sets data-state on [data-testid=viewport] from the shared state.
-import { getState, subscribe, shownVersionOf } from "../state.js";
+import { formatDistance, getState, subscribe, shownVersionOf } from "../state.js";
 
 function q(id) {
   return document.querySelector("[data-testid=" + id + "]");
@@ -46,7 +46,7 @@ function renderHud(state) {
   let d = state.shot && state.shot.derived ? state.shot.derived.subject_distance_m : null;
   if (!(typeof d === "number" && isFinite(d))) d = state.estimateM;
   if (typeof d === "number" && isFinite(d)) {
-    parts.push((d < 10 ? d.toFixed(1) : d.toFixed(0)) + " m");
+    parts.push(formatDistance(d) + " m");
   }
   parts.push(String(framing || "").toUpperCase());
   hud.textContent = parts.join("  ");
