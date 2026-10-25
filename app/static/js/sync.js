@@ -1,5 +1,6 @@
 // Keeps a follower video in step with a master video; returns a cleanup function.
-const DRIFT = 0.05;
+const HARD_SEEK = 0.5;
+const NUDGE = 0.15;
 
 export function syncVideos(master, follower) {
   const cleanups = [];
@@ -24,8 +25,15 @@ export function syncVideos(master, follower) {
 
   function correct() {
     if (master.paused) return;
-    if (Math.abs(follower.currentTime - master.currentTime) > DRIFT) {
+    if (follower.seeking) return;
+    const drift = master.currentTime - follower.currentTime;
+    if (Math.abs(drift) > HARD_SEEK) {
       follower.currentTime = master.currentTime;
+      follower.playbackRate = master.playbackRate;
+    } else if (Math.abs(drift) >= NUDGE) {
+      follower.playbackRate = master.playbackRate * (drift > 0 ? 1.05 : 0.95);
+    } else if (follower.playbackRate !== master.playbackRate) {
+      follower.playbackRate = master.playbackRate;
     }
   }
 
@@ -35,7 +43,7 @@ export function syncVideos(master, follower) {
       jump();
     });
   }
-  // timeupdate also covers the loop restart: currentTime jumps back and the gap exceeds DRIFT.
+  // timeupdate also covers the loop restart: currentTime jumps back and the gap exceeds HARD_SEEK.
   on(master, "timeupdate", correct);
 
   let active = true;
