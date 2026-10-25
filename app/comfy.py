@@ -1,5 +1,6 @@
 """The only app module that imports comfy_sdk: blocking helpers, call them in threads."""
 
+import os
 from pathlib import Path
 
 import comfy_sdk
@@ -70,12 +71,23 @@ def download_output(job, node_id, dest_dir, stem, guard=None):
 
     The extension comes from the output's name ('.mp4' when it has none).
     The download runs through guard (default: a new OutageGuard), which retries transient errors.
+    It is written to '<name>.part' first and renamed to the final name only once complete, so the
+    final file never exists half-written; on any failure the .part file is deleted.
     Raises LookupError if job.outputs has no entry for node_id.
     """
     guard = guard or OutageGuard()
     for output in job.outputs:
         if output.node_id == node_id:
             path = Path(dest_dir) / (stem + (Path(output.name).suffix or ".mp4"))
-            guard.call(output.to_file, path)
+            part = path.with_name(path.name + ".part")
+            try:
+                guard.call(output.to_file, part)
+                os.replace(part, path)
+            except BaseException:
+                try:
+                    part.unlink()
+                except OSError:
+                    pass
+                raise
             return path
     raise LookupError(f"no output for node {node_id}")

@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -114,6 +115,7 @@ class StubOutput:
 
     def to_file(self, path):
         self.saved.append(path)
+        Path(path).write_bytes(b"x")
         return path
 
 
@@ -123,24 +125,29 @@ class StubOutputsJob:
 
 
 class DownloadOutputTest(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dest = tmp.name
+
     def test_path_uses_extension_of_name(self):
         other = StubOutput("1", "a.png")
         out = StubOutput("2", "x.webm")
-        path = download_output(StubOutputsJob([other, out]), "2", "dest", "before")
-        self.assertEqual(path, Path("dest") / "before.webm")
+        path = download_output(StubOutputsJob([other, out]), "2", self.dest, "before")
+        self.assertEqual(path, Path(self.dest) / "before.webm")
         self.assertEqual(path.name, "before.webm")
-        self.assertEqual(out.saved, [path])
+        self.assertEqual(out.saved, [path.with_name("before.webm.part")])
         self.assertEqual(other.saved, [])
 
     def test_default_extension(self):
         out = StubOutput("2", "noext")
-        path = download_output(StubOutputsJob([out]), "2", "dest", "after")
+        path = download_output(StubOutputsJob([out]), "2", self.dest, "after")
         self.assertEqual(path.name, "after.mp4")
-        self.assertEqual(out.saved, [path])
+        self.assertEqual(out.saved, [path.with_name("after.mp4.part")])
 
     def test_unknown_node_raises(self):
         with self.assertRaises(LookupError):
-            download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", "dest", "s")
+            download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", self.dest, "s")
 
     def test_retry_download(self):
         class FlakyOutput(StubOutput):
@@ -150,18 +157,19 @@ class DownloadOutputTest(unittest.TestCase):
                     request = httpx.Request("GET", "http://comfy/view")
                     response = httpx.Response(503, request=request)
                     raise httpx.HTTPStatusError("503", request=request, response=response)
+                Path(path).write_bytes(b"x")
                 return path
 
         out = FlakyOutput("2", "x.mp4")
         guard = OutageGuard(sleep=lambda s: None)
-        path = download_output(StubOutputsJob([out]), "2", "dest", "after", guard)
-        self.assertEqual(path, Path("dest") / "after.mp4")
+        path = download_output(StubOutputsJob([out]), "2", self.dest, "after", guard)
+        self.assertEqual(path, Path(self.dest) / "after.mp4")
         self.assertEqual(len(out.saved), 2)
 
     def test_download_lookup_error_propagates(self):
         guard = OutageGuard(sleep=lambda s: None)
         with self.assertRaises(LookupError):
-            download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", "dest", "s", guard)
+            download_output(StubOutputsJob([StubOutput("1", "a.mp4")]), "9", self.dest, "s", guard)
 
 
 class StubAssets:
