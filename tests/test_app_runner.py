@@ -76,13 +76,15 @@ class ShotRunnerTest(unittest.TestCase):
                 if value == 0.2:
                     self.assertEqual(record["message"], "Generating video: step 1 of 8")
             self.assertEqual(seen, sorted(seen))
-            self.assertAlmostEqual(seen[0], 0.2125, places=6)
-            self.assertAlmostEqual(seen[2], 0.425, places=6)
-            self.assertAlmostEqual(seen[3], 0.85, places=6)
-            self.assertEqual(record["stages"][0]["progress"], 1.0)
+            # the run's progress is the share of the graph's weight behind the running node (sampler 24, depth 12):
+            # step 2 of 8 is 6 / 36 of the stage, step 4 is 12 / 36, the last step 24 / 36
+            self.assertAlmostEqual(seen[0], 0.85 * 6 / 36, places=6)
+            self.assertAlmostEqual(seen[2], 0.85 * 12 / 36, places=6)
+            self.assertAlmostEqual(seen[3], 0.85 * 24 / 36, places=6)
+            self.assertAlmostEqual(record["stages"][0]["progress"], 24 / 36, places=6)
             runner.apply_event(record, "optics", "progress", {
                 "current_node": "DA3Node", "value": 0.5, "step": None, "steps": None})
-            self.assertAlmostEqual(record["progress"], 0.925, places=6)
+            self.assertAlmostEqual(record["progress"], 0.85 + 0.15 * 24 / 36, places=6)
             self.assertEqual(record["message"], "Estimating depth")
 
     def test_thread_callback_schedules_on_loop(self):

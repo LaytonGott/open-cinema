@@ -26,6 +26,37 @@ def monotonic(previous, new):
     return max(previous, new)
 
 
+# How much of a run each node is worth. ComfyUI's own `progress_state` only lists the nodes that have started, so its fraction
+# is near 1 from the first node on; the position of the running node in the graph is what tells how far a run is.
+_WEIGHTS = {
+    "UnetLoaderGGUF": 8, "LTXAVTextEncoderLoader": 8, "CLIPTextEncode": 4, "SamplerCustomAdvanced": 24,
+    "LTXVLatentUpsampler": 4, "VAEDecodeTiled": 12, "LTXVAudioVAEDecode": 3,
+    "LoadDA3Model": 3, "DA3Inference": 12, "DA3Render": 3, "OpenOptics_DepthToMetric": 3,
+    "OpenOptics_DepthTemporalSmooth": 3, "OpenOptics_DepthOfField": 14,
+    "CreateVideo": 2, "SaveVideo": 2,
+}
+
+
+def node_fraction(types, current_id, step=None, steps=None):
+    """Return how far a run is, 0 to 1, while node `current_id` runs; None if that node is not in the graph.
+
+    `types` is {node id: class type} in the order the graph lists its nodes (about the order they run). Each node has a
+    weight (`_WEIGHTS`, 1 for the rest); the fraction is the weight of the nodes before the running one, plus the running
+    node's share `step / steps` when both are given, over the total weight.
+    """
+    ids = list(types)
+    current = str(current_id)
+    if current not in types:
+        return None
+    weight = {i: _WEIGHTS.get(types[i], 1) for i in ids}
+    total = sum(weight.values())
+    before = sum(weight[i] for i in ids[:ids.index(current)])
+    partial = 0.0
+    if isinstance(step, (int, float)) and isinstance(steps, (int, float)) and steps > 0:
+        partial = _clamp(step / steps)
+    return _clamp((before + weight[current] * partial) / total)
+
+
 _NODE_MESSAGES = {}
 for _text, _types in (
     ("Loading the LTX-2 models", (
