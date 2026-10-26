@@ -6,6 +6,8 @@ const TERMINAL = ["done", "failed", "cancelled"];
 const POLL_MS = 1000;
 const MAX_RECONNECTS = 3;
 const RECONNECT_MS = 500;
+const SILENT_MS = 25000;
+const LOST_RETRY_MS = 3000;
 
 let stopCurrent = null;
 
@@ -20,6 +22,8 @@ export function followShot(id) {
   let source = null;
   let timer = null;
   let reconnectTimer = null;
+  let watchdog = null;
+  let lostTimer = null;
   let reconnects = 0;
   let stopped = false;
 
@@ -28,6 +32,10 @@ export function followShot(id) {
     if (source) source.close();
     if (timer) clearTimeout(timer);
     if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (watchdog) clearTimeout(watchdog);
+    if (lostTimer) clearTimeout(lostTimer);
+    watchdog = null;
+    lostTimer = null;
     source = null;
     timer = null;
     reconnectTimer = null;
@@ -42,6 +50,38 @@ export function followShot(id) {
   function apply(record) {
     setShot(record);
     if (TERMINAL.includes(record.status)) stop();
+  }
+
+  function setStatusLabel(text) {
+    const label = document.querySelector("[data-testid=status-label]");
+    if (label) label.textContent = text;
+  }
+
+  function restartWatchdog() {
+    if (watchdog) clearTimeout(watchdog);
+    if (lostTimer) clearTimeout(lostTimer);
+    lostTimer = null;
+    watchdog = stopped ? null : setTimeout(checkSilent, SILENT_MS);
+  }
+
+  async function checkSilent() {
+    watchdog = null;
+    lostTimer = null;
+    if (stopped) return;
+    if (!isCurrent()) {
+      stop();
+      return;
+    }
+    try {
+      const record = await api.getShot(id);
+      if (stopped || !isCurrent()) return;
+      apply(record);
+      if (!stopped) restartWatchdog();
+    } catch (err) {
+      if (stopped || !isCurrent()) return;
+      setStatusLabel("Connection lost, retrying");
+      lostTimer = setTimeout(checkSilent, LOST_RETRY_MS);
+    }
   }
 
   async function poll() {
@@ -65,6 +105,8 @@ export function followShot(id) {
       source.close();
       source = null;
     }
+    if (watchdog) clearTimeout(watchdog);
+    watchdog = null;
     if (stopped || timer) return;
     timer = setTimeout(poll, POLL_MS);
   }
@@ -73,9 +115,11 @@ export function followShot(id) {
     reconnectTimer = null;
     if (stopped) return;
     source = new EventSource("/api/shots/" + encodeURIComponent(id) + "/events");
+    restartWatchdog();
     source.addEventListener("shot", (ev) => {
       if (stopped) return;
       reconnects = 0;
+      restartWatchdog();
       try {
         apply(JSON.parse(ev.data));
       } catch (err) {
