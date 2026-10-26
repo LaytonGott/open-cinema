@@ -126,6 +126,22 @@ class PolishTests(unittest.TestCase):
             "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'", timeout=60000
         )
 
+    def test_videos_released_while_new_shot_runs(self):
+        page, harness = self.page, self.harness
+        _, rec = harness.post("/api/shots", {**SHOT, "description": "A finished shot to show first.", "seed": 22})
+        harness.wait_for_shot(rec["id"], "done", timeout=90)
+        page.reload()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'", timeout=60000
+        )
+        page.locator("[data-testid=history-new]").click()
+        self.start_running_shot()
+        page.wait_for_function("() => document.querySelector('[data-testid=viewport]').dataset.state !== 'result'")
+        released = page.evaluate(
+            "() => Array.from(document.querySelectorAll('video')).every(v => !v.hasAttribute('src') && v.paused)"
+        )
+        self.assertTrue(released, "every video must have no src attribute and be paused while a shot runs")
+
     def test_try_again_sends_one_request(self):
         page, harness = self.page, self.harness
         harness.fake.reset_cache()
