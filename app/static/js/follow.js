@@ -8,6 +8,7 @@ const MAX_RECONNECTS = 3;
 const RECONNECT_MS = 500;
 const SILENT_MS = 25000;
 const LOST_RETRY_MS = 3000;
+const RETRY_STREAM_MS = 30000;
 
 let stopCurrent = null;
 
@@ -24,6 +25,7 @@ export function followShot(id) {
   let reconnectTimer = null;
   let watchdog = null;
   let lostTimer = null;
+  let retryTimer = null;
   let reconnects = 0;
   let stopped = false;
 
@@ -34,6 +36,8 @@ export function followShot(id) {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     if (watchdog) clearTimeout(watchdog);
     if (lostTimer) clearTimeout(lostTimer);
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = null;
     watchdog = null;
     lostTimer = null;
     source = null;
@@ -85,6 +89,7 @@ export function followShot(id) {
   }
 
   async function poll() {
+    timer = null;
     if (stopped) return;
     if (!isCurrent()) {
       stop();
@@ -97,7 +102,7 @@ export function followShot(id) {
     } catch (err) {
       // keep trying until the shot is terminal or no longer current
     }
-    if (!stopped) timer = setTimeout(poll, POLL_MS);
+    if (!stopped && !source) timer = setTimeout(poll, POLL_MS);
   }
 
   function startPolling() {
@@ -107,8 +112,24 @@ export function followShot(id) {
     }
     if (watchdog) clearTimeout(watchdog);
     watchdog = null;
-    if (stopped || timer) return;
+    if (stopped) return;
+    if (!retryTimer) retryTimer = setTimeout(retryStream, RETRY_STREAM_MS);
+    if (timer) return;
     timer = setTimeout(poll, POLL_MS);
+  }
+
+  function retryStream() {
+    retryTimer = null;
+    if (stopped || source) return;
+    reconnects = 0;
+    openSource();
+  }
+
+  function streamWorks() {
+    if (timer) clearTimeout(timer);
+    if (retryTimer) clearTimeout(retryTimer);
+    timer = null;
+    retryTimer = null;
   }
 
   function openSource() {
@@ -119,6 +140,7 @@ export function followShot(id) {
     source.addEventListener("shot", (ev) => {
       if (stopped) return;
       reconnects = 0;
+      streamWorks();
       restartWatchdog();
       try {
         apply(JSON.parse(ev.data));
