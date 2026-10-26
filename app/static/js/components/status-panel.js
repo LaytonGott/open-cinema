@@ -46,6 +46,8 @@ function render(state) {
   const shot = state.shot;
   if (!shot) {
     panel.hidden = true;
+    const idleDot = q("record-dot");
+    if (idleDot) idleDot.hidden = true;
     stopTimer();
     return;
   }
