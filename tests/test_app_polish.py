@@ -199,6 +199,47 @@ class PolishTests(unittest.TestCase):
         )
         self.assertAlmostEqual(clamped, 0.5, places=6)
 
+    def test_polling_stops_after_404_not_found(self):
+        page, h = self.page, self.harness
+        page.route("**/api/shots/*/events", lambda route: route.abort())
+        page.reload()
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.state === 'ok'", arg=STATUS
+        )
+        h.fake.hold_at("SamplerCustomAdvanced")
+        shot_id = None
+        try:
+            page.locator("[data-testid=shot-description]").fill("A rider crosses a foggy salt flat at dawn.")
+            page.locator("[data-testid=generate-button]").click()
+            page.wait_for_function(
+                "() => document.querySelector('[data-testid=viewport]').dataset.state === 'working'"
+            )
+            shot_id = h.get("/api/shots")[1]["shots"][0]["id"]
+            requests = []
+
+            def not_found(route):
+                if route.request.method == "GET":
+                    requests.append(route.request.url)
+                    route.fulfill(
+                        status=404,
+                        content_type="application/json",
+                        body='{"error":{"code":"not_found","message":"Shot not found"}}',
+                    )
+                else:
+                    route.continue_()
+
+            page.route(f"**/api/shots/{shot_id}", not_found)
+            page.wait_for_function("() => document.body.innerText.includes('no longer exists')", timeout=8000)
+            n = len(requests)
+            deadline = time.time() + 2.5
+            while time.time() < deadline:
+                page.wait_for_timeout(100)
+                self.assertEqual(len(requests), n, "the app kept polling after the 404")
+        finally:
+            h.fake.release()
+            if shot_id:
+                h.wait_for_shot(shot_id, "done")
+
 
 if __name__ == "__main__":
     unittest.main()
