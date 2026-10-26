@@ -63,6 +63,24 @@ function wireVideo(video) {
   }
 }
 
+// Sound is on for the after video only; the before video always stays muted.
+let unmuted = false;
+
+function updateUnmute() {
+  const button = q("unmute-toggle");
+  if (!button) return;
+  button.setAttribute("aria-pressed", unmuted ? "true" : "false");
+  button.setAttribute("aria-label", unmuted ? "Mute" : "Unmute");
+  button.textContent = unmuted ? "🔊 Sound on" : "🔇 Muted";
+}
+
+function onUnmute() {
+  unmuted = !unmuted;
+  const after = q("after-video");
+  if (after) after.muted = !unmuted;
+  updateUnmute();
+}
+
 // A fresh after video that looks like the old one; the caller inserts it.
 function cloneAfterVideo(old, url) {
   const video = makeVideo("after-video");
@@ -71,6 +89,7 @@ function cloneAfterVideo(old, url) {
   video.className = old.className;
   video.style.clipPath = old.style.clipPath;
   video.setAttribute("src", url);
+  video.muted = !unmuted;
   return video;
 }
 
@@ -150,6 +169,9 @@ function resetMedia(before, after, shot, version) {
     pending = null;
   }
   showError(false);
+  unmuted = false;
+  after.muted = true;
+  updateUnmute();
   loadSrc(before, shot && shot.before_url);
   loadSrc(after, version && version.url);
   if (unsync) unsync();
@@ -196,6 +218,10 @@ function build(viewport) {
   toggle.textContent = "▶ Play";
   toggle.disabled = true;
   toggle.addEventListener("click", onToggle);
+  const unmute = document.createElement("button");
+  unmute.type = "button";
+  unmute.dataset.testid = "unmute-toggle";
+  unmute.addEventListener("click", onUnmute);
   wireVideo(before);
   wireVideo(after);
   const labelBefore = document.createElement("div");
@@ -253,8 +279,10 @@ function build(viewport) {
   viewport.prepend(player);
   const controls = document.createElement("div");
   controls.dataset.testid = "player-controls";
-  controls.append(toggle, scrubber, readout);
+  controls.append(toggle, scrubber, readout, unmute);
   viewport.after(controls);
+  unmuted = false;
+  updateUnmute();
   updateReady();
   return player;
 }
@@ -281,6 +309,7 @@ function teardown() {
   const controls = q("player-controls");
   if (controls) controls.remove();
   lastShotId = null;
+  unmuted = false;
 }
 
 function render(state) {

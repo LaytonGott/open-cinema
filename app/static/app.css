@@ -541,6 +541,14 @@ main > * { flex: none; }
   color: var(--text);
   border-radius: 6px;
 }
+[data-testid=unmute-toggle] {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+}
 [data-testid=play-toggle]:disabled {
   color: var(--muted);
   cursor: not-allowed;
@@ -721,6 +729,7 @@ main > * { flex: none; }
   box-shadow: 0 0 0 2px var(--accent);
 }
 [data-testid=play-toggle]:focus-visible,
+[data-testid=unmute-toggle]:focus-visible,
 [data-testid=scrubber]:focus-visible,
 [data-testid=reapply-slider]:focus-visible,
 [data-testid=reapply-button]:focus-visible,
