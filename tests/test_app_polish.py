@@ -185,6 +185,18 @@ class PolishTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertTrue(page.locator("[data-testid=player-error]").is_hidden())
 
+    def test_layout_idle_inside_window(self):
+        page = self.page
+        for sel in ("[data-testid=hud]", "[data-testid=comfy-banner]"):
+            loc = page.locator(sel)
+            if not loc.is_visible():
+                continue
+            box = loc.bounding_box()
+            self.assertGreaterEqual(box["x"], 0, sel)
+            self.assertGreaterEqual(box["y"], 0, sel)
+            self.assertLessEqual(box["x"] + box["width"], 1280, sel)
+            self.assertLessEqual(box["y"] + box["height"], 720, sel)
+
     def test_try_again_sends_one_request(self):
         page, harness = self.page, self.harness
         harness.fake.reset_cache()
