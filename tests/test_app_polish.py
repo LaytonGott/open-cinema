@@ -183,6 +183,22 @@ class PolishTests(unittest.TestCase):
         )
         self.assertRegex(page.evaluate(js_text), pattern)
 
+    def test_progress_restarts_after_a_finished_shot(self):
+        js = """async ([first, second]) => {
+          const { setShot, getState } = await import('/static/js/state.js');
+          setShot(first);
+          setShot(second);
+          return getState().shot.progress;
+        }"""
+        restarted = self.page.evaluate(
+            js, [{"id": "a", "status": "done", "progress": 1}, {"id": "a", "status": "optics", "progress": 0.1}]
+        )
+        self.assertAlmostEqual(restarted, 0.1, places=6)
+        clamped = self.page.evaluate(
+            js, [{"id": "b", "status": "generating", "progress": 0.5}, {"id": "b", "status": "generating", "progress": 0.3}]
+        )
+        self.assertAlmostEqual(clamped, 0.5, places=6)
+
 
 if __name__ == "__main__":
     unittest.main()
