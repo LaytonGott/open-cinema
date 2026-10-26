@@ -1,6 +1,7 @@
 // Follows one shot's progress: server-sent events, with polling as a fallback.
 import * as api from "./api.js";
 import { getState, setShot } from "./state.js";
+import { showToast } from "./components/toast.js";
 
 const TERMINAL = ["done", "failed", "cancelled"];
 const POLL_MS = 1000;
@@ -61,6 +62,12 @@ export function followShot(id) {
     if (label) label.textContent = text;
   }
 
+  function endGone() {
+    stop();
+    setStatusLabel("This shot no longer exists");
+    showToast("This shot no longer exists");
+  }
+
   function restartWatchdog() {
     if (watchdog) clearTimeout(watchdog);
     if (lostTimer) clearTimeout(lostTimer);
@@ -83,6 +90,10 @@ export function followShot(id) {
       if (!stopped) restartWatchdog();
     } catch (err) {
       if (stopped || !isCurrent()) return;
+      if (err instanceof api.ApiError && err.status === 404) {
+        endGone();
+        return;
+      }
       setStatusLabel("Connection lost, retrying");
       lostTimer = setTimeout(checkSilent, LOST_RETRY_MS);
     }
@@ -100,6 +111,11 @@ export function followShot(id) {
       if (stopped) return;
       apply(record);
     } catch (err) {
+      if (stopped) return;
+      if (err instanceof api.ApiError && err.status === 404) {
+        endGone();
+        return;
+      }
       // keep trying until the shot is terminal or no longer current
     }
     if (!stopped && !source) timer = setTimeout(poll, POLL_MS);
