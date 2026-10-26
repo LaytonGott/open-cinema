@@ -197,6 +197,35 @@ class PolishTests(unittest.TestCase):
             self.assertLessEqual(box["x"] + box["width"], 1280, sel)
             self.assertLessEqual(box["y"] + box["height"], 720, sel)
 
+    def test_layout_done_no_overlap(self):
+        page = self.page
+        page.locator("[data-testid=shot-description]").fill("A rider crosses a foggy salt flat at dawn.")
+        page.locator("[data-testid=generate-button]").click()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'", timeout=60000
+        )
+        boxes = {}
+        for name in ("hud", "shot-brief", "player-controls"):
+            loc = page.locator(f"[data-testid={name}]")
+            if not loc.is_visible():
+                continue
+            box = loc.bounding_box()
+            boxes[name] = box
+            self.assertGreaterEqual(box["x"], 0, name)
+            self.assertLessEqual(box["x"] + box["width"], 1280, name)
+            if name != "shot-brief":
+                self.assertGreaterEqual(box["y"], 0, name)
+                self.assertLessEqual(box["y"] + box["height"], 720, name)
+        if "hud" in boxes and "player-controls" in boxes:
+            a, b = boxes["hud"], boxes["player-controls"]
+            apart = (
+                a["y"] + a["height"] <= b["y"]
+                or b["y"] + b["height"] <= a["y"]
+                or a["x"] + a["width"] <= b["x"]
+                or b["x"] + b["width"] <= a["x"]
+            )
+            self.assertTrue(apart, f"hud {a} overlaps player-controls {b}")
+
     def test_try_again_sends_one_request(self):
         page, harness = self.page, self.harness
         harness.fake.reset_cache()
