@@ -237,7 +237,7 @@ code, pre, .mono { font-family: var(--font-mono); }
   background: var(--surface);
   border-top: 1px solid var(--line);
 }
-.actions [data-testid=submit-error] { margin: 8px 0 0; overflow-wrap: anywhere; white-space: normal; }
+.actions [data-testid=submit-error] { margin: 8px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 30vh; overflow: auto; }
 
 [data-testid=generate-button] {
   width: 100%;
@@ -615,7 +615,8 @@ code, pre, .mono { font-family: var(--font-mono); }
 [data-testid=comfy-retry]:hover { border-color: var(--muted); }
 [data-testid=comfy-banner][hidden] { display: none; }
 
-[data-testid=error-message] { color: var(--danger); margin: 8px 0; }
+[data-testid=error-message] { color: var(--danger); margin: 8px 0; overflow-wrap: anywhere; }
+[data-testid=status-label] { overflow-wrap: anywhere; }
 [data-testid=cancel-button],
 [data-testid=retry-button] {
   background: transparent;
