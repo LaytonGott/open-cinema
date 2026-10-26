@@ -40,7 +40,8 @@ export function subscribe(fn) {
   return () => listeners.delete(fn);
 }
 
-// Stores a shot record; progress never decreases for the same non-terminal shot.
+// Stores a shot record; progress never decreases within one run. A run is still going while the
+// previous status is non-terminal, so a re-apply (done) or retry (failed/cancelled) starts fresh.
 export function setShot(record) {
   const cur = state.shot;
   let next = record;
@@ -48,7 +49,7 @@ export function setShot(record) {
     record &&
     cur &&
     record.id === cur.id &&
-    !TERMINAL.includes(record.status) &&
+    !TERMINAL.includes(cur.status) &&
     typeof record.progress === "number" &&
     typeof cur.progress === "number" &&
     record.progress < cur.progress
