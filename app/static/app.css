@@ -56,6 +56,8 @@ code, pre, .mono { font-family: var(--font-mono); }
 /* below 900px the panels stack and the page scrolls: header, banner, monitor, director, history */
 [data-testid="app"] { display: flex; flex-direction: column; min-height: 100vh; }
 [data-testid="app"] > * { flex: none; }
+main { display: contents; }
+main > * { flex: none; }
 #monitor { order: 1; overflow: visible; }
 #director { order: 2; }
 #history { order: 3; min-height: 104px; }

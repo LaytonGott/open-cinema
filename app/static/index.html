@@ -15,6 +15,7 @@
     <span data-testid="comfy-status"></span>
   </header>
   <div data-testid="comfy-banner" role="alert" hidden><span data-testid="comfy-banner-text"></span><button data-testid="comfy-retry">Retry</button></div>
+  <main>
   <section id="director">
     <label for="shot-description">Scene</label>
     <textarea id="shot-description" data-testid="shot-description" maxlength="1000" placeholder="e.g. A woman in a red coat walks through a rainy neon street"></textarea>
@@ -62,7 +63,7 @@
     <div data-testid="optics-controls" hidden></div>
     <section data-testid="status-panel" hidden>
       <span class="rec-label">REC</span>
-      <p data-testid="status-label"></p>
+      <p data-testid="status-label" role="status"></p>
       <button data-testid="cancel-button" hidden>Cancel</button>
       <p data-testid="error-message" role="alert" hidden></p>
       <button data-testid="retry-button" hidden></button>
@@ -74,6 +75,7 @@
       </ul>
     </section>
   </section>
+  </main>
   <section id="history"><button type="button" data-testid="history-new">New shot</button><ul data-testid="history-list"></ul></section>
 </div>
 </body>
