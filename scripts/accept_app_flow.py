@@ -113,7 +113,7 @@ def run():
             choose(p, "framing-group", "waist-up")
             set_range(p, "aperture-slider", 3)  # f/4
             hud = re.sub(r"\s+", " ", p.t("hud").inner_text())
-            report.check("35 mm" in hud and "f/4" in hud and "1.9 m" in hud and "WAIST UP" in hud, f"the HUD must show the chosen look; got {hud!r}")
+            report.check("35 mm" in hud and "f/4" in hud and "1.9 m" in hud and "WAIST UP" in hud.replace("-", " "), f"the HUD must show the chosen look; got {hud!r}")
             p.t("generate-button").click()
             report.check(wait_attr(p, "viewport", "data-state", "result", 90) == "result", "the shot must finish ('result')")
             gen = fake2.prompts[0]

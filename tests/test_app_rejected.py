@@ -23,15 +23,14 @@ class TestRejectedGeneration(unittest.TestCase):
         orig = required["unet_name"]
         required["unet_name"] = [["only-another-model.gguf"]]
         try:
-            status, created = h.post("/api/shots", {**SHOT, "seed": 401})
-            self.assertEqual(status, 201)
-            h.wait_for_shot(created["id"], "failed")
-            code, record = h.get(f"/api/shots/{created['id']}")
+            status, body = h.post("/api/shots", {**SHOT, "seed": 401})
         finally:
             required["unet_name"] = orig
-        self.assertEqual(record["error"]["code"], "comfy_rejected")
-        self.assertEqual(record["error"]["stage"], "generate")
-        self.assertIn("unet_name", record["error"]["message"])
+        # the missing model is reported when the shot is created, before anything is generated
+        self.assertEqual(status, 503)
+        self.assertEqual(body["error"]["code"], "comfy_models_missing")
+        self.assertIn("unet_name", body["error"]["message"])
+        self.assertEqual(h.get("/api/shots")[1]["shots"], [])
 
 
 class TestRejectedOptics(unittest.TestCase):
@@ -51,10 +50,11 @@ class TestRejectedOptics(unittest.TestCase):
         fake.reset_cache()
         required = fake.object_info["OpenOptics_DepthOfField"]["input"]["required"]
         orig = required["quality"]
-        required["quality"] = [["draft"]]
         try:
             status, created = h.post("/api/shots", {**SHOT, "seed": 402})
             self.assertEqual(status, 201)
+            # ComfyUI stops offering the value after the shot was accepted (the check before a shot cannot see that)
+            required["quality"] = [["draft"]]
             h.wait_for_shot(created["id"], "failed")
             code, record = h.get(f"/api/shots/{created['id']}")
         finally:

@@ -7,7 +7,9 @@ function q(id) {
 
 function stateOf(state) {
   const shot = state.shot;
-  if (!shot) return state.submitting ? "working" : "empty";
+  // a shot being created is working at once, even while the previous result is still shown (creating it asks ComfyUI first)
+  if (state.submitting) return "working";
+  if (!shot) return "empty";
   switch (shot.status) {
     case "done":
       return "result";

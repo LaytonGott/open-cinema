@@ -95,7 +95,7 @@ def run():
                 p.page.wait_for_timeout(50)
             report.check(abs(float(p.t("subject-distance").get_attribute("data-metres") or 0) - metres) < 6e-5, f"{lens} mm {framing}: data-metres must be {metres}; got {p.t('subject-distance').get_attribute('data-metres')}")
             report.check(p.t("subject-distance").inner_text().strip() == f"Subject about {shown} m", f"{lens} mm {framing}: text must be 'Subject about {shown} m'; got {p.t('subject-distance').inner_text()!r}")
-            report.check(f"{lens} mm" in re.sub(r"\s+", " ", p.t("hud").inner_text()) and framing.replace("-", " ").upper() in re.sub(r"\s+", " ", p.t("hud").inner_text()), f"the HUD must follow the form; got {p.t('hud').inner_text()!r}")
+            report.check(f"{lens} mm" in re.sub(r"\s+", " ", p.t("hud").inner_text()) and framing.replace("-", " ").upper() in re.sub(r"\s+", " ", p.t("hud").inner_text().replace("-", " ")), f"the HUD must follow the form; got {p.t('hud').inner_text()!r}")
         checked = checked_values(p, "lens-group")
         report.check([v for v, c in checked if c == "true"] == ["24"], f"after clicking 24 mm only it is checked; got {checked}")
         p.t("lens-group").locator('[role="radio"][aria-checked="true"]').focus()

@@ -10,6 +10,7 @@ import { initStatusPanel } from "./components/status-panel.js";
 import { initOpticsControls } from "./components/optics-controls.js";
 import { initViewport } from "./components/viewport.js";
 import { initPlayer } from "./components/player.js";
+import { initShotBrief } from "./components/shot-brief.js";
 
 import { initHistory } from "./components/history.js";
 import { initSubmitError } from "./components/submit-error.js";
@@ -40,6 +41,7 @@ function init() {
   initHistoryRefresh();
   initViewport();
   initPlayer();
+  initShotBrief();
   initOpticsControls();
   initStatusPanel();
   initHeader();

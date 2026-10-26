@@ -79,6 +79,11 @@ class ReloadTest(unittest.TestCase):
         page.locator("[data-testid=shot-description]").fill(DESCRIPTION)
         page.locator("[data-testid=generate-button]").click()
         self.wait_state("viewport", "working")
+        # working starts when Generate is pressed; the shot exists once ComfyUI accepted it and the panel reports it
+        page.wait_for_function(
+            "s => document.querySelector(s) && document.querySelector(s).dataset.status === 'generating'",
+            arg="[data-testid=status-panel]",
+        )
 
         page.reload()
         self.wait_status()

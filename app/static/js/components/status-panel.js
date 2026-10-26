@@ -63,7 +63,10 @@ function render(state) {
   const cancel = q("cancel-button");
   if (cancel) cancel.hidden = !["queued", "generating", "optics"].includes(shot.status);
   panel.dataset.status = shot.status;
-  q("status-label").textContent = shot.status === "cancelled" ? "Cancelled." : shot.message;
+  const label = q("status-label");
+  label.textContent = shot.status === "cancelled" ? "Cancelled." : shot.message;
+  // a failed shot's message is its error: show it once, in the error element
+  label.hidden = !!(shot.status === "failed" && shot.error && shot.error.message === label.textContent);
   const errorEl = q("error-message");
   if (errorEl) {
     const failed = shot.status === "failed" && shot.error;

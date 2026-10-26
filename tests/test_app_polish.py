@@ -20,6 +20,17 @@ JS_ACCENT = """() => {
 JS_BORDER = "s => getComputedStyle(document.querySelector(s)).borderTopColor"
 
 
+def first_shot_id(h, timeout=15):
+    """The id of the newest shot once the app has created it (the viewport shows 'working' as soon as Generate is pressed)."""
+    end = time.time() + timeout
+    while time.time() < end:
+        shots = h.get("/api/shots")[1]["shots"]
+        if shots:
+            return shots[0]["id"]
+        time.sleep(0.1)
+    raise AssertionError("no shot was created")
+
+
 class PolishTests(unittest.TestCase):
     harness = None
     pw = None
@@ -236,7 +247,7 @@ class PolishTests(unittest.TestCase):
             page.wait_for_function(
                 "() => document.querySelector('[data-testid=viewport]').dataset.state === 'working'"
             )
-            shot_id = h.get("/api/shots")[1]["shots"][0]["id"]
+            shot_id = first_shot_id(h)
             for name in ("hud", "shot-brief", "comfy-banner"):
                 loc = page.locator(f"[data-testid={name}]")
                 if not loc.is_visible():
@@ -325,7 +336,7 @@ class PolishTests(unittest.TestCase):
             page.wait_for_function(
                 "() => document.querySelector('[data-testid=viewport]').dataset.state === 'working'"
             )
-            shot_id = h.get("/api/shots")[1]["shots"][0]["id"]
+            shot_id = first_shot_id(h)
             requests = []
 
             def not_found(route):

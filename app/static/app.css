@@ -150,6 +150,15 @@ main > * { flex: none; }
   border-radius: 6px;
 }
 
+[data-testid=shot-description] {
+  flex: none;
+  height: 88px;
+  min-height: 88px;
+  padding: 8px 10px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
 [data-testid=lens-group] {
   display: flex;
   flex-shrink: 0;
@@ -501,6 +510,7 @@ main > * { flex: none; }
   object-fit: contain;
 }
 [data-testid=before-video] {
+  z-index: 1; /* above the after video; the clip shows it left of the divider */
   clip-path: inset(0 calc(100% - var(--split, 50%)) 0 0);
 }
 [data-testid=player-error] {

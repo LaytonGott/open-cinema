@@ -85,8 +85,13 @@ class ServerTest(unittest.IsolatedAsyncioTestCase):
         async def stats(request):
             return web.json_response({"devices": [{"name": "RTX Test"}]})
 
+        async def info(request):  # every node exists and offers every choice (the check before a shot is queued)
+            name = request.match_info["name"]
+            return web.json_response({name: {"input": {"required": {}, "optional": {}}}})
+
         fake = web.Application()
         fake.router.add_get("/system_stats", stats)
+        fake.router.add_get("/object_info/{name}", info)
         fake_server = TestServer(fake)
         await fake_server.start_server()
         self.addAsyncCleanup(fake_server.close)

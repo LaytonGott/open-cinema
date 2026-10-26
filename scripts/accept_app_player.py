@@ -41,6 +41,15 @@ def wait_for(p, predicate, timeout=20, what="the condition"):
     return False
 
 
+def set_playing(p, want):
+    """Put both videos in the wanted state with the play button (a result may start playing by itself, muted)."""
+    wait_for(p, lambda: not video_info(p, "before-video")["paused"], 2)  # let a muted autoplay happen first, if there is one
+    paused = video_info(p, "before-video")["paused"]
+    if paused == want:
+        p.t("play-toggle").click()
+    wait_for(p, lambda: video_info(p, "before-video")["paused"] != want and video_info(p, "after-video")["paused"] != want, 5)
+
+
 def video_info(p, test_id):
     return p.t(test_id).evaluate("v => ({paused: v.paused, t: v.currentTime, d: v.duration, ready: v.readyState, w: v.videoWidth, src: v.currentSrc, muted: v.muted})")
 
@@ -82,14 +91,15 @@ def run():
 
         # ---- play together, pause, scrub
         report.check(attr(p, "play-toggle", "aria-pressed") in ("false", "true"), "play-toggle needs aria-pressed")
+        set_playing(p, False)
         p.t("play-toggle").click()
         report.check(wait_for(p, lambda: not video_info(p, "before-video")["paused"] and not video_info(p, "after-video")["paused"], 5), "play-toggle must start both videos")
-        report.check(attr(p, "play-toggle", "aria-pressed") == "true", "play-toggle must be aria-pressed while playing")
+        report.check(wait_for(p, lambda: attr(p, "play-toggle", "aria-pressed") == "true", 2), "play-toggle must be aria-pressed while playing")
         p.page.wait_for_timeout(700)
         b_info, a_info = video_info(p, "before-video"), video_info(p, "after-video")
         report.check(b_info["t"] > 0.2 and abs(b_info["t"] - a_info["t"]) < 0.25, f"both videos must advance together (within 0.25 s); got {b_info['t']:.2f} vs {a_info['t']:.2f}")
         p.t("play-toggle").click()
-        report.check(wait_for(p, lambda: video_info(p, "before-video")["paused"] and video_info(p, "after-video")["paused"], 5) and attr(p, "play-toggle", "aria-pressed") == "false", "a second click must pause both videos")
+        report.check(wait_for(p, lambda: video_info(p, "before-video")["paused"] and video_info(p, "after-video")["paused"] and attr(p, "play-toggle", "aria-pressed") == "false", 5), "a second click must pause both videos")
         set_range(p, "scrubber", 500)
         duration = video_info(p, "before-video")["d"]
         report.check(wait_for(p, lambda: abs(video_info(p, "before-video")["t"] - duration / 2) < 0.2 and abs(video_info(p, "after-video")["t"] - duration / 2) < 0.2, 5), f"the scrubber at 500 must put both videos at half the duration ({duration / 2:.2f} s); got {video_info(p, 'before-video')['t']:.2f} / {video_info(p, 'after-video')['t']:.2f}")
@@ -161,9 +171,10 @@ def run():
         report.check(wait_for(p, lambda: "Applying f/8" in p.t("reapply-status").inner_text(), 10), f"reapply-status must read 'Applying f/8 ...' while it runs; got {p.t('reapply-status').inner_text()!r}")
         report.check(p.t("reapply-button").is_disabled(), "Apply aperture must be disabled while a re-apply runs")
         report.check(attr(p, "viewport", "data-state") == "result" and p.t("player").is_visible(), "the player must stay visible during a re-apply")
+        set_playing(p, False)
         p.t("play-toggle").click()
         report.check(wait_for(p, lambda: not video_info(p, "before-video")["paused"], 3), "the player must stay playable during a re-apply")
-        p.t("play-toggle").click()
+        set_playing(p, False)
         fake.release()
         report.check(wait_for(p, lambda: p.t("version-chip").count() == 2, 20), "a second version chip must appear after the re-apply")
         chips = p.t("version-chip")

@@ -174,17 +174,19 @@ function resetMedia(before, after, shot, version) {
   updateUnmute();
   loadSrc(before, shot && shot.before_url);
   loadSrc(after, version && version.url);
-  for (const video of [before, after]) {
-    video.addEventListener(
-      "loadeddata",
-      () => {
-        // Muted autoplay; a refusal is silent and the play toggle follows play/pause events.
-        const attempt = video.play();
-        if (attempt && typeof attempt.catch === "function") attempt.catch(() => {});
-      },
-      { once: true },
-    );
-  }
+  // Muted autoplay, once, and only when both videos can show a frame, so they start together; a refusal is silent and the
+  // play toggle follows the play and pause events.
+  let started = false;
+  const autoplay = () => {
+    if (started || before.readyState < 2 || after.readyState < 2) return;
+    started = true;
+    for (const video of [before, after]) {
+      const attempt = video.play();
+      if (attempt && typeof attempt.catch === "function") attempt.catch(() => {});
+    }
+  };
+  before.addEventListener("loadeddata", autoplay);
+  after.addEventListener("loadeddata", autoplay);
   if (unsync) unsync();
   unsync = syncVideos(before, after);
   q("scrubber").value = "0";

@@ -19,7 +19,7 @@ from app.record import new_record, public_record
 from app.runner import ShotRunner
 from app.shot import (
     APERTURES, CAMERAS, FRAMINGS, LENSES, SUBJECT_HEIGHT_FRACTION, ShotError,
-    subject_distance, validate_shot,
+    build_prompt, subject_distance, validate_shot,
 )
 from open_optics.framing import sensor_height_mm
 from app.store import ShotStore, new_shot_id
@@ -129,6 +129,28 @@ async def estimate(request):
     )
 
 
+async def preflight_refusal(url, graph_list):
+    """Ask ComfyUI whether it can run ``graph_list``; return the error response to send if not, else None.
+
+    503 ``comfy_unreachable`` if ComfyUI cannot be asked, 503 ``comfy_nodes_missing`` naming the nodes it lacks,
+    503 ``comfy_models_missing`` naming the model files it does not list.
+    """
+    unreachable = error_response(503, "comfy_unreachable", f"Can't reach ComfyUI at {url}. Start ComfyUI, then retry.")
+    try:
+        missing = await preflight.missing_nodes(url, preflight.graph_class_types(*graph_list))
+    except preflight.ObjectInfoUnreachable:
+        return unreachable
+    if missing:
+        return error_response(503, "comfy_nodes_missing", preflight.nodes_missing_message(missing))
+    try:
+        items = await preflight.missing_choices(url, graph_list)
+    except preflight.ObjectInfoUnreachable:
+        return unreachable
+    if items:
+        return error_response(503, "comfy_models_missing", preflight.models_missing_message(items))
+    return None
+
+
 async def create_shot(request):
     """Create a shot from the JSON body and return its public record with status 201 (400 ``invalid_shot`` if invalid, 503 ``comfy_unreachable`` if ComfyUI is down)."""
     try:
@@ -144,6 +166,15 @@ async def create_shot(request):
     comfy = await check_health(request.app[COMFYUI_URL])
     if not comfy["reachable"]:
         return error_response(503, "comfy_unreachable", comfy["message"])
+    # a node or model ComfyUI lacks is reported now, not after ten minutes of generating
+    lens, aperture = params["lens_mm"], params["aperture"]
+    distance = subject_distance(lens, params["framing"])
+    refusal = await preflight_refusal(request.app[COMFYUI_URL], [
+        graphs.build_generation_graph(build_prompt(params), params["seed"], "opencinema/check"),
+        graphs.build_optics_graph("check.mp4", lens, aperture, distance, "opencinema/check"),
+    ])
+    if refusal is not None:
+        return refusal
     store = request.app[STORE]
     record = new_record(new_shot_id({r["id"] for r in store.list()}), params)
     store.add(record)

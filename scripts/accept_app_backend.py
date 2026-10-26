@@ -228,11 +228,21 @@ def run():
         fake.clear_failures()
         original = fake.object_info["UnetLoaderGGUF"]["input"]["required"]["unet_name"]
         fake.object_info["UnetLoaderGGUF"]["input"]["required"]["unet_name"] = [["only-another-model.gguf"]]
-        status, rec = h.post("/api/shots", {**SHOT, "description": "This one asks for a model that is missing.", "seed": 13})
-        rejected = h.wait_for_shot(rec["id"], "failed")
-        e = rejected.get("error") or {}
-        report.check(e.get("code") == "comfy_rejected" and e.get("stage") == "generate" and "unet_name" in e.get("message", ""), f"a graph that ComfyUI refuses must give comfy_rejected with ComfyUI's text; got {e}")
+        count = len(h.get("/api/shots")[1]["shots"])
+        status, body = h.post("/api/shots", {**SHOT, "description": "This one asks for a model that is missing.", "seed": 13})
+        e = (body or {}).get("error", {}) if isinstance(body, dict) else {}
+        report.check(status == 503 and e.get("code") == "comfy_models_missing" and "unet_name" in e.get("message", "") and len(h.get("/api/shots")[1]["shots"]) == count,
+                     f"a model file ComfyUI does not list must be refused when the shot is created (503 comfy_models_missing, no shot); got {status} {str(body)[:200]}")
         fake.object_info["UnetLoaderGGUF"]["input"]["required"]["unet_name"] = original
+        # a value ComfyUI stops offering after the shot was accepted is still reported, as comfy_rejected, with ComfyUI's text
+        fake.reset_cache()
+        status, rec = h.post("/api/shots", {**SHOT, "description": "ComfyUI will stop offering a setting during this one.", "seed": 14})
+        quality = fake.object_info["OpenOptics_DepthOfField"]["input"]["required"]["quality"]
+        fake.object_info["OpenOptics_DepthOfField"]["input"]["required"]["quality"] = [["draft"]]
+        rejected = h.wait_for_shot(rec["id"], "failed")
+        fake.object_info["OpenOptics_DepthOfField"]["input"]["required"]["quality"] = quality
+        e = rejected.get("error") or {}
+        report.check(e.get("code") == "comfy_rejected" and e.get("stage") == "optics" and "quality" in e.get("message", ""), f"a graph that ComfyUI refuses must give comfy_rejected with ComfyUI's text; got {e}")
 
         # ---- ComfyUI is not running
         fake.stop()
