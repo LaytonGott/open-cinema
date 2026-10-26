@@ -142,6 +142,32 @@ class PolishTests(unittest.TestCase):
         )
         self.assertTrue(released, "every video must have no src attribute and be paused while a shot runs")
 
+    def test_unmute_toggle_unmutes_only_the_after_video(self):
+        page, harness = self.page, self.harness
+        _, rec = harness.post("/api/shots", {**SHOT, "description": "A finished shot to unmute.", "seed": 23})
+        harness.wait_for_shot(rec["id"], "done", timeout=90)
+        page.reload()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'", timeout=60000
+        )
+        toggle = page.locator("[data-testid=unmute-toggle]")
+        toggle.wait_for(state="attached")
+        js_muted = (
+            "() => ['before-video', 'after-video'].map("
+            "n => document.querySelector('[data-testid=' + n + ']').muted)"
+        )
+        self.assertEqual(page.evaluate(js_muted), [True, True])
+        toggle.click()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=unmute-toggle]').getAttribute('aria-pressed') === 'true'"
+        )
+        self.assertEqual(page.evaluate(js_muted), [True, False])
+        toggle.click()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=unmute-toggle]').getAttribute('aria-pressed') === 'false'"
+        )
+        self.assertEqual(page.evaluate(js_muted), [True, True])
+
     def test_try_again_sends_one_request(self):
         page, harness = self.page, self.harness
         harness.fake.reset_cache()
