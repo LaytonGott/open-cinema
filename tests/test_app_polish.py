@@ -226,6 +226,33 @@ class PolishTests(unittest.TestCase):
             )
             self.assertTrue(apart, f"hud {a} overlaps player-controls {b}")
 
+    def test_layout_running_inside_window(self):
+        page, h = self.page, self.harness
+        h.fake.hold_at("SamplerCustomAdvanced")
+        shot_id = None
+        try:
+            page.locator("[data-testid=shot-description]").fill("A rider crosses a foggy salt flat at dawn.")
+            page.locator("[data-testid=generate-button]").click()
+            page.wait_for_function(
+                "() => document.querySelector('[data-testid=viewport]').dataset.state === 'working'"
+            )
+            shot_id = h.get("/api/shots")[1]["shots"][0]["id"]
+            for name in ("hud", "shot-brief", "comfy-banner"):
+                loc = page.locator(f"[data-testid={name}]")
+                if not loc.is_visible():
+                    continue
+                box = loc.bounding_box()
+                self.assertGreaterEqual(box["x"], 0, name)
+                self.assertGreaterEqual(box["y"], 0, name)
+                self.assertLessEqual(box["x"] + box["width"], 1280, name)
+            viewport = page.locator("[data-testid=viewport]").bounding_box()
+            monitor = page.locator("#monitor").bounding_box()
+            self.assertGreaterEqual(viewport["y"], monitor["y"])
+        finally:
+            h.fake.release()
+            if shot_id:
+                h.wait_for_shot(shot_id, "done")
+
     def test_try_again_sends_one_request(self):
         page, harness = self.page, self.harness
         harness.fake.reset_cache()
