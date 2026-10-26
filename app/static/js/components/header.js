@@ -14,7 +14,7 @@ function render(state) {
   if (banner) {
     banner.hidden = s !== "down";
     const text = document.querySelector("[data-testid=comfy-banner-text]");
-    if (text) text.textContent = s === "down" ? state.comfy.message || "" : "";
+    if (text) text.textContent = s === "down" ? state.comfy.message || "ComfyUI is not reachable." : "";
   }
 }
 
@@ -31,23 +31,38 @@ export function initHeader() {
 
 let timer = null;
 let inFlight = false;
+let failures = 0;
+let softFailed = false;
+
+function fail(message) {
+  failures += 1;
+  const shot = getState().shot;
+  const running = shot && ["queued", "generating", "optics"].includes(shot.status);
+  if (running && failures === 1) {
+    softFailed = true;
+    return;
+  }
+  setState({ comfy: { state: "down", device: null, message } });
+}
 
 export async function checkHealth() {
   if (inFlight) return;
   inFlight = true;
+  softFailed = false;
   clearTimeout(timer);
   try {
     const h = await getHealth();
     const c = h.comfyui;
     if (c && c.reachable) {
+      failures = 0;
       setState({ comfy: { state: "ok", device: c.device || null, message: null } });
     } else {
-      setState({ comfy: { state: "down", device: null, message: (c && c.message) || null } });
+      fail((c && c.message) || null);
     }
   } catch (e) {
-    setState({ comfy: { state: "down", device: null, message: e && e.message ? e.message : null } });
+    fail(e && e.message ? e.message : null);
   } finally {
     inFlight = false;
-    timer = setTimeout(checkHealth, getState().comfy.state === "down" ? 5000 : 30000);
+    timer = setTimeout(checkHealth, softFailed || getState().comfy.state === "down" ? 5000 : 30000);
   }
 }
