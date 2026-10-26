@@ -174,6 +174,17 @@ function resetMedia(before, after, shot, version) {
   updateUnmute();
   loadSrc(before, shot && shot.before_url);
   loadSrc(after, version && version.url);
+  for (const video of [before, after]) {
+    video.addEventListener(
+      "loadeddata",
+      () => {
+        // Muted autoplay; a refusal is silent and the play toggle follows play/pause events.
+        const attempt = video.play();
+        if (attempt && typeof attempt.catch === "function") attempt.catch(() => {});
+      },
+      { once: true },
+    );
+  }
   if (unsync) unsync();
   unsync = syncVideos(before, after);
   q("scrubber").value = "0";

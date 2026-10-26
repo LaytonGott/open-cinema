@@ -4,6 +4,7 @@ import unittest
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
+from tests.player_pause import pause_players
 
 DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
 
@@ -92,6 +93,7 @@ class PlayerRobustTest(unittest.TestCase):
             "() => { const t = document.querySelector('[data-testid=play-toggle]');"
             " return !!t && !t.disabled; }"
         )
+        pause_players(page)
         page.locator(tid("play-toggle")).click()
         page.wait_for_function(
             "() => ['before-video', 'after-video'].every("

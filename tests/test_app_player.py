@@ -4,6 +4,7 @@ import unittest
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
+from tests.player_pause import pause_players
 
 DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
 
@@ -99,6 +100,7 @@ class PlayerTest(unittest.TestCase):
     def test_play_pause_together(self):
         page = self.finished_page()
         self.wait_ready(page)
+        pause_players(page)
         toggle = page.locator(tid("play-toggle"))
         paused = (
             "() => ['before-video', 'after-video'].map("
@@ -132,6 +134,7 @@ class PlayerTest(unittest.TestCase):
     def test_videos_stay_in_sync(self):
         page = self.finished_page()
         self.wait_ready(page)
+        pause_players(page)
         times = (
             "() => ['before-video', 'after-video'].map("
             "n => document.querySelector('[data-testid=' + n + ']').currentTime)"
@@ -204,6 +207,7 @@ class PlayerTest(unittest.TestCase):
             " const v = document.querySelector('[data-testid=' + n + ']');"
             " return !v.seeking && Math.abs(v.currentTime - v.duration / 2) < 0.2; })"
         )
+        pause_players(page)
         toggle = page.locator(tid("play-toggle"))
         toggle.click()
         page.wait_for_function(

@@ -4,6 +4,7 @@ import unittest
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import SHOT, AppHarness
+from tests.player_pause import pause_players
 
 TOKENS = {
     "--bg": "#0b0c0e",
@@ -512,6 +513,7 @@ class DesignTest(unittest.TestCase):
         view = page.locator(tid("viewport")).bounding_box()
         self.assertGreaterEqual(top, view["y"] + view["height"] - 1)
 
+        pause_players(page)
         toggle = page.locator(tid("play-toggle"))
         self.assertEqual(toggle.get_attribute("aria-pressed"), "false")
         self.assertEqual(toggle.get_attribute("aria-label"), "Play")

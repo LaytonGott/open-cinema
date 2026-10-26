@@ -4,6 +4,7 @@ import unittest
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
+from tests.player_pause import pause_players
 
 DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
 OPTICS = "OpenOptics_DepthOfField"
@@ -124,6 +125,7 @@ class ReapplySurviveTest(unittest.TestCase):
             )
             page.locator(item(id_a)).click()
             self.check_running(page)
+            pause_players(page)
             page.locator(tid("play-toggle")).click()
             page.wait_for_function(
                 "() => ['before-video', 'after-video'].every("

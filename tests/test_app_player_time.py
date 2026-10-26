@@ -5,6 +5,7 @@ import unittest
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
+from tests.player_pause import pause_players
 
 DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
 READOUT = "^\\d+:\\d\\d / \\d+:\\d\\d$"
@@ -80,6 +81,7 @@ class PlayerTimeTest(unittest.TestCase):
     def test_readout_advances_on_play(self):
         page = self.finished_page()
         self.wait_ready(page)
+        pause_players(page)
         toggle = page.locator(tid("play-toggle"))
         toggle.click()
         try:

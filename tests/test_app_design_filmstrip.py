@@ -77,6 +77,11 @@ class FilmstripTest(unittest.TestCase):
         page = self.page
         current = page.locator(ITEMS + "[aria-current=true]")
         self.assertEqual(current.count(), 1)
+        # The border colour eases in over 150 ms after the card is selected.
+        page.wait_for_function(
+            "([s, c]) => getComputedStyle(document.querySelector(s)).borderTopColor === c",
+            arg=[ITEMS + "[aria-current=true]", ACCENT],
+        )
         self.assertEqual(current.evaluate("e => getComputedStyle(e).borderTopColor"), ACCENT)
         shown = current.get_attribute("data-shot-id")
         other = page.locator(ITEMS + ":not([aria-current=true])").nth(2)

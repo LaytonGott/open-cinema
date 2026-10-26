@@ -4,6 +4,7 @@ import unittest
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
+from tests.player_pause import pause_players
 
 DESCRIPTION = "A rider crosses a foggy salt flat at dawn."
 
@@ -78,6 +79,7 @@ class PlayerSpaceTest(unittest.TestCase):
     def test_space_toggles(self):
         page = self.finished_page()
         self.wait_ready(page)
+        pause_players(page)
         scroll = page.evaluate("() => window.scrollY")
         page.focus(tid("player"))
         page.keyboard.press("Space")

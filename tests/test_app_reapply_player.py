@@ -4,6 +4,7 @@ import unittest
 from playwright.sync_api import sync_playwright
 
 from tests.app_harness import AppHarness
+from tests.player_pause import pause_players
 
 GENERATION = ("SamplerCustomAdvanced", "VAEDecodeTiled")
 DEPTH = ("DA3Inference", "OpenOptics_DepthToMetric")
@@ -90,6 +91,7 @@ class ReapplyPlayerTest(unittest.TestCase):
             )
             self.assertTrue(page.locator(tid("player")).is_visible())
             self.wait_ready(page)
+            pause_players(page)
             page.locator(tid("play-toggle")).click()
             page.wait_for_function(
                 "() => ['before-video', 'after-video'].every("
@@ -185,6 +187,7 @@ class ReapplyPlayerTest(unittest.TestCase):
         # The fake fails the node before recording it as executed.
         self.assertEqual(fake.count(optics), before)
         self.wait_ready(page)
+        pause_players(page)
         page.locator(tid("play-toggle")).click()
         page.wait_for_function(
             "() => ['before-video', 'after-video'].every("
