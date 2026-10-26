@@ -84,9 +84,14 @@ function render(state) {
   for (const id of ["generate", "optics"]) {
     const el = q("stage-" + id);
     const st = stages.find((s) => s.id === id);
-    if (el && st) {
+    if (!el) continue;
+    if (el.dataset.defaultText === undefined) el.dataset.defaultText = el.textContent;
+    if (st) {
       el.dataset.state = st.state;
       el.textContent = st.label + " (" + st.state + ")";
+    } else {
+      el.removeAttribute("data-state");
+      el.textContent = el.dataset.defaultText;
     }
   }
 }
