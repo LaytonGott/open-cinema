@@ -168,6 +168,23 @@ class PolishTests(unittest.TestCase):
         )
         self.assertEqual(page.evaluate(js_muted), [True, True])
 
+    def test_autoplay_muted_play_causes_no_console_errors(self):
+        page, harness = self.page, self.harness
+        errors = []
+        page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
+        page.on("pageerror", lambda exc: errors.append(str(exc)))
+        _, rec = harness.post("/api/shots", {**SHOT, "description": "A finished shot to autoplay.", "seed": 24})
+        harness.wait_for_shot(rec["id"], "done", timeout=90)
+        page.reload()
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=viewport]').dataset.state === 'result'", timeout=60000
+        )
+        page.wait_for_function(
+            "() => document.querySelector('[data-testid=after-video]').readyState >= 2", timeout=30000
+        )
+        self.assertEqual(errors, [])
+        self.assertTrue(page.locator("[data-testid=player-error]").is_hidden())
+
     def test_try_again_sends_one_request(self):
         page, harness = self.page, self.harness
         harness.fake.reset_cache()
