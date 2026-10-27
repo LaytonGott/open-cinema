@@ -49,6 +49,18 @@ def error_response(status, code, message, field=None):
 
 
 @web.middleware
+async def origin_middleware(request, handler):
+    """Refuse POST and DELETE under /api/ whose Origin is not this host; return the handler's response or a 403 JSON error."""
+    if request.method in ("POST", "DELETE") and request.path.startswith("/api/"):
+        origin = request.headers.get("Origin")
+        if origin is not None and origin != "http://" + request.headers.get("Host", ""):
+            return error_response(
+                403, "forbidden_origin", "Requests from other sites are not allowed.", None
+            )
+    return await handler(request)
+
+
+@web.middleware
 async def error_middleware(request, handler):
     """Turn HTTP errors and unexpected exceptions into JSON error responses (no tracebacks in bodies)."""
     try:
@@ -464,7 +476,7 @@ def create_app(comfyui_url, data_dir, seed_samples=False):
 
     Returns the configured ``aiohttp.web.Application``.
     """
-    app = web.Application(middlewares=[error_middleware])
+    app = web.Application(middlewares=[origin_middleware, error_middleware])
     app[COMFYUI_URL] = comfyui_url
     if seed_samples:
         seed_sample_shots(data_dir)
