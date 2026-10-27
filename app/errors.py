@@ -8,6 +8,7 @@ from comfy_sdk.exceptions import ComfyError, InvalidWorkflow, JobFailed
 UNREACHABLE_MESSAGE = "Lost the connection to ComfyUI. Start ComfyUI, then retry."
 DOWNLOAD_MESSAGE = "Could not download the video from ComfyUI."
 INTERNAL_MESSAGE = "Something went wrong inside Open Cinema. Check the console for details."
+CANCELLED_MESSAGE = "ComfyUI stopped this job (it was interrupted or ComfyUI was restarted). Press Try again."
 OOM_MESSAGE = "ComfyUI ran out of memory. Close other programs that use the GPU or memory, then retry. "
 _OOM_MARKERS = ("out of memory", "allocation on device", "paging file")
 
@@ -42,6 +43,8 @@ def map_error(exc, stage):
         return {"code": "comfy_rejected", "message": message, "stage": stage}
     if isinstance(exc, JobFailed):
         error = getattr(exc, "error", None)
+        if error is None and "canceled" in str(exc).lower():
+            return {"code": "job_failed", "message": CANCELLED_MESSAGE, "stage": stage}
         if error is not None:
             where = getattr(error, "class_type", None) or getattr(error, "node_id", None)
             detail = getattr(error, "message", None) or str(exc)

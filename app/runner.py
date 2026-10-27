@@ -154,8 +154,10 @@ class ShotRunner:
         # how far the run is comes from the position of the running node in the graph (see progress.node_fraction), not from
         # the fraction ComfyUI reports: that one counts only the nodes that have started
         fraction = progress.node_fraction(types, data["current_node"], data["step"], data["steps"])
-        if fraction is None and data.get("nodes_total", 1) > 0:
-            fraction = max(0.0, min(1.0, data["value"]))  # a node the graph does not list: the reported fraction is all there is
+        if fraction is None and not types and data.get("nodes_total", 1) > 0:
+            # no graph is known for this shot: the reported fraction is all there is. With a graph, a frame that names no
+            # node of it (ComfyUI sends some before the first node starts, with a fraction of 1.0) says nothing about progress.
+            fraction = max(0.0, min(1.0, data["value"]))
         if fraction is None:
             self.update(record, message=progress.message_for_node(
                 stage, class_type, data["step"], data["steps"],

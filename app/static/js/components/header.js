@@ -7,7 +7,9 @@ function render(state) {
   if (!el) return;
   const { state: s, device } = state.comfy;
   el.dataset.state = s;
-  if (s === "ok") el.textContent = "ComfyUI: connected" + (device ? " " + device : "");
+  // "cuda:0 NVIDIA GeForce RTX 3090 : cudaMallocAsync" reads as "NVIDIA GeForce RTX 3090"
+  const gpu = device ? String(device).replace(/^.*?cuda:\d+\s*/, "").replace(/\s*:.*$/, "").trim() : "";
+  if (s === "ok") el.textContent = "ComfyUI: connected" + (gpu ? " " + gpu : "");
   else if (s === "down") el.textContent = "ComfyUI: offline";
   else el.textContent = "ComfyUI: checking";
   const banner = document.querySelector("[data-testid=comfy-banner]");

@@ -388,6 +388,13 @@ def create_app(comfyui_url, data_dir):
     app.router.add_get("/media/{id}/{name}", get_media)
     app.router.add_get("/", index)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
+
+    async def revalidate_page_files(request, response):
+        # the page and its scripts are checked with the server on every load (cheap: ETag), so an updated app is never shown stale
+        if request.path == "/" or request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+
+    app.on_response_prepare.append(revalidate_page_files)
     return app
 
 
