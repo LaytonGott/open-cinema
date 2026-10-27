@@ -23,8 +23,9 @@ def spec_testids():
     """
     lines = (ROOT / "docs" / "app-spec.md").read_text(encoding="utf-8").splitlines()
     start = next(i for i, line in enumerate(lines) if "Every element below has a `data-testid`" in line)
+    end = next((i for i, line in enumerate(lines) if line.startswith("## 7.")), len(lines))
     names = set()
-    for line in lines[start:]:
+    for line in lines[start:end]:
         names.update(re.findall(r'data-testid="([^"]+)"', line))
         for name in re.findall(r"`([a-z][a-z0-9]*(?:-[a-z0-9]+)+)`", line):
             if not name.startswith(ATTRIBUTE_PREFIXES):
