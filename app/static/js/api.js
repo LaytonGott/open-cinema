@@ -62,6 +62,14 @@ export function createShot(params) {
   });
 }
 
+// Upload a video file (a File) as a shot; only the optics run on it. `fields` has lens_mm, aperture and framing.
+export function importClip(file, fields) {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
+  form.append("file", file, file.name);
+  return request("/api/shots/import", { method: "POST", body: form });
+}
+
 export function reapplyShot(id, aperture) {
   return request("/api/shots/" + encodeURIComponent(id) + "/reapply", {
     method: "POST",

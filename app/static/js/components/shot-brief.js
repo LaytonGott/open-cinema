@@ -19,7 +19,9 @@ function render(state) {
   }
   const p = shot.params;
   const options = state.options || {};
-  const settings = [p.lens_mm + " mm", "f/" + p.aperture, labelOf(options.framings, p.framing), labelOf(options.cameras, p.camera)].join(" - ");
+  const parts = [p.lens_mm + " mm", "f/" + p.aperture, labelOf(options.framings, p.framing)];
+  if (!shot.imported) parts.push(labelOf(options.cameras, p.camera));
+  const settings = parts.join(" - ");
   const key = shot.id + "|" + p.description + "|" + settings;
   box.hidden = false;
   if (key === lastKey) return;

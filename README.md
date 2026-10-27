@@ -6,6 +6,8 @@ Open Cinema lets you direct a shot, then change the lens afterwards. Describe a 
 
 One generated shot, five apertures. Only the depth of field is recomputed, so each change takes about 7 seconds.
 
+**Bring your own video.** You don't have to generate anything. Press "or use your own video" under Generate shot, choose an .mp4 or .webm clip (up to 200 MB), and set the lens, the framing (it tells the app how far the subject is) and the aperture first. Only depth estimation and depth of field run, so no LTX-2 models are needed and the memory use is far lower than for a generated shot.
+
 It has two parts: the **director app** (a browser page, see "Run the director app") and **Open Optics**, the ComfyUI node pack that does the lens maths.
 
 **Try it without generating anything.** The first time the app starts it adds two finished sample shots: a saxophone player on a night street (apertures f/1.4, f/2.8, f/4, f/8 and f/16) and a woman in a red coat on a rainy street (f/1.4, f/2.8, f/5.6 and f/16). Each video was generated once and the apertures applied afterwards. Open http://127.0.0.1:8000, then drag the Before/After divider and press the f/ chips under the video to compare. Changing the aperture of a new f-number needs ComfyUI running; the samples' existing versions play without it.

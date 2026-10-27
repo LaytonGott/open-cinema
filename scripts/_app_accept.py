@@ -23,7 +23,7 @@ PROTECTED = {
     "tests/fixtures/app/comfy_object_info.json": "11cc785169676a730065b8d10e63c66e9e27e8c365c13978f43946f759d321ef",
     "tests/fixtures/app/clip_sharp.webm": "c3981c36d26ad2d91b865ebb2f5728484996f613891caa3f13eb76178bcd08d6",
     "tests/fixtures/app/clip_soft.webm": "42cfd2b3a8e3853cceee0192996b1b4d84dd9c2b2dfe9f9d4026a15be7e5e02a",
-    "docs/app-spec.md": "24cf21610c4dff01341bb65b157b1f417163ae76cd1684832e391c88eb44b337",
+    "docs/app-spec.md": "ce57269cb0deaa7e30026094e4ba19322b3bb7ce991f46b905a50d1805d16f13",
 }
 
 

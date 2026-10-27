@@ -967,3 +967,17 @@ main > * { flex: none; }
   [data-testid="app"] > header { height: 60px; }
   #history { min-height: 0; }
 }
+
+/* "or use your own video": a quiet second way in under the main button */
+[data-testid=import-button] {
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+[data-testid=import-button]:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+[data-testid=import-button]:disabled { color: var(--muted); border-style: dashed; cursor: not-allowed; }

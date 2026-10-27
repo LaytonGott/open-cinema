@@ -1,6 +1,6 @@
 // Scene description field and Generate button enable rules (no submit logic here).
 import { getState, setState, subscribe } from "../state.js";
-import { submitShot } from "../actions.js";
+import { submitShot, importClip } from "../actions.js";
 
 const BUSY = ["queued", "generating", "optics"];
 
@@ -11,6 +11,8 @@ function updateButton(state) {
   const down = state.comfy.state === "down";
   const busy = !!(state.shot && BUSY.includes(state.shot.status));
   btn.disabled = short || down || state.submitting === true || busy;
+  const own = document.querySelector("[data-testid=import-button]");
+  if (own) own.disabled = down || state.submitting === true || busy;
 }
 
 export function initDescription() {
@@ -29,6 +31,16 @@ export function initDescription() {
         event.preventDefault();
         submitShot();
       }
+    });
+  }
+  const own = document.querySelector("[data-testid=import-button]");
+  const input = document.querySelector("[data-testid=import-input]");
+  if (own && input) {
+    own.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      input.value = "";
+      if (file) importClip(file);
     });
   }
   subscribe(updateButton);

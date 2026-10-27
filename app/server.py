@@ -5,6 +5,7 @@ import json
 import logging
 import mimetypes
 import re
+import secrets
 import signal
 import sys
 from pathlib import Path
@@ -22,7 +23,7 @@ from app.shot import (
     build_prompt, subject_distance, validate_shot,
 )
 from open_optics.framing import sensor_height_mm
-from app.store import ShotStore, new_shot_id, seed_samples as seed_sample_shots
+from app.store import ShotStore, new_shot_id, replace_with_retry, seed_samples as seed_sample_shots
 
 log = logging.getLogger("app")
 
@@ -31,6 +32,8 @@ mimetypes.add_type("video/mp4", ".mp4")
 
 STATIC_DIR = Path(__file__).parent / "static"
 KEEPALIVE_S = 15
+MAX_IMPORT_BYTES = 200 * 1024 * 1024
+IMPORT_SUFFIXES = (".mp4", ".webm")
 MEDIA_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.(mp4|webm)$")
 
 COMFYUI_URL = web.AppKey("comfyui_url", str)
@@ -180,6 +183,105 @@ async def create_shot(request):
     store.add(record)
     request.app[RUNNER].enqueue(record["id"])
     return web.json_response(public_record(record), status=201)
+
+
+async def read_import(request):
+    """Read the multipart body of an import into ``(fields, temp_path, filename)``.
+
+    ``fields`` maps the text parts (``lens_mm``, ``aperture``, ``framing``, ``name``) to strings. The ``file`` part is
+    streamed to a ``.import-*`` file in the shots folder (``temp_path``, a Path; ``filename`` its original name) and
+    stops with 413 ``too_large`` past ``MAX_IMPORT_BYTES``. ``temp_path`` and ``filename`` are None without a file part.
+    Raises ``ValueError`` if the body is not multipart.
+    """
+    if not request.content_type.startswith("multipart/"):
+        raise ValueError("not multipart")
+    reader = await request.multipart()
+    fields, temp, filename = {}, None, None
+    store = request.app[STORE]
+    store.root.mkdir(parents=True, exist_ok=True)
+    try:
+        while True:
+            part = await reader.next()
+            if part is None:
+                break
+            if part.name == "file":
+                filename = part.filename or ""
+                temp = store.root / f".import-{secrets.token_hex(4)}.part"
+                size = 0
+                with open(temp, "wb") as out:
+                    while True:
+                        chunk = await part.read_chunk(1024 * 1024)
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        if size > MAX_IMPORT_BYTES:
+                            raise web.HTTPRequestEntityTooLarge(max_size=MAX_IMPORT_BYTES, actual_size=size)
+                        out.write(chunk)
+            elif part.name:
+                fields[part.name] = (await part.text())[:1000]
+    except BaseException:
+        if temp is not None:
+            temp.unlink(missing_ok=True)
+        raise
+    return fields, temp, filename
+
+
+async def import_shot(request):
+    """Create a shot from an uploaded video (multipart ``file`` plus ``lens_mm``, ``aperture``, ``framing``, optional ``name``) and return its public record with status 202.
+
+    The video becomes the shot's "before"; only the optics run, as for a re-apply. 400 ``invalid_shot`` for a bad field or
+    a file that is not .mp4 or .webm, 413 ``too_large`` past 200 MB, 503 for ComfyUI problems as for ``create_shot``.
+    """
+    try:
+        fields, temp, filename = await read_import(request)
+    except ValueError:
+        return error_response(400, "invalid_shot", "The request must be a form upload with a video file.", "file")
+    except web.HTTPRequestEntityTooLarge:
+        return error_response(413, "too_large", "The video is larger than 200 MB. Use a shorter or smaller clip.", "file")
+    try:
+        suffix = Path(filename or "").suffix.lower()
+        if temp is None or suffix not in IMPORT_SUFFIXES:
+            return error_response(400, "invalid_shot", "Choose a video file (.mp4 or .webm).", "file")
+        try:
+            lens_mm = int(fields.get("lens_mm", ""))
+            aperture = float(fields.get("aperture", ""))
+        except ValueError:
+            return error_response(400, "invalid_shot", "The lens and the aperture must be numbers.", "lens_mm")
+        name = fields.get("name", "").strip() or Path(filename).stem[:80] or "clip"
+        try:
+            params = validate_shot({
+                "description": f"Imported clip: {name}", "camera": "static", "lens_mm": lens_mm,
+                "aperture": aperture, "framing": fields.get("framing", ""), "seed": 0})
+        except ShotError as exc:
+            return error_response(400, "invalid_shot", exc.message, exc.field)
+        comfy = await check_health(request.app[COMFYUI_URL])
+        if not comfy["reachable"]:
+            return error_response(503, "comfy_unreachable", comfy["message"])
+        distance = subject_distance(params["lens_mm"], params["framing"])
+        refusal = await preflight_refusal(request.app[COMFYUI_URL], [
+            graphs.build_optics_graph("check.mp4", params["lens_mm"], params["aperture"], distance, "opencinema/check")])
+        if refusal is not None:
+            return refusal
+        store = request.app[STORE]
+        record = new_record(new_shot_id({r["id"] for r in store.list()}), params)
+        record["imported"] = True
+        shot_dir = store.shot_dir(record["id"])
+        shot_dir.mkdir(parents=True, exist_ok=True)
+        replace_with_retry(temp, shot_dir / f"before{suffix}")
+        temp = None
+        record["before_url"] = f"/media/{record['id']}/before{suffix}"
+        for stage in record["stages"]:
+            if stage["id"] == "generate":
+                stage["state"], stage["progress"] = "done", 1.0
+        record["status"], record["progress"], record["message"] = "done", 1.0, "Done"
+        store.add(record)
+        runner = request.app[RUNNER]
+        runner.begin_reapply(record, params["aperture"])
+        runner.enqueue(record["id"], params["aperture"])
+        return web.json_response(public_record(record), status=202)
+    finally:
+        if temp is not None:
+            temp.unlink(missing_ok=True)
 
 
 async def reapply_shot(request):
@@ -381,6 +483,7 @@ def create_app(comfyui_url, data_dir, seed_samples=False):
     app.router.add_get("/api/options", options)
     app.router.add_get("/api/estimate", estimate)
     app.router.add_post("/api/shots", create_shot)
+    app.router.add_post("/api/shots/import", import_shot)
     app.router.add_get("/api/shots", list_shots)
     app.router.add_get("/api/shots/{id}", get_shot)
     app.router.add_delete("/api/shots/{id}", delete_shot)
