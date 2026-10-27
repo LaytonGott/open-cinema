@@ -2,9 +2,13 @@
 
 Open Cinema lets you direct a shot, then change the lens afterwards. Describe a scene, pick a camera move, a lens and a framing, and it generates a video with LTX-2. It then estimates depth for every frame and applies a real depth of field from lens and sensor maths. Move the aperture slider from f/16 to f/1.4 and the background blur changes in seconds, without generating the video again.
 
+![The aperture sweeps from f/16 to f/1.4 on one generated shot: the street lamps behind the saxophone player melt into bokeh while he stays sharp](docs/aperture-sweep.gif)
+
+One generated shot, five apertures. Only the depth of field is recomputed, so each change takes about 7 seconds.
+
 It has two parts: the **director app** (a browser page, see "Run the director app") and **Open Optics**, the ComfyUI node pack that does the lens maths.
 
-**Try it without generating anything.** The first time the app starts it adds one finished sample shot (a woman in a red coat on a rainy street) with the video generated once and the aperture applied at f/1.4, f/2.8, f/5.6 and f/16. Open http://127.0.0.1:8000, then drag the Before/After divider and press the f/ chips under the video to compare. Changing the aperture of a new f-number needs ComfyUI running; the sample's four versions play without it.
+**Try it without generating anything.** The first time the app starts it adds two finished sample shots: a saxophone player on a night street (apertures f/1.4, f/2.8, f/4, f/8 and f/16) and a woman in a red coat on a rainy street (f/1.4, f/2.8, f/5.6 and f/16). Each video was generated once and the apertures applied afterwards. Open http://127.0.0.1:8000, then drag the Before/After divider and press the f/ chips under the video to compare. Changing the aperture of a new f-number needs ComfyUI running; the samples' existing versions play without it.
 
 # Open Optics
 
