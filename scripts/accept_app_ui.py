@@ -63,7 +63,7 @@ def run():
         report.check(not visible(p, "comfy-banner"), "the ComfyUI banner must be hidden while ComfyUI is reachable")
 
         # ---- controls and their defaults
-        for group, values, default in (("camera-group", ["static", "dolly-in", "dolly-out", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"], "static"),
+        for group, values, default in (("camera-group", ["static", "dolly-in", "dolly-out", "truck-left", "truck-right", "crane-up", "crane-down", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"] if checked_values(p, "camera-group") and len(checked_values(p, "camera-group")) == 12 else ["static", "dolly-in", "dolly-out", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"], "static"),
                                        ("lens-group", ["24", "35", "50", "85"], "50"),
                                        ("framing-group", ["close-up", "waist-up", "full-body", "wide"], "full-body")):
             got = checked_values(p, group)

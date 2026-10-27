@@ -1514,6 +1514,59 @@
    "video file"
   ]
  },
+ "LoraLoaderModelOnly": {
+  "category": "loaders",
+  "display_name": "LoraLoaderModelOnly",
+  "has_intermediate_output": false,
+  "input": {
+   "required": {
+    "lora_name": [
+     [
+      "ltx-2-19b-lora-camera-control-dolly-in.safetensors",
+      "ltx-2-19b-lora-camera-control-dolly-left.safetensors",
+      "ltx-2-19b-lora-camera-control-dolly-out.safetensors",
+      "ltx-2-19b-lora-camera-control-dolly-right.safetensors",
+      "ltx-2-19b-lora-camera-control-jib-down.safetensors",
+      "ltx-2-19b-lora-camera-control-jib-up.safetensors",
+      "ltx-2-19b-lora-camera-control-static.safetensors"
+     ]
+    ],
+    "model": [
+     "MODEL"
+    ],
+    "strength_model": [
+     "FLOAT",
+     {
+      "default": 1.0,
+      "max": 100.0,
+      "min": -100.0,
+      "step": 0.01
+     }
+    ]
+   }
+  },
+  "input_order": {
+   "required": [
+    "model",
+    "lora_name",
+    "strength_model"
+   ]
+  },
+  "is_input_list": false,
+  "name": "LoraLoaderModelOnly",
+  "output": [
+   "MODEL"
+  ],
+  "output_is_list": [
+   false
+  ],
+  "output_name": [
+   "MODEL"
+  ],
+  "output_node": false,
+  "python_module": "nodes",
+  "search_aliases": []
+ },
  "ManualSigmas": {
   "api_node": false,
   "category": "model/sampling/sigmas",
@@ -1749,6 +1802,15 @@
   "has_intermediate_output": false,
   "input": {
    "optional": {
+    "bokeh_squeeze": [
+     "FLOAT",
+     {
+      "default": 1.0,
+      "max": 2.0,
+      "min": 1.0,
+      "step": 0.05
+     }
+    ],
     "chunk_frames": [
      "INT",
      {
@@ -1764,6 +1826,24 @@
     "depth_mask": [
      "MASK"
     ],
+    "focus_x": [
+     "FLOAT",
+     {
+      "default": -1.0,
+      "max": 1.0,
+      "min": -1.0,
+      "step": 0.001
+     }
+    ],
+    "focus_y": [
+     "FLOAT",
+     {
+      "default": -1.0,
+      "max": 1.0,
+      "min": -1.0,
+      "step": 0.001
+     }
+    ],
     "max_layers": [
      "INT",
      {
@@ -1771,6 +1851,42 @@
       "max": 64,
       "min": 1,
       "step": 1
+     }
+    ],
+    "rack_end": [
+     "FLOAT",
+     {
+      "default": 0.8,
+      "max": 1.0,
+      "min": 0.0,
+      "step": 0.01
+     }
+    ],
+    "rack_start": [
+     "FLOAT",
+     {
+      "default": 0.2,
+      "max": 1.0,
+      "min": 0.0,
+      "step": 0.01
+     }
+    ],
+    "rack_x": [
+     "FLOAT",
+     {
+      "default": -1.0,
+      "max": 1.0,
+      "min": -1.0,
+      "step": 0.001
+     }
+    ],
+    "rack_y": [
+     "FLOAT",
+     {
+      "default": -1.0,
+      "max": 1.0,
+      "min": -1.0,
+      "step": 0.001
      }
     ]
    },
@@ -1848,7 +1964,14 @@
     "depth_mask",
     "depth_image",
     "chunk_frames",
-    "max_layers"
+    "max_layers",
+    "focus_x",
+    "focus_y",
+    "rack_x",
+    "rack_y",
+    "rack_start",
+    "rack_end",
+    "bokeh_squeeze"
    ],
    "required": [
     "image",

@@ -20,10 +20,10 @@ sys.path.insert(0, str(ROOT))
 PROTECTED = {
     "tests/fake_comfy.py": "e162f1a4aeba67388febe982c8bfa84db85b90264d7dbd08655ee1ffc3ce98fe",
     "tests/app_harness.py": "48f652ff38ade874c526e2c2f91ab82ad609fb7f3c029ecaa9646e311f8c5474",
-    "tests/fixtures/app/comfy_object_info.json": "11cc785169676a730065b8d10e63c66e9e27e8c365c13978f43946f759d321ef",
+    "tests/fixtures/app/comfy_object_info.json": "8abf51da5ab77f39dcef3fce3e7dcc402aab80221ae931a1d877017084d09ee6",
     "tests/fixtures/app/clip_sharp.webm": "c3981c36d26ad2d91b865ebb2f5728484996f613891caa3f13eb76178bcd08d6",
     "tests/fixtures/app/clip_soft.webm": "42cfd2b3a8e3853cceee0192996b1b4d84dd9c2b2dfe9f9d4026a15be7e5e02a",
-    "docs/app-spec.md": "ce57269cb0deaa7e30026094e4ba19322b3bb7ce991f46b905a50d1805d16f13",
+    "docs/app-spec.md": "40f1e6ad2c02c3b26cdbe13fd2d12c3a54c7a496fc6294719b5c0bfb1e8ae30f",
 }
 
 

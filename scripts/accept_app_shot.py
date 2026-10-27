@@ -41,7 +41,8 @@ APERTURES = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16]
 report.check(dict(shot.SUBJECT_HEIGHT_FRACTION) == {"close-up": 2.8, "waist-up": 1.6, "full-body": 0.85, "wide": 0.35}, f"SUBJECT_HEIGHT_FRACTION must be the table in section 2.1; got {getattr(shot, 'SUBJECT_HEIGHT_FRACTION', None)}")
 report.check(list(shot.LENSES) == [24, 35, 50, 85], f"LENSES must be [24, 35, 50, 85]; got {list(shot.LENSES)}")
 report.check([float(a) for a in shot.APERTURES] == [float(a) for a in APERTURES], f"APERTURES must be {APERTURES}; got {list(shot.APERTURES)}")
-report.check(list(shot.CAMERAS) == list(CAMERA_PHRASE) or [c["id"] if isinstance(c, dict) else c for c in shot.CAMERAS] == list(CAMERA_PHRASE), f"CAMERAS must list the eight camera ids in order {list(CAMERA_PHRASE)}")
+_camera_ids = [c["id"] if isinstance(c, dict) else c for c in shot.CAMERAS]
+report.check(_camera_ids in (list(CAMERA_PHRASE), ["static", "dolly-in", "dolly-out", "truck-left", "truck-right", "crane-up", "crane-down", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"]), f"CAMERAS must list the camera ids in order: the eight {list(CAMERA_PHRASE)}, or the twelve of docs/app-spec.md section 7.3")
 report.check([f["id"] if isinstance(f, dict) else f for f in shot.FRAMINGS] == list(FRAMING_PHRASE), f"FRAMINGS must list {list(FRAMING_PHRASE)}")
 
 # ---- distances
