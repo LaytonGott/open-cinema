@@ -1,0 +1,66 @@
+{
+  "id": "sample-red-coat",
+  "params": {
+    "description": "A woman in a red wool coat stands on a rainy cobblestone street at night, neon signs reflecting in the puddles, her breath visible in the cold air.",
+    "camera": "dolly-in",
+    "lens_mm": 50,
+    "aperture": 2.8,
+    "framing": "full-body",
+    "seed": 1739769688
+  },
+  "derived": {
+    "subject_distance_m": 5.1005,
+    "prompt": "Full-body shot, the whole figure visible head to toe. A woman in a red wool coat stands on a rainy cobblestone street at night, neon signs reflecting in the puddles, her breath visible in the cold air. Slow dolly-in toward the subject. 50 mm lens look, deep focus with everything sharp from the foreground to the far background, cinematic lighting, 35mm film."
+  },
+  "status": "done",
+  "progress": 1.0,
+  "message": "Done",
+  "stages": [
+    {
+      "id": "generate",
+      "label": "Generate video",
+      "state": "done",
+      "progress": 1.0
+    },
+    {
+      "id": "optics",
+      "label": "Apply optics",
+      "state": "done",
+      "progress": 1.0
+    }
+  ],
+  "elapsed_s": 6.1,
+  "error": null,
+  "reapply_error": null,
+  "before_url": "/media/sample-red-coat/before.mp4",
+  "versions": [
+    {
+      "n": 1,
+      "aperture": 2.8,
+      "url": "/media/sample-red-coat/after_1.mp4",
+      "created_at": "2026-10-27T04:07:37Z"
+    },
+    {
+      "n": 2,
+      "aperture": 1.4,
+      "url": "/media/sample-red-coat/after_2.mp4",
+      "created_at": "2026-10-27T04:36:40Z"
+    },
+    {
+      "n": 3,
+      "aperture": 5.6,
+      "url": "/media/sample-red-coat/after_3.mp4",
+      "created_at": "2026-10-27T17:44:16Z"
+    },
+    {
+      "n": 4,
+      "aperture": 16,
+      "url": "/media/sample-red-coat/after_4.mp4",
+      "created_at": "2026-10-27T17:44:22Z"
+    }
+  ],
+  "current_version": 2,
+  "created_at": "2026-01-01T00:00:00Z",
+  "seq": 0,
+  "sample": true
+}

@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 
 RUNNING_STATUSES = ("queued", "generating", "optics")
+SAMPLES_DIR = Path(__file__).resolve().parent / "samples"
+SAMPLES_MARKER = ".samples-seeded"
 
 
 def new_shot_id(existing=()):
@@ -148,3 +150,24 @@ class ShotStore:
             self.save(record)
             recovered.append(record["id"])
         return recovered
+
+
+def seed_samples(data_dir, samples_dir=SAMPLES_DIR):
+    """Copy the sample shots in `samples_dir` (path; one folder each, with its `shot.json` and videos) into `data_dir/shots/` the first time this `data_dir` (path) is used, so a new install opens on a finished shot; returns the list of sample ids copied.
+
+    A `.samples-seeded` file in `data_dir` records that this was done, so a sample the user deleted stays deleted. Nothing is copied over a folder that already exists.
+    """
+    data_dir = Path(data_dir)
+    marker = data_dir / SAMPLES_MARKER
+    if marker.exists() or not Path(samples_dir).is_dir():
+        return []
+    copied = []
+    for sample in sorted(Path(samples_dir).iterdir()):
+        target = data_dir / "shots" / sample.name
+        if not (sample / "shot.json").is_file() or target.exists():
+            continue
+        shutil.copytree(sample, target)
+        copied.append(sample.name)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    marker.write_text("", encoding="utf-8")
+    return copied

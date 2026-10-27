@@ -1,3 +1,11 @@
+# Open Cinema
+
+Open Cinema lets you direct a shot, then change the lens afterwards. Describe a scene, pick a camera move, a lens and a framing, and it generates a video with LTX-2. It then estimates depth for every frame and applies a real depth of field from lens and sensor maths. Move the aperture slider from f/16 to f/1.4 and the background blur changes in seconds, without generating the video again.
+
+It has two parts: the **director app** (a browser page, see "Run the director app") and **Open Optics**, the ComfyUI node pack that does the lens maths.
+
+**Try it without generating anything.** The first time the app starts it adds one finished sample shot (a woman in a red coat on a rainy street) with the video generated once and the aperture applied at f/1.4, f/2.8, f/5.6 and f/16. Open http://127.0.0.1:8000, then drag the Before/After divider and press the f/ chips under the video to compare. Changing the aperture of a new f-number needs ComfyUI running; the sample's four versions play without it.
+
 # Open Optics
 
 Open Optics is a ComfyUI node pack of physically based lens effects. It covers depth of field from real lens and sensor maths, focal crop, lens distortion, vignette, chromatic aberration and anamorphic squeeze.
@@ -81,7 +89,7 @@ This is an estimate: it assumes a thin lens and a subject facing the camera. The
 
     `npm run app` does the same as `python -m app` and accepts the same options (e.g. `npm run app -- --comfyui http://127.0.0.1:8188`).
 
-5. What you will see: the header says "ComfyUI: connected". The first shot takes several minutes because the LTX-2 models load. The second shot is faster. Changing the aperture takes seconds, because only Depth of Field runs again.
+5. What you will see: the header says "ComfyUI: connected" with your GPU name, and the page opens on the sample shot. A new shot takes about two minutes on an RTX 3090 (longer the first time, while the LTX-2 models load) and needs about 26 GB of free memory including the page file, so close heavy programs first. Changing the aperture takes about 7 seconds, because only Depth of Field runs again.
 6. When ComfyUI isn't running, the app shows a banner "Can't reach ComfyUI at <url>. Start ComfyUI, then retry." with a Retry button. Generate shot stays disabled until you press Retry and the header turns to "ComfyUI: connected".
 
     Common errors:

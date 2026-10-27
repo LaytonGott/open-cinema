@@ -950,3 +950,20 @@ main > * { flex: none; }
   }
   .record-dot { animation: none; }
 }
+
+/* the aperture bar under the video is the centre of the app: big, with the blur said in words */
+[data-testid=optics-controls] { gap: 10px 16px; padding: 12px 16px; margin: 12px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+[data-testid=reapply-slider] { flex: 1 1 260px; height: 28px; }
+[data-testid=reapply-value] { font-size: 1.75rem; font-weight: 600; min-width: 4.5ch; color: var(--accent); }
+[data-testid=reapply-blur] { font-size: 0.9375rem; color: var(--text); }
+[data-testid=reapply-button] { padding: 8px 16px; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+[data-testid=reapply-button]:disabled { border-color: var(--line); color: var(--muted); font-weight: 400; }
+[data-testid=version-chip] { font-size: 0.875rem; padding: 6px 12px; }
+
+/* a bigger screen gets bigger type and a wider control column, so the page does not look tiny */
+@media (min-width: 1500px) and (min-height: 950px) {
+  html { font-size: 18px; }
+  [data-testid="app"] { grid-template-columns: 460px minmax(0, 1fr); grid-template-rows: 60px auto minmax(0, 1fr) 120px; }
+  [data-testid="app"] > header { height: 60px; }
+  #history { min-height: 0; }
+}

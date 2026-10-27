@@ -14,11 +14,21 @@ const pendingByShot = {};
 const seenRunning = new Set();
 let list = null;
 let listKey = null;
+let blur = null;
+
+// How much the background blurs at an f-number, in words: a wide aperture (small f-number) blurs the most.
+function blurWord(fNumber) {
+  if (fNumber <= 2) return "Background blur: strong";
+  if (fNumber <= 4) return "Background blur: medium";
+  if (fNumber <= 8) return "Background blur: slight";
+  return "Background blur: almost none";
+}
 
 function showValue() {
   const text = "f/" + APERTURE_STOPS[Number(slider.value)];
   value.textContent = text;
   slider.setAttribute("aria-valuetext", text);
+  blur.textContent = blurWord(APERTURE_STOPS[Number(slider.value)]);
 }
 
 function updateButton() {
@@ -90,6 +100,8 @@ function render(state) {
     slider.setAttribute("aria-label", "Aperture");
     value = document.createElement("output");
     value.setAttribute("data-testid", "reapply-value");
+    blur = document.createElement("span");
+    blur.setAttribute("data-testid", "reapply-blur");
     slider.addEventListener("input", onInput);
     button = document.createElement("button");
     button.type = "button";
@@ -107,7 +119,7 @@ function render(state) {
     status.setAttribute("aria-live", "polite");
     list = document.createElement("div");
     list.setAttribute("data-testid", "version-list");
-    box.append(slider, value, button, status, list);
+    box.append(slider, value, blur, button, status, list);
   }
   current = state;
   const version = shownVersionOf(state);

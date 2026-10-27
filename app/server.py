@@ -12,7 +12,7 @@ from pathlib import Path
 from aiohttp import web
 
 from app import graphs, preflight
-from app.cli import parse_args
+from app.cli import DEFAULT_DATA_DIR, parse_args
 from app.comfy_health import check_health
 from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.record import new_record, public_record
@@ -22,7 +22,7 @@ from app.shot import (
     build_prompt, subject_distance, validate_shot,
 )
 from open_optics.framing import sensor_height_mm
-from app.store import ShotStore, new_shot_id
+from app.store import ShotStore, new_shot_id, seed_samples as seed_sample_shots
 
 log = logging.getLogger("app")
 
@@ -353,13 +353,15 @@ async def index(request):
     return web.FileResponse(STATIC_DIR / "index.html")
 
 
-def create_app(comfyui_url, data_dir):
-    """Build the aiohttp Application for ComfyUI at ``comfyui_url`` and shots in ``data_dir``.
+def create_app(comfyui_url, data_dir, seed_samples=False):
+    """Build the aiohttp Application for ComfyUI at ``comfyui_url`` and shots in ``data_dir``; with ``seed_samples`` true, a new ``data_dir`` first gets the bundled sample shots (see ``store.seed_samples``).
 
     Returns the configured ``aiohttp.web.Application``.
     """
     app = web.Application(middlewares=[error_middleware])
     app[COMFYUI_URL] = comfyui_url
+    if seed_samples:
+        seed_sample_shots(data_dir)
     store = ShotStore(data_dir)
     store.load_all()
     store.recover_interrupted()
@@ -426,7 +428,7 @@ async def _serve(args):
         else:
             proxy_runner, proxy_url = await start_proxy(args.comfyui, args.proxy_port)
             use_proxy(proxy_url)
-        runner = web.AppRunner(create_app(args.comfyui, args.data_dir), shutdown_timeout=1.0)
+        runner = web.AppRunner(create_app(args.comfyui, args.data_dir, seed_samples=args.data_dir == DEFAULT_DATA_DIR), shutdown_timeout=1.0)
         await runner.setup()
         try:
             await web.TCPSite(runner, args.host, args.port).start()

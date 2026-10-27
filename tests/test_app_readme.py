@@ -80,8 +80,8 @@ class ReadmeAppSectionTest(unittest.TestCase):
 
     def test_step_five_what_you_see(self):
         step = self._step(5)
-        for text in ("ComfyUI: connected", "several minutes", "LTX-2 models load",
-                     "second shot is faster", "Changing the aperture takes seconds",
+        for text in ("ComfyUI: connected", "sample shot", "about two minutes", "LTX-2 models load",
+                     "26 GB", "Changing the aperture takes about 7 seconds",
                      "only Depth of Field runs again"):
             self.assertIn(text, step)
 
