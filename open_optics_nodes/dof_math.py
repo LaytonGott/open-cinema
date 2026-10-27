@@ -56,10 +56,11 @@ def _radius_level(radius):
 
 FOCUS_REACH_PX = 6
 FOCUS_COLOUR_TOL = 0.05
+FOCUS_BLEND_MIN = 0.3
 
 
 def grow_focus_into_far(signed_radius, image_chw, focus_reach_px=FOCUS_REACH_PX,
-                        colour_tol=FOCUS_COLOUR_TOL):
+                        colour_tol=FOCUS_COLOUR_TOL, blend_min=FOCUS_BLEND_MIN):
     """Pull the subject's own soft-depth edge pixels into focus; returns the signed radius.
 
     signed_radius is a float32 [B, H, W] CoC radius in pixels, negative in
@@ -70,53 +71,76 @@ def grow_focus_into_far(signed_radius, image_chw, focus_reach_px=FOCUS_REACH_PX,
     line in thin gaps such as between an arm and the body.
 
     Depth cannot tell those pixels apart: with a 4 px soft edge, the subject
-    pixels beside a 2 px gap have exactly the gap's depth, so any growth by
-    depth or edge width alone either misses them or also freezes the gap and
-    a ring of background around the subject (a fixed 2 px growth did the
-    first on the street clip). Colour can: the in-focus region grows one pixel
-    at a time, up to focus_reach_px pixels, into behind-focus pixels that
-      - touch the region (8-neighbourhood),
-      - have a colour within colour_tol (linear, Euclidean over RGB) plus two
-        local standard deviations of the mean colour of the in-focus pixels
-        within focus_reach_px, i.e. look like the subject there, and
-      - have a CoC radius of at least the step number in pixels, i.e. sit on a
-        depth edge where blur rises by >= 1 px per pixel, not on a gently
-        receding surface such as a floor, which keeps its blur.
-    Grown pixels get radius 0. Background next to the subject differs in
-    colour and keeps its blur, so no sharp background ring forms; the cost is
-    that background of the subject's colour within the reach, at a depth
-    edge, is kept sharp too, and subject edge pixels whose colour is far from
-    the local subject colour (anti-aliased edge pixels, strong texture) are
-    still blurred as background. Near-side pixels are left alone, so a
-    blurred foreground still spreads over the subject. Returns a float32
-    [B, H, W] signed radius in pixels; focus_reach_px 0 returns signed_radius
-    unchanged.
+    pixels beside a 2 px gap have exactly the gap's depth. Growing by depth
+    alone (a fixed width, or along the CoC ramp until it levels off) either
+    misses them or, since a narrow gap never reaches the background's CoC
+    plateau, also freezes the gap and the outer half of every soft edge as a
+    sharp background ring (the fixed 2 px growth on the street clip did both
+    in part). Colour separates them, but a gate on the subject's colour alone
+    missed the anti-aliased boundary pixels, which carry part of the
+    subject's colour and spread it into the gap (v7). So a pixel counts as
+    subject-side when its colour lies on the line from the local subject
+    colour to the local background colour, at least blend_min of the way
+    from the background end: pure subject colour and anti-aliased mixes join,
+    pure background does not.
+
+    Local colours, over a (2 * focus_reach_px + 1) px window: the subject's
+    is the mean of the in-focus pixels; the background's is the mean of the
+    behind-focus pixels weighted by their squared distance from the subject
+    colour, so subject-coloured soft-edge pixels count for nothing and the
+    most different pixels, the real background, dominate. "On the line" means
+    within colour_tol (linear, Euclidean over RGB) plus two local standard
+    deviations of the subject colour, measured perpendicular to the line;
+    where the two colours are closer than that, only nearness to the subject
+    colour counts. The in-focus region then grows one pixel at a time, up to
+    focus_reach_px pixels, into behind-focus pixels that touch it
+    (8-neighbourhood), are subject-side, and have a CoC radius of at least
+    the step number in pixels, i.e. sit on a depth edge where blur rises by
+    >= 1 px per pixel, not on a gently receding surface such as a floor.
+
+    Grown pixels get radius 0. Background next to the subject keeps its blur,
+    so no sharp background ring forms; the costs are that background within
+    the reach whose colour is near the subject's, or between the two, is kept
+    sharp at a depth edge, and that a strongly textured subject's edge
+    pixels far from both colours are still blurred as background. Near-side
+    pixels are left alone, so a blurred foreground still spreads over the
+    subject. Returns a float32 [B, H, W] signed radius in pixels;
+    focus_reach_px 0 returns signed_radius unchanged.
     """
     in_focus = signed_radius.abs() < SHARP_RADIUS_PX
     if focus_reach_px <= 0 or not in_focus.any():
         return signed_radius
     reach = int(focus_reach_px)
     region = in_focus.to(torch.float32)[:, None]
+    far = (signed_radius > 0)[:, None]
     image = image_chw.to(torch.float32)
 
     def local_mean(x):
         return torch.nn.functional.avg_pool2d(x, 2 * reach + 1, stride=1, padding=reach,
                                               count_include_pad=False)
 
-    share = local_mean(region)
-    mean = local_mean(image * region) / share.clamp_min(1e-8)
-    var = (local_mean(image * image * region) / share.clamp_min(1e-8) - mean * mean)
-    var = var.clamp_min(0.0).sum(dim=1, keepdim=True)
-    dist2 = ((image - mean) ** 2).sum(dim=1, keepdim=True)
-    candidate = ((share > 0) & (dist2 <= colour_tol ** 2 + 4.0 * var)
-                 & (signed_radius > 0)[:, None])
+    pooled = local_mean(torch.cat([region, image * region, image * image * region], dim=1))
+    share = pooled[:, :1]
+    mean_s = pooled[:, 1:4] / share.clamp_min(1e-8)
+    var_s = (pooled[:, 4:7] / share.clamp_min(1e-8) - mean_s * mean_s)
+    tol2 = colour_tol ** 2 + 4.0 * var_s.clamp_min(0.0).sum(dim=1, keepdim=True)
+    offset = image - mean_s
+    dist2 = (offset * offset).sum(dim=1, keepdim=True)
+    weight = dist2 * far
+    pooled = local_mean(torch.cat([weight, image * weight], dim=1))
+    mean_b = pooled[:, 1:4] / pooled[:, :1].clamp_min(1e-12)
+    line = mean_b - mean_s
+    length2 = (line * line).sum(dim=1, keepdim=True)
+    toward_b = (offset * line).sum(dim=1, keepdim=True) / length2.clamp_min(1e-12)
+    perp2 = dist2 - toward_b * toward_b * length2
+    has_line = (pooled[:, :1] > 1e-12) & (length2 > tol2)
+    between = has_line & (toward_b <= 1.0 - blend_min) & (perp2 <= tol2)
+    candidate = (share > 0) & far & ((dist2 <= tol2) | between)
     radius = signed_radius.abs()[:, None]
     for step in range(1, reach + 1):
         touching = torch.nn.functional.max_pool2d(region, 3, stride=1, padding=1) > 0
-        add = touching & (region == 0) & candidate & (radius >= step)
-        if not add.any():
-            break
-        region = region + add.to(torch.float32)
+        region = region + (touching & (region == 0) & candidate
+                           & (radius >= step)).to(torch.float32)
     grown = (region[:, 0] > 0) & ~in_focus
     return torch.where(grown, torch.zeros_like(signed_radius), signed_radius)
 

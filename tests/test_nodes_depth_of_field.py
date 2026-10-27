@@ -311,10 +311,15 @@ class TestDepthOfFieldSoftDepthGap(unittest.TestCase):
             img, focal_mm=85.0, f_number=1.4, focus_m=2.0, sensor_width_mm=8.0,
             max_radius_px=16, quality=quality, colorspace="linear", depth_mask=depth)
 
-    def _check_gap(self, box_px):
+    def _check_gap(self, box_px, blended=False):
         img = torch.full((1, 64, 64, 3), self.BACKGROUND)
         img[:, :, 8:56] = self.SUBJECT
         img[:, :, 31:33] = self.BACKGROUND
+        if blended:
+            # Anti-aliased silhouette: the subject's boundary columns, at the
+            # outside and beside the gap, are 50/50 subject and background.
+            for col in (8, 30, 33, 55):
+                img[:, :, col] = 0.5 * (self.SUBJECT + self.BACKGROUND)
         sharp_depth = torch.full((1, 64, 64), 20.0)
         sharp_depth[:, :, 8:56] = 2.0
         sharp_depth[:, :, 31:33] = 20.0
@@ -339,6 +344,12 @@ class TestDepthOfFieldSoftDepthGap(unittest.TestCase):
         # rule tells them apart; a fixed 2 px growth leaves 29-30 and 33-34 to
         # be blurred into the gap.
         self._check_gap(9)
+
+    def test_gap_stays_light_with_blended_edges(self):
+        # v7: growth gated on the subject's colour alone missed anti-aliased
+        # boundary pixels, which then carried half the subject's colour into
+        # the gap. Soft over 4 px, boundary pixels 50/50.
+        self._check_gap(9, blended=True)
 
     def test_soft_edge_keeps_subject_sharp_without_a_sharp_background_ring(self):
         # Dark subject in columns 16..47 on a light textured background, depth
