@@ -435,6 +435,7 @@ async def get_media(request):
     """Serve the video ``name`` (matching ``MEDIA_NAME``) from the folder of shot ``id`` (Range supported).
 
     Answers 404 ``not_found`` for any other name, an unknown shot, a missing file or a path that leaves the shot folder.
+    With the query parameter ``download=1`` the response also carries ``Content-Disposition: attachment; filename="opencinema-<shot id>-<name>"``; without it no such header is sent.
     """
     shot_id = request.match_info["id"]
     name = request.match_info["name"]
@@ -447,7 +448,10 @@ async def get_media(request):
     path = shot_dir / name
     if not path.is_file() or path.resolve().parent != shot_dir.resolve():
         return error_response(404, "not_found", message)
-    return web.FileResponse(path)
+    headers = None
+    if request.query.get("download") == "1":
+        headers = {"Content-Disposition": f'attachment; filename="opencinema-{shot_id}-{name}"'}
+    return web.FileResponse(path, headers=headers)
 
 
 async def index(request):
