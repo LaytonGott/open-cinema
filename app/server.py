@@ -33,6 +33,8 @@ mimetypes.add_type("video/mp4", ".mp4")
 STATIC_DIR = Path(__file__).parent / "static"
 KEEPALIVE_S = 15
 MAX_IMPORT_BYTES = 200 * 1024 * 1024
+MAX_IMPORT_PARTS = 10
+MAX_IMPORT_TEXT = 4096
 IMPORT_SUFFIXES = (".mp4", ".webm")
 MEDIA_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.(mp4|webm)$")
 
@@ -212,12 +214,13 @@ async def read_import(request):
     ``fields`` maps the text parts (``lens_mm``, ``aperture``, ``framing``, ``name``) to strings. The ``file`` part is
     streamed to a ``.import-*`` file in the shots folder (``temp_path``, a Path; ``filename`` its original name) and
     stops with 413 ``too_large`` past ``MAX_IMPORT_BYTES``. ``temp_path`` and ``filename`` are None without a file part.
-    Raises ``ValueError`` if the body is not multipart and ``ImportRefused`` if a second ``file`` part arrives.
+    Raises ``ValueError`` if the body is not multipart and ``ImportRefused`` if a second ``file`` part arrives, more than ``MAX_IMPORT_PARTS`` parts arrive or a text part passes ``MAX_IMPORT_TEXT`` bytes.
     """
     if not request.content_type.startswith("multipart/"):
         raise ValueError("not multipart")
     reader = await request.multipart()
     fields, temp, filename = {}, None, None
+    count = 0
     store = request.app[STORE]
     store.root.mkdir(parents=True, exist_ok=True)
     try:
@@ -225,6 +228,9 @@ async def read_import(request):
             part = await reader.next()
             if part is None:
                 break
+            count += 1
+            if count > MAX_IMPORT_PARTS:
+                raise ImportRefused("Send at most 10 form parts.", None)
             if part.name == "file":
                 if temp is not None:
                     raise ImportRefused("Send one video file.", "file")
@@ -241,7 +247,15 @@ async def read_import(request):
                             raise web.HTTPRequestEntityTooLarge(max_size=MAX_IMPORT_BYTES, actual_size=size)
                         out.write(chunk)
             elif part.name:
-                fields[part.name] = (await part.text())[:1000]
+                data = b""
+                while True:
+                    chunk = await part.read_chunk(MAX_IMPORT_TEXT + 1)
+                    if not chunk:
+                        break
+                    data += chunk
+                    if len(data) > MAX_IMPORT_TEXT:
+                        raise ImportRefused(f"The {part.name} field is too long.", part.name)
+                fields[part.name] = data.decode("utf-8", errors="replace")[:1000]
     except BaseException:
         if temp is not None:
             temp.unlink(missing_ok=True)
