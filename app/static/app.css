@@ -559,6 +559,21 @@ main > * { flex: none; }
   color: var(--text);
   border-radius: 6px;
 }
+[data-testid=download-link] {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  text-decoration: none;
+}
+[data-testid=download-link][hidden] { display: none; }
 [data-testid=play-toggle]:disabled {
   color: var(--muted);
   cursor: not-allowed;
@@ -740,6 +755,7 @@ main > * { flex: none; }
 }
 [data-testid=play-toggle]:focus-visible,
 [data-testid=unmute-toggle]:focus-visible,
+[data-testid=download-link]:focus-visible,
 [data-testid=scrubber]:focus-visible,
 [data-testid=reapply-slider]:focus-visible,
 [data-testid=reapply-button]:focus-visible,

@@ -235,6 +235,10 @@ function build(viewport) {
   unmute.type = "button";
   unmute.dataset.testid = "unmute-toggle";
   unmute.addEventListener("click", onUnmute);
+  const download = document.createElement("a");
+  download.dataset.testid = "download-link";
+  download.setAttribute("download", "");
+  download.textContent = "Download";
   wireVideo(before);
   wireVideo(after);
   const labelBefore = document.createElement("div");
@@ -292,7 +296,7 @@ function build(viewport) {
   viewport.prepend(player);
   const controls = document.createElement("div");
   controls.dataset.testid = "player-controls";
-  controls.append(toggle, scrubber, readout, unmute);
+  controls.append(toggle, scrubber, readout, unmute, download);
   viewport.after(controls);
   unmuted = false;
   updateUnmute();
@@ -369,6 +373,14 @@ function render(state) {
     setAfterSrc(q("after-video"), before, version && version.url);
   }
   q("label-after").textContent = version ? "After f/" + version.aperture : "After";
+  const download = q("download-link");
+  if (version) {
+    download.href = version.url + "?download=1";
+    download.setAttribute("aria-label", "Download the f/" + version.aperture + " version");
+    download.hidden = false;
+  } else {
+    download.hidden = true;
+  }
 }
 
 export function initPlayer() {
