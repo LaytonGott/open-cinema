@@ -197,13 +197,22 @@ async def create_shot(request):
     return web.json_response(public_record(record), status=201)
 
 
+class ImportRefused(Exception):
+    """An upload the import refuses; ``message`` is the text for the user and ``field`` the form field at fault."""
+
+    def __init__(self, message, field):
+        super().__init__(message)
+        self.message = message
+        self.field = field
+
+
 async def read_import(request):
     """Read the multipart body of an import into ``(fields, temp_path, filename)``.
 
     ``fields`` maps the text parts (``lens_mm``, ``aperture``, ``framing``, ``name``) to strings. The ``file`` part is
     streamed to a ``.import-*`` file in the shots folder (``temp_path``, a Path; ``filename`` its original name) and
     stops with 413 ``too_large`` past ``MAX_IMPORT_BYTES``. ``temp_path`` and ``filename`` are None without a file part.
-    Raises ``ValueError`` if the body is not multipart.
+    Raises ``ValueError`` if the body is not multipart and ``ImportRefused`` if a second ``file`` part arrives.
     """
     if not request.content_type.startswith("multipart/"):
         raise ValueError("not multipart")
@@ -217,6 +226,8 @@ async def read_import(request):
             if part is None:
                 break
             if part.name == "file":
+                if temp is not None:
+                    raise ImportRefused("Send one video file.", "file")
                 filename = part.filename or ""
                 temp = store.root / f".import-{secrets.token_hex(4)}.part"
                 size = 0
@@ -242,12 +253,14 @@ async def import_shot(request):
     """Create a shot from an uploaded video (multipart ``file`` plus ``lens_mm``, ``aperture``, ``framing``, optional ``name``) and return its public record with status 202.
 
     The video becomes the shot's "before"; only the optics run, as for a re-apply. 400 ``invalid_shot`` for a bad field or
-    a file that is not .mp4 or .webm, 413 ``too_large`` past 200 MB, 503 for ComfyUI problems as for ``create_shot``.
+    a file that is not .mp4 or .webm or a second file part, 413 ``too_large`` past 200 MB, 503 for ComfyUI problems as for ``create_shot``.
     """
     try:
         fields, temp, filename = await read_import(request)
     except ValueError:
         return error_response(400, "invalid_shot", "The request must be a form upload with a video file.", "file")
+    except ImportRefused as exc:
+        return error_response(400, "invalid_shot", exc.message, exc.field)
     except web.HTTPRequestEntityTooLarge:
         return error_response(413, "too_large", "The video is larger than 200 MB. Use a shorter or smaller clip.", "file")
     try:
