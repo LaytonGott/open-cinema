@@ -78,6 +78,14 @@ This is an estimate: it assumes a thin lens and a subject facing the camera. The
 
 ## Run the director app
 
+First let the setup command check your ComfyUI folder and download every model file the app needs (about 34 GB; the optional camera LoRAs add about 8 GB, skip them with `--only-required`):
+
+```
+python -m app.setup --comfyui-dir "C:\ComfyUI_windows_portable\ComfyUI" --download
+```
+
+Without `--download` it only checks: one line per file (`OK`, `MISSING` with the size and the download link, or `WRONG SIZE`), the two custom node folders, and a summary. It exits 0 when everything required is in place.
+
 1. You need ComfyUI portable v0.41 or newer with the Open Cinema pack in `ComfyUI\custom_nodes` as in the Install section, the ComfyUI-GGUF custom node, and a Depth Anything 3 custom node that provides `LoadDA3Model`, `DA3Inference` and `DA3Render` (the one installed in this project's ComfyUI). You also need these model files: `ltx-2-19b-distilled_Q4_K_M.gguf` in `models\diffusion_models`, `gemma_3_12B_it_fp8_scaled.safetensors` in `models\text_encoders`, `ltx-2-19b-embeddings_connector_distill_bf16.safetensors` and `LTX2_audio_vae_bf16.safetensors` in `models\checkpoints`, `LTX2_video_vae_bf16.safetensors` in `models\vae`, `ltx-2-spatial-upscaler-x2-1.0.safetensors` in `models\latent_upscale_models`, and `depth_anything_3_mono_large.safetensors` in `models\geometry_estimation`. `docs/benchmarks.md` has the sources.
 2. Install the app's packages into the project's venv: `pip install -r app/requirements.txt`. On Windows: `.venv\Scripts\pip install -r app/requirements.txt`. It installs `comfy-sdk` and `comfy-api-proxy`: the browser talks to the app server, which talks to ComfyUI through the Comfy SDK and comfy-api-proxy.
 3. Start ComfyUI with `run_nvidia_gpu.bat` in the portable folder and wait for the line `To see the GUI go to`.
@@ -122,6 +130,10 @@ This is an estimate: it assumes a thin lens and a subject facing the camera. The
 - `--proxy-url` (default none): URL of the API proxy.
 - `--data-dir` (default `app/data`): folder for stored shots.
 - `-h, --help`: show the options and exit.
+
+## Use the graphs in ComfyUI
+
+The app's two graphs are in `workflows/` as API-format ComfyUI workflows, so you can run them without the app: drop `workflows/open_cinema_generate.json` (LTX-2 text to video, 121 frames at 1280x704 with audio) or `workflows/open_cinema_optics.json` (Depth Anything 3, metric depth and the Open Optics Depth of Field) onto ComfyUI's canvas. In the generate graph change the text of the `CLIPTextEncode` node (the prompt) and the seed; in the optics graph set the `LoadVideo` file to a clip in ComfyUI's input folder and change `f_number` (and, with section 7.2 of `docs/app-spec.md`, the focus point) on the Depth of Field node. `python -m app.export_workflows` rewrites both files from `app/graphs.py`.
 
 ## Tests
 

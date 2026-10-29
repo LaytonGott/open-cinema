@@ -90,14 +90,14 @@ class ShotRunner:
         task.cancel()
         await asyncio.wait({task}, timeout=1)
 
-    def enqueue(self, shot_id, aperture=None):
+    def enqueue(self, shot_id, aperture=None, optics=None):
         """Queue shot `shot_id`; the worker runs it after earlier items.
 
         `aperture` is None for a full run (`run_shot`) or an f-number for a
         re-apply (`run_reapply`). The item dict is kept in `self.items` until
         the worker finishes with it. Returns None.
         """
-        item = {"shot_id": shot_id, "aperture": aperture,
+        item = {"shot_id": shot_id, "aperture": aperture, "optics": optics or {},
                 "cancelled": False, "started": False}
         self.items[shot_id] = item
         self.queue.put_nowait(item)
@@ -202,7 +202,7 @@ class ShotRunner:
                 if item["aperture"] is None:
                     await self.run_shot(shot_id)
                 else:
-                    await self.run_reapply(shot_id, item["aperture"])
+                    await self.run_reapply(shot_id, item["aperture"], item.get("optics"))
                 if self.cancel_requested == shot_id:
                     record = self.store.get(shot_id)
                     if record is not None:
@@ -280,7 +280,7 @@ class ShotRunner:
             before_url=f"/media/{shot_id}/before{path.suffix}",
             progress=progress.monotonic(record.get("progress", 0.0), 0.85))
 
-    def prepare_optics(self, record, aperture, n):
+    def prepare_optics(self, record, aperture, n, optics=None):
         """Upload the shot's "before" video and build its optics graph (blocking).
 
         `aperture` is the f-number and `n` the optics run number (the output
@@ -296,7 +296,9 @@ class ShotRunner:
         graph = graphs.build_optics_graph(
             uploaded, record["params"]["lens_mm"], aperture,
             record["derived"]["subject_distance_m"],
-            f"opencinema/{shot_id}/after_{n}")
+            f"opencinema/{shot_id}/after_{n}",
+            focus=(optics or {}).get("focus"), rack=(optics or {}).get("rack"),
+            look=(optics or {}).get("look", "clean"))
         return self.client, graph
 
     @staticmethod
@@ -375,7 +377,7 @@ class ShotRunner:
             await self._call(current["job"].cancel)
         return record
 
-    async def run_optics(self, record, aperture, n):
+    async def run_optics(self, record, aperture, n, optics=None):
         """Apply the optics to the shot `record`'s "before" video as version `n`.
 
         `aperture` is the f-number. Sets status 'optics' and the optics stage
@@ -390,7 +392,7 @@ class ShotRunner:
         self.update(record, status="optics", message="Estimating depth")
         loop = asyncio.get_running_loop()
         client, graph = await self._call(
-            self.prepare_optics, record, aperture, n)
+            self.prepare_optics, record, aperture, n, optics)
         self.graph_types[shot_id] = {
             str(k): v["class_type"] for k, v in graph.items()}
         try:
@@ -407,6 +409,8 @@ class ShotRunner:
         created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         record.setdefault("versions", []).append({
             "n": n, "aperture": aperture,
+            "focus": (optics or {}).get("focus"), "rack": (optics or {}).get("rack"),
+            "look": (optics or {}).get("look", "clean"),
             "url": f"/media/{shot_id}/after_{n}{path.suffix}",
             "created_at": created})
         self._set_stage(record, "optics", "done", 1.0)
@@ -415,7 +419,7 @@ class ShotRunner:
         self.update(record, current_version=n, status="done", progress=1.0,
                     message="Done", error=None, reapply_error=None)
 
-    async def run_reapply(self, shot_id, aperture):
+    async def run_reapply(self, shot_id, aperture, optics=None):
         """Re-apply the optics to shot `shot_id` at `aperture` (f-number).
 
         Runs `run_optics` as the next version number (highest existing + 1,
@@ -423,7 +427,7 @@ class ShotRunner:
         """
         record = self.store.get(shot_id)
         n = max((v["n"] for v in record.get("versions") or []), default=0) + 1
-        await self.run_optics(record, aperture, n)
+        await self.run_optics(record, aperture, n, optics)
 
     async def run_shot(self, shot_id):
         """Run one shot: generate the video, then apply the optics as version 1."""
@@ -431,4 +435,5 @@ class ShotRunner:
         await self.run_generation(record)
         if self.cancel_requested == shot_id:
             return
-        await self.run_optics(record, record["params"]["aperture"], 1)
+        await self.run_optics(record, record["params"]["aperture"], 1,
+                              {"look": record["params"].get("look", "clean")})

@@ -54,7 +54,11 @@ def build_generation_graph(prompt: str, seed: int, prefix: str) -> dict:
     }
 
 
-def build_optics_graph(video_file: str, focal_mm: float, f_number: float, subject_m: float, prefix: str) -> dict:
+LOOK_NODES = ("11", "12", "13")
+
+
+def build_optics_graph(video_file: str, focal_mm: float, f_number: float, subject_m: float, prefix: str,
+                       focus=None, rack=None, look: str = "clean") -> dict:
     """Build the depth-of-field graph (ComfyUI API format) for a generated video.
 
     `video_file` is the uploaded LoadVideo file name, `focal_mm` the focal length
@@ -64,8 +68,14 @@ def build_optics_graph(video_file: str, focal_mm: float, f_number: float, subjec
     `prefix`, so changing them reuses the cached depth estimation. Returns a new
     JSON-serialisable dict of node id -> node; the video is saved by node
     OPTICS_OUTPUT_NODE.
+
+    `focus` and `rack` are None or {"x", "y"} frame fractions (docs/app-spec.md
+    7.2): a focus point focuses each frame at the depth found there, a rack
+    point pulls focus to it between 20 % and 80 % of the clip. `look` is
+    "clean", "vintage" or "anamorphic" (7.4). Without them the graph is the
+    plain depth-of-field graph.
     """
-    return {
+    graph = {
         "1": {"class_type": "LoadVideo", "inputs": {"file": video_file}},
         "2": {"class_type": "GetVideoComponents", "inputs": {"video": ["1", 0]}},
         "3": {"class_type": "LoadDA3Model", "inputs": {"model_name": "depth_anything_3_mono_large.safetensors", "weight_dtype": "default"}},
@@ -81,3 +91,24 @@ def build_optics_graph(video_file: str, focal_mm: float, f_number: float, subjec
         "9": {"class_type": "CreateVideo", "inputs": {"images": ["8", 0], "audio": ["2", 1], "fps": ["2", 2]}},
         "10": {"class_type": "SaveVideo", "inputs": {"video": ["9", 0], "filename_prefix": prefix, "format": "auto", "codec": "auto"}},
     }
+    dof = graph["8"]["inputs"]
+    if focus is not None:
+        dof["focus_x"], dof["focus_y"] = focus["x"], focus["y"]
+        if rack is not None:
+            dof["rack_x"], dof["rack_y"] = rack["x"], rack["y"]
+            dof["rack_start"], dof["rack_end"] = 0.2, 0.8
+    if look == "vintage":
+        graph["11"] = {"class_type": "OpenOptics_LensDistortion", "inputs": {
+            "image": ["8", 0], "focal_mm": focal_mm, "sensor_width_mm": 36, "k1": -0.08, "k2": 0, "k3": 0,
+            "p1": 0, "p2": 0, "direction": "apply", "fit": "crop"}}
+        graph["12"] = {"class_type": "OpenOptics_ChromaticAberration", "inputs": {"image": ["11", 0], "ca_r": 0.0015, "ca_b": -0.0015}}
+        graph["13"] = {"class_type": "OpenOptics_Vignette", "inputs": {
+            "image": ["12", 0], "focal_mm": focal_mm, "sensor_width_mm": 36, "strength": 0.6, "colorspace": "srgb"}}
+        graph["9"]["inputs"]["images"] = ["13", 0]
+    elif look == "anamorphic":
+        dof["bokeh_squeeze"] = 1.5
+        graph["12"] = {"class_type": "OpenOptics_ChromaticAberration", "inputs": {"image": ["8", 0], "ca_r": 0.001, "ca_b": -0.001}}
+        graph["13"] = {"class_type": "OpenOptics_Vignette", "inputs": {
+            "image": ["12", 0], "focal_mm": focal_mm, "sensor_width_mm": 36, "strength": 0.35, "colorspace": "srgb"}}
+        graph["9"]["inputs"]["images"] = ["13", 0]
+    return graph

@@ -80,13 +80,13 @@ export async function retryShot() {
   }
 }
 
-export async function reapplyShown(aperture) {
+export async function reapplyShown(aperture, extra = {}) {
   setState({ error: null });
   const token = navigationToken;
   try {
     const shot = getState().shot;
     if (!shot) return;
-    const record = await api.reapplyShot(shot.id, aperture);
+    const record = await api.reapplyShot(shot.id, aperture, extra);
     if (token !== navigationToken) return;
     setShot(record);
     followShot(record.id);

@@ -55,6 +55,15 @@ class ExportWorkflowsTest(unittest.TestCase):
                 self.assertTrue(Path(path).is_file())
                 self.assertEqual(Path(path).parent, dest)
 
+    def test_committed_files_match_builders(self):
+        """workflows/ must be regenerated (python -m app.export_workflows) whenever a graph builder changes."""
+        committed = Path(__file__).resolve().parent.parent / "workflows"
+        with tempfile.TemporaryDirectory() as tmp:
+            for path in export_workflows.export(tmp):
+                want = Path(path).read_text(encoding="utf-8")
+                got = (committed / Path(path).name).read_text(encoding="utf-8").replace("\r\n", "\n")
+                self.assertEqual(got, want, f"workflows/{Path(path).name} is stale: run python -m app.export_workflows")
+
 
 if __name__ == "__main__":
     unittest.main()

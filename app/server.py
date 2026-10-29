@@ -323,6 +323,40 @@ async def import_shot(request):
             temp.unlink(missing_ok=True)
 
 
+LOOK_IDS = ("clean", "vintage", "anamorphic")
+
+
+def parse_point(value, field):
+    """Return a focus point {"x", "y"} (frame fractions rounded to 3 decimals) from the JSON `value`, or None for null.
+
+    Raises ShotError(field, ...) unless value is null or an object with exactly the number keys x and y in [0, 1].
+    """
+    if value is None:
+        return None
+    ok = isinstance(value, dict) and set(value) == {"x", "y"} and all(
+        type(value[k]) in (int, float) and 0 <= value[k] <= 1 for k in ("x", "y"))
+    if not ok:
+        raise ShotError(field, f"The {field} point must be an object with x and y from 0 to 1.")
+    return {"x": round(float(value["x"]), 3), "y": round(float(value["y"]), 3)}
+
+
+def reapply_optics(data, record):
+    """Return the optics settings {"focus", "rack", "look"} of a re-apply body `data` for shot `record`.
+
+    A missing look keeps the latest version's look (or params.look). Raises ShotError for bad values.
+    """
+    focus = parse_point(data.get("focus"), "focus")
+    rack = parse_point(data.get("rack"), "rack")
+    if rack is not None and focus is None:
+        raise ShotError("rack", "Pick the first focus point before the rack point.")
+    versions = record.get("versions") or []
+    default_look = versions[-1].get("look", "clean") if versions else record["params"].get("look", "clean")
+    look = data.get("look", default_look)
+    if look not in LOOK_IDS:
+        raise ShotError("look", f"The look must be one of: {', '.join(LOOK_IDS)}.")
+    return {"focus": focus, "rack": rack, "look": look}
+
+
 async def reapply_shot(request):
     """Re-apply the optics of the shot in the path with the body's ``aperture`` (f-number) and return its public record with status 202 (404 ``not_found``, 400 ``invalid_shot``, 409 ``not_ready`` or ``busy``, 503 ``comfy_nodes_missing`` if ComfyUI lacks a node the optics graph needs, 503 ``comfy_models_missing`` if ComfyUI does not list a model file it uses, 503 ``comfy_unreachable`` if ComfyUI cannot be asked)."""
     shot_id = request.match_info["id"]
@@ -347,13 +381,18 @@ async def reapply_shot(request):
             f"The aperture must be one of: {', '.join(str(a) for a in APERTURES)}.",
             "aperture",
         )
+    try:
+        optics = reapply_optics(data, record)
+    except ShotError as exc:
+        return error_response(400, "invalid_shot", exc.message, exc.field)
     if not record.get("before_url"):
         return error_response(409, "not_ready", "The shot has no image yet, so its optics cannot be re-applied.")
     if record["status"] in ("queued", "generating", "optics"):
         return error_response(409, "busy", "The shot is still being processed. Try again when it is finished.")
     graph = graphs.build_optics_graph(
         "check.mp4", record["params"]["lens_mm"], aperture,
-        record["derived"]["subject_distance_m"], "opencinema/check")
+        record["derived"]["subject_distance_m"], "opencinema/check",
+        focus=optics["focus"], rack=optics["rack"], look=optics["look"])
     url = request.app[COMFYUI_URL]
     try:
         missing = await preflight.missing_nodes(url, preflight.graph_class_types(graph))
@@ -369,7 +408,7 @@ async def reapply_shot(request):
         return error_response(503, "comfy_models_missing", preflight.models_missing_message(items))
     runner = request.app[RUNNER]
     runner.begin_reapply(record, aperture)
-    runner.enqueue(shot_id, aperture)
+    runner.enqueue(shot_id, aperture, optics)
     return web.json_response(public_record(record), status=202)
 
 
@@ -498,6 +537,16 @@ async def index(request):
     return web.FileResponse(STATIC_DIR / "index.html")
 
 
+def remove_stale_imports(*folders):
+    """Delete leftover ``.import-*`` upload files (left by a crash mid-upload) directly inside each of ``folders``."""
+    for folder in folders:
+        for path in Path(folder).glob(".import-*"):
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
+
 def create_app(comfyui_url, data_dir, seed_samples=False):
     """Build the aiohttp Application for ComfyUI at ``comfyui_url`` and shots in ``data_dir``; with ``seed_samples`` true, a new ``data_dir`` first gets the bundled sample shots (see ``store.seed_samples``).
 
@@ -510,6 +559,7 @@ def create_app(comfyui_url, data_dir, seed_samples=False):
     store = ShotStore(data_dir)
     store.load_all()
     store.recover_interrupted()
+    remove_stale_imports(data_dir, store.root)
     app[STORE] = store
     runner = ShotRunner(store, comfyui_url)
     app[RUNNER] = runner

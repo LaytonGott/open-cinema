@@ -49,6 +49,14 @@ def public_record(record):
     """
     out = {k: copy.deepcopy(v) for k, v in record.items()
            if k != "seq" and not k.startswith("_")}
+    for version in out.get("versions") or []:
+        version.setdefault("focus", None)
+        version.setdefault("rack", None)
+        version.setdefault("look", "clean")
+    if isinstance(out.get("params"), dict):
+        out["params"].setdefault("look", "clean")
+    if isinstance(out.get("derived"), dict):
+        out["derived"].setdefault("camera_control", "prompt")
     if record.get("status") in ("queued", "generating", "optics") and "_started" in record:
         out["elapsed_s"] = round(max(0.0, time.monotonic() - record["_started"]), 1)
     return out

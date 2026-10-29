@@ -997,3 +997,26 @@ main > * { flex: none; }
 }
 [data-testid=import-button]:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 [data-testid=import-button]:disabled { color: var(--muted); border-style: dashed; cursor: not-allowed; }
+
+/* Focus point and rack focus (docs/app-spec.md 7.2) */
+[data-testid=focus-layer] { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+[data-testid=focus-layer].armed { pointer-events: auto; cursor: crosshair; background: rgba(11, 12, 14, 0.18); }
+[data-testid=focus-layer]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+[data-testid=focus-marker] {
+  position: absolute; width: 26px; height: 26px; transform: translate(-50%, -50%);
+  border: 2px solid var(--accent); border-radius: 4px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--accent);
+  background: rgba(11, 12, 14, 0.45); pointer-events: none;
+}
+[data-testid=focus-marker][hidden] { display: none; }
+.focus-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.focus-line line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 4; }
+[data-testid=focus-mode] { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+[data-testid=focus-mode] [role=radio] { background: transparent; border: 0; border-right: 1px solid var(--line); color: var(--muted); padding: 4px 10px; cursor: pointer; transition: background 150ms ease, color 150ms ease; }
+[data-testid=focus-mode] [role=radio]:last-child { border-right: 0; }
+[data-testid=focus-mode] [role=radio][aria-checked=true] { color: var(--text); background: var(--raised); box-shadow: inset 0 -2px 0 var(--accent); }
+[data-testid=focus-mode] [role=radio][aria-checked=true]::before { content: "\25CF  "; color: var(--accent); }
+[data-testid=focus-mode] [role=radio]:focus-visible, [data-testid=reapply-look]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[data-testid=reapply-look] { background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+@media (prefers-reduced-motion: reduce) { [data-testid=focus-mode] [role=radio] { transition: none; } }

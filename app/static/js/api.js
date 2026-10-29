@@ -70,11 +70,12 @@ export function importClip(file, fields) {
   return request("/api/shots/import", { method: "POST", body: form });
 }
 
-export function reapplyShot(id, aperture) {
+// extra may carry focus, rack (null or {x, y}) and look (docs/app-spec.md 7.2, 7.4).
+export function reapplyShot(id, aperture, extra = {}) {
   return request("/api/shots/" + encodeURIComponent(id) + "/reapply", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ aperture }),
+    body: JSON.stringify({ aperture, ...extra }),
   });
 }
 

@@ -291,7 +291,13 @@ function build(viewport) {
   error.hidden = true;
   error.textContent = "The video could not be loaded.";
   const slider = makeCompareSlider();
-  player.append(before, after, slider, labelBefore, labelAfter, error);
+  // The focus layer covers the video; optics-controls.js arms it to pick focus points and draws the markers.
+  const focusLayer = document.createElement("div");
+  focusLayer.dataset.testid = "focus-layer";
+  focusLayer.setAttribute("role", "button");
+  focusLayer.setAttribute("aria-label", "Choose the focus point");
+  focusLayer.tabIndex = -1;
+  player.append(before, after, slider, focusLayer, labelBefore, labelAfter, error);
   slider.syncSplit();
   viewport.prepend(player);
   const controls = document.createElement("div");
@@ -372,7 +378,10 @@ function render(state) {
     setSrc(before, shot && shot.before_url);
     setAfterSrc(q("after-video"), before, version && version.url);
   }
-  q("label-after").textContent = version ? "After f/" + version.aperture : "After";
+  let after = version ? "After f/" + version.aperture : "After";
+  if (version && version.rack) after += ", rack focus";
+  else if (version && version.focus) after += ", focus point";
+  q("label-after").textContent = after;
   const download = q("download-link");
   if (version) {
     download.href = version.url + "?download=1";

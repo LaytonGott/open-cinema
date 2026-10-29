@@ -1,0 +1,129 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "example.mp4"
+    }
+  },
+  "2": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "1",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "LoadDA3Model",
+    "inputs": {
+      "model_name": "depth_anything_3_mono_large.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "4": {
+    "class_type": "DA3Inference",
+    "inputs": {
+      "da3_model": [
+        "3",
+        0
+      ],
+      "image": [
+        "2",
+        0
+      ],
+      "resolution": 504,
+      "resize_method": "upper_bound_resize",
+      "mode": "mono"
+    }
+  },
+  "5": {
+    "class_type": "DA3Render",
+    "inputs": {
+      "da3_geometry": [
+        "4",
+        0
+      ],
+      "output": "depth",
+      "output.normalization": "raw",
+      "output.apply_sky_clip": false
+    }
+  },
+  "6": {
+    "class_type": "OpenOptics_DepthToMetric",
+    "inputs": {
+      "depth_image": [
+        "5",
+        0
+      ],
+      "mode": "subject",
+      "subject_m": 5.1005,
+      "subject_x": 0.5,
+      "subject_y": 0.5,
+      "inverse_depth": false,
+      "near_m": 0.3,
+      "far_m": 80,
+      "low_percentile": 2,
+      "high_percentile": 98
+    }
+  },
+  "7": {
+    "class_type": "OpenOptics_DepthTemporalSmooth",
+    "inputs": {
+      "depth": [
+        "6",
+        0
+      ],
+      "strength": 0.7
+    }
+  },
+  "8": {
+    "class_type": "OpenOptics_DepthOfField",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "depth_mask": [
+        "7",
+        0
+      ],
+      "focal_mm": 50,
+      "f_number": 2.8,
+      "focus_m": 5.1005,
+      "sensor_width_mm": 36,
+      "max_radius_px": 24,
+      "quality": "normal",
+      "colorspace": "srgb"
+    }
+  },
+  "9": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ],
+      "audio": [
+        "2",
+        1
+      ],
+      "fps": [
+        "2",
+        2
+      ]
+    }
+  },
+  "10": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "9",
+        0
+      ],
+      "filename_prefix": "opencinema/example/after",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}
