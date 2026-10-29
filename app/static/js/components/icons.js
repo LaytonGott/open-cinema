@@ -40,6 +40,22 @@ export const CAMERA_ICONS = {
     CAM_OPEN +
     '<rect x="8" y="8" width="8" height="8" rx="1"/>' +
     '<path d="M7 7 L3 3 M3 5.5 V3 H5.5 M17 7 L21 3 M21 5.5 V3 H18.5 M7 17 L3 21 M3 18.5 V21 H5.5 M17 17 L21 21 M21 18.5 V21 H18.5"/></svg>',
+  "truck-left":
+    CAM_OPEN +
+    '<rect x="11" y="5" width="8" height="6" rx="1"/>' +
+    '<path d="M3 19 H21 M9 15 H3 M6 12 L3 15 L6 18"/></svg>',
+  "truck-right":
+    CAM_OPEN +
+    '<rect x="5" y="5" width="8" height="6" rx="1"/>' +
+    '<path d="M3 19 H21 M15 15 H21 M18 12 L21 15 L18 18"/></svg>',
+  "crane-up":
+    CAM_OPEN +
+    '<rect x="13" y="3" width="7" height="5" rx="1"/>' +
+    '<path d="M4 21 H10 M7 21 V17 L16 8 M8 7 V13 M5 10 L8 7 L11 10"/></svg>',
+  "crane-down":
+    CAM_OPEN +
+    '<rect x="13" y="11" width="7" height="5" rx="1"/>' +
+    '<path d="M4 21 H10 M7 21 V18 L16 16 M8 5 V11 M5 8 L8 11 L11 8"/></svg>',
   "pan-left":
     CAM_OPEN + '<path d="M20 12 H4 M9 7 L4 12 L9 17"/></svg>',
   "pan-right":

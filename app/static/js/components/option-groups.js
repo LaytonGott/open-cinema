@@ -34,6 +34,13 @@ function buildButton(g, opt, el) {
   label.className = "opt-label";
   label.textContent = g.number ? value + " mm" : opt.label;
   b.appendChild(label);
+  if (!g.number && opt.lora) {
+    // a real camera move (LTX-2 camera LoRA), said in text, not by colour alone
+    const tag = document.createElement("span");
+    tag.className = "opt-tag";
+    tag.textContent = "LoRA";
+    b.appendChild(tag);
+  }
   const select = (v) => {
     const s = getState();
     setState({ form: { ...s.form, [g.key]: v } });

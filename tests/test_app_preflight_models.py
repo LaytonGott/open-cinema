@@ -1,6 +1,6 @@
 import unittest
 
-from app.preflight import find_missing_choices, models_missing_message
+from app.preflight import find_missing_choices, lora_listed, models_missing_message
 
 
 def info(definition, group="required", name="unet_name"):
@@ -57,3 +57,20 @@ class ModelsMissingMessageTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LoraListedTest(unittest.TestCase):
+    FILE = "ltx-2-19b-lora-camera-control-jib-up.safetensors"
+
+    def test_listed_old_form(self):
+        oi = {"LoraLoaderModelOnly": info([[self.FILE, "other.safetensors"]], name="lora_name")}
+        self.assertTrue(lora_listed(oi, self.FILE))
+        self.assertFalse(lora_listed(oi, "missing.safetensors"))
+
+    def test_listed_combo_form(self):
+        oi = {"LoraLoaderModelOnly": info(["COMBO", {"options": [self.FILE]}], name="lora_name")}
+        self.assertTrue(lora_listed(oi, self.FILE))
+
+    def test_class_missing(self):
+        self.assertFalse(lora_listed({}, self.FILE))
+        self.assertFalse(lora_listed({"LoraLoaderModelOnly": {}}, self.FILE))

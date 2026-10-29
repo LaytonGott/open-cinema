@@ -6,13 +6,15 @@ import time
 from app.shot import build_prompt, subject_distance
 
 
-def new_record(shot_id, params):
+def new_record(shot_id, params, camera_control="prompt"):
     """Return a new shot record (dict) for the id `shot_id` and the cleaned `params`.
 
     `params` comes from app.shot.validate_shot (lens_mm in millimetres,
     aperture as an f-number). derived.subject_distance_m is in metres,
     rounded to 4 decimals. The record is queued, with progress 0.0 (0 to 1)
     and elapsed_s 0.0 (seconds). ShotStore.add adds created_at and seq.
+    `camera_control` is "lora" when the generation loads the move's camera
+    LoRA (app.shot.CAMERA_LORAS), else "prompt" (docs/app-spec.md 7.3).
     """
     params = dict(params)
     return {
@@ -22,6 +24,7 @@ def new_record(shot_id, params):
             "subject_distance_m": round(
                 subject_distance(params["lens_mm"], params["framing"]), 4),
             "prompt": build_prompt(params),
+            "camera_control": camera_control,
         },
         "status": "queued",
         "progress": 0.0,

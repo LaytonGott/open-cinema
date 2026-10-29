@@ -11,12 +11,30 @@ class OptionListTests(unittest.TestCase):
             {"id": "static", "label": "Static"},
             {"id": "dolly-in", "label": "Dolly in"},
             {"id": "dolly-out", "label": "Dolly out"},
+            {"id": "truck-left", "label": "Truck left"},
+            {"id": "truck-right", "label": "Truck right"},
+            {"id": "crane-up", "label": "Crane up"},
+            {"id": "crane-down", "label": "Crane down"},
             {"id": "pan-left", "label": "Pan left"},
             {"id": "pan-right", "label": "Pan right"},
             {"id": "tilt-up", "label": "Tilt up"},
             {"id": "orbit", "label": "Orbit"},
             {"id": "handheld", "label": "Handheld"},
         ])
+
+    def test_camera_loras(self):
+        base = "ltx-2-19b-lora-camera-control-"
+        self.assertEqual(shot.CAMERA_LORAS, {
+            "static": base + "static.safetensors",
+            "dolly-in": base + "dolly-in.safetensors",
+            "dolly-out": base + "dolly-out.safetensors",
+            "truck-left": base + "dolly-left.safetensors",
+            "truck-right": base + "dolly-right.safetensors",
+            "crane-up": base + "jib-up.safetensors",
+            "crane-down": base + "jib-down.safetensors",
+        })
+        camera_ids = {c["id"] for c in shot.CAMERAS}
+        self.assertTrue(set(shot.CAMERA_LORAS) <= camera_ids)
 
     def test_framings(self):
         self.assertEqual(shot.FRAMINGS, [
@@ -94,8 +112,8 @@ class ValidateValidTests(unittest.TestCase):
         for lens in [24, 35, 50, 85]:
             with self.subTest(lens=lens):
                 self.assertEqual(shot.validate_shot(self.make(lens_mm=lens))["lens_mm"], lens)
-        cameras = ["static", "dolly-in", "dolly-out", "pan-left", "pan-right",
-                   "tilt-up", "orbit", "handheld"]
+        cameras = ["static", "dolly-in", "dolly-out", "truck-left", "truck-right", "crane-up",
+                   "crane-down", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"]
         for camera in cameras:
             with self.subTest(camera=camera):
                 self.assertEqual(shot.validate_shot(self.make(camera=camera))["camera"], camera)
@@ -234,6 +252,10 @@ class BuildPromptTests(unittest.TestCase):
         "static": "The camera is locked off and does not move",
         "dolly-in": "Slow dolly-in toward the subject",
         "dolly-out": "Slow dolly-out away from the subject",
+        "truck-left": "The camera trucks to the left, moving sideways parallel to the subject",
+        "truck-right": "The camera trucks to the right, moving sideways parallel to the subject",
+        "crane-up": "The camera cranes up, rising smoothly",
+        "crane-down": "The camera cranes down, descending smoothly",
         "pan-left": "Smooth pan to the left",
         "pan-right": "Smooth pan to the right",
         "tilt-up": "Slow tilt up",
@@ -247,7 +269,7 @@ class BuildPromptTests(unittest.TestCase):
         return {"description": description, "camera": camera, "lens_mm": 85,
                 "aperture": 2.8, "framing": framing}
 
-    def test_all_32_pairs(self):
+    def test_all_48_pairs(self):
         count = 0
         for cam in shot.CAMERAS:
             for fr in shot.FRAMINGS:
@@ -257,7 +279,7 @@ class BuildPromptTests(unittest.TestCase):
                     self.params(cam["id"], fr["id"], "A man waits at a bus stop"))
                 self.assertEqual(got, expected)
                 count += 1
-        self.assertEqual(count, 32)
+        self.assertEqual(count, 48)
 
     def test_example_string(self):
         self.assertEqual(

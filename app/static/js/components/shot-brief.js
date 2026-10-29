@@ -20,7 +20,10 @@ function render(state) {
   const p = shot.params;
   const options = state.options || {};
   const parts = [p.lens_mm + " mm", "f/" + p.aperture, labelOf(options.framings, p.framing)];
-  if (!shot.imported) parts.push(labelOf(options.cameras, p.camera));
+  if (!shot.imported) {
+    const lora = shot.derived && shot.derived.camera_control === "lora";
+    parts.push(labelOf(options.cameras, p.camera) + (lora ? " (LoRA)" : ""));
+  }
   if (p.look && p.look !== "clean") parts.push(labelOf(options.looks, p.look));
   const settings = parts.join(" - ");
   const key = shot.id + "|" + p.description + "|" + settings;
