@@ -20,7 +20,7 @@ One generated shot, five apertures. Only the depth of field is recomputed, so ea
 
 It has two parts: the **director app** (a browser page, see "Run the director app") and **Open Optics**, the ComfyUI node pack that does the lens maths.
 
-**Try it without generating anything.** The first time the app starts it adds two finished sample shots: a saxophone player on a night street (apertures f/1.4, f/2.8, f/4, f/8 and f/16) and a woman in a red coat on a rainy street (f/1.4, f/2.8, f/5.6 and f/16). Each video was generated once and the apertures applied afterwards. Open http://127.0.0.1:8000, then drag the Before/After divider and press the f/ chips under the video to compare. Changing the aperture of a new f-number needs ComfyUI running; the samples' existing versions play without it.
+**Try it without generating anything.** The first time the app starts it adds two finished sample shots: a saxophone player on a night street (apertures f/1.4, f/2.8, f/4, f/8 and f/16, a rack focus from the player to the street lamps behind him, an Anamorphic and a Vintage version) and a woman in a red coat on a rainy street (f/1.4, f/2.8, f/5.6 and f/16). Each video was generated once and the apertures applied afterwards. Open http://127.0.0.1:8000, then drag the Before/After divider and press the f/ chips under the video to compare. Changing the aperture of a new f-number needs ComfyUI running; the samples' existing versions play without it.
 
 # Open Optics
 
