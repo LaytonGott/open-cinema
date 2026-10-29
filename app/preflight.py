@@ -57,9 +57,50 @@ async def missing_nodes(comfyui_url, class_types):
     types (a 404, or a 200 answer that is not a dict containing that class type).
     Raises ObjectInfoUnreachable on a connection error, a timeout or an HTTP 5xx.
     """
-    answers = await _fetch_object_info(comfyui_url, class_types)
-    return sorted(c for c, data in zip(class_types, answers)
-                  if not (isinstance(data, dict) and c in data))
+    missing, _ = await missing_nodes_and_info(comfyui_url, class_types)
+    return missing
+
+
+async def missing_nodes_and_info(comfyui_url, class_types, extra=()):
+    """Ask ComfyUI which of ``class_types`` it lacks, fetching the ``extra`` classes in the same round.
+
+    Does ``GET {comfyui_url}/object_info/<class_type>`` for every class in
+    ``class_types`` and ``extra``, concurrently, with a 5 second total timeout.
+    Returns ``(missing, info)``: the sorted list of missing classes among
+    ``class_types`` only (a missing ``extra`` class is not reported), and the
+    merged object_info dict ``class_type -> info`` of every class ComfyUI has.
+    Raises ObjectInfoUnreachable on a connection error, a timeout or an HTTP 5xx.
+    """
+    wanted = list(class_types) + [c for c in extra if c not in class_types]
+    answers = await _fetch_object_info(comfyui_url, wanted)
+    info = {}
+    for c, data in zip(wanted, answers):
+        if isinstance(data, dict) and c in data:
+            info[c] = data[c]
+    return sorted(c for c in class_types if c not in info), info
+
+
+LORA_LOADER = "LoraLoaderModelOnly"
+
+
+def lora_listed(object_info, lora_name):
+    """Return True if ``object_info`` has ``LoraLoaderModelOnly`` and lists ``lora_name`` in its ``lora_name`` options.
+
+    ``object_info`` is a dict ``class_type -> info``; the options may be in the
+    classic ``[[...options]]`` form or the ``["COMBO", {"options": [...]}]`` form.
+    """
+    groups = (object_info.get(LORA_LOADER) or {}).get("input") or {}
+    definition = (groups.get("required") or {}).get("lora_name") or (groups.get("optional") or {}).get("lora_name")
+    if not isinstance(definition, (list, tuple)) or not definition:
+        return False
+    first = definition[0]
+    if isinstance(first, list):
+        options = first
+    elif first == "COMBO" and len(definition) > 1 and isinstance(definition[1], dict):
+        options = definition[1].get("options") or []
+    else:
+        return False
+    return lora_name in options
 
 
 async def missing_choices(comfyui_url, graphs):

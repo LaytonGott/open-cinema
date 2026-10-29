@@ -74,6 +74,34 @@ class BuildGenerationGraphTests(unittest.TestCase):
         self.assertEqual(len(_nodes(graph, "SaveVideo")), 1)
 
 
+LORA = "ltx-2-19b-lora-camera-control-dolly-in.safetensors"
+
+
+class GenerationGraphLoraTests(unittest.TestCase):
+    def setUp(self):
+        self.plain = build_generation_graph(PROMPT, SEED, PREFIX)
+        self.graph = build_generation_graph(PROMPT, SEED, PREFIX, camera_lora=LORA)
+
+    def test_lora_node(self):
+        self.assertEqual(self.graph["30"], {"class_type": "LoraLoaderModelOnly", "inputs": {
+            "model": ["1", 0], "lora_name": LORA, "strength_model": 1.0}})
+
+    def test_guiders_take_lora_model(self):
+        self.assertEqual(self.graph["14"]["inputs"]["model"], ["30", 0])
+        self.assertEqual(self.graph["23"]["inputs"]["model"], ["30", 0])
+
+    def test_only_lora_and_guiders_differ(self):
+        changed = {k for k in self.graph if self.graph[k] != self.plain.get(k)}
+        self.assertEqual(changed, {"14", "23", "30"})
+
+    def test_lora_graph_validates(self):
+        self.assertEqual(validate_prompt(self.graph, input_files=[]), [])
+
+    def test_none_is_plain_graph(self):
+        self.assertEqual(build_generation_graph(PROMPT, SEED, PREFIX, camera_lora=None), self.plain)
+        self.assertNotIn("30", self.plain)
+
+
 OPTICS_PREFIX = "opencinema/test/after_1"
 OPTICS_CLASS_TYPES = [
     "LoadVideo",

@@ -228,6 +228,48 @@ main > * { flex: none; }
   background: var(--surface);
   font-weight: 600;
 }
+/* twelve camera moves: a compact 4-column grid so the panel still fits at 1280 x 720;
+   each button has the icon (with the LoRA tag beside it) on top and the label below */
+[data-testid=camera-group] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+#director [data-testid=camera-group] .opt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  gap: 2px 4px;
+  min-width: 0;
+  padding: 4px 2px;
+  font-size: 0.75rem;
+  line-height: 1.15;
+}
+[data-testid=camera-group] .opt-icon { order: 1; height: 16px; }
+#director [data-testid=camera-group] .opt-icon svg { width: 16px; height: 16px; display: block; }
+[data-testid=camera-group] .opt-tag { order: 0; }
+[data-testid=camera-group] .opt-label {
+  order: 2;
+  flex: 0 0 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-testid=camera-group] .opt-tag {
+  padding: 0 3px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--muted);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.5625rem;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+[data-testid=camera-group] .opt[aria-checked=true] .opt-tag { color: var(--accent); border-color: var(--accent); }
+
 [data-testid=camera-group] .opt[aria-checked=true]::after,
 [data-testid=framing-group] .opt[aria-checked=true]::after {
   content: "\2713";
@@ -446,7 +488,6 @@ main > * { flex: none; }
   #director { min-width: 0; max-width: 100%; box-sizing: border-box; }
   #director > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
   #director textarea { width: 100%; }
-  [data-testid=camera-group],
   [data-testid=lens-group],
   [data-testid=framing-group] {
     display: grid;

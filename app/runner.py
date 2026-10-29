@@ -8,6 +8,7 @@ from pathlib import Path
 
 from app import comfy, errors, graphs, progress
 from app.outage import OutageGuard
+from app.shot import CAMERA_LORAS
 
 logger = logging.getLogger(__name__)
 
@@ -255,9 +256,12 @@ class ShotRunner:
         shot_id = record["id"]
         self._set_stage(record, "generate", "active")
         self.update(record, status="generating", message="Generating video")
+        camera_lora = None
+        if record["derived"].get("camera_control") == "lora":
+            camera_lora = CAMERA_LORAS.get(record["params"]["camera"])
         graph = graphs.build_generation_graph(
             record["derived"]["prompt"], record["params"]["seed"],
-            f"opencinema/{shot_id}/before")
+            f"opencinema/{shot_id}/before", camera_lora=camera_lora)
         self.graph_types[shot_id] = {
             str(k): v["class_type"] for k, v in graph.items()}
         loop = asyncio.get_running_loop()

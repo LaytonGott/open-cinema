@@ -13,12 +13,27 @@ CAMERAS = [
     {"id": "static", "label": "Static"},
     {"id": "dolly-in", "label": "Dolly in"},
     {"id": "dolly-out", "label": "Dolly out"},
+    {"id": "truck-left", "label": "Truck left"},
+    {"id": "truck-right", "label": "Truck right"},
+    {"id": "crane-up", "label": "Crane up"},
+    {"id": "crane-down", "label": "Crane down"},
     {"id": "pan-left", "label": "Pan left"},
     {"id": "pan-right", "label": "Pan right"},
     {"id": "tilt-up", "label": "Tilt up"},
     {"id": "orbit", "label": "Orbit"},
     {"id": "handheld", "label": "Handheld"},
 ]
+
+# LTX-2 camera-control LoRA file per camera move (docs/app-spec.md 7.3); other moves have none.
+CAMERA_LORAS = {
+    "static": "ltx-2-19b-lora-camera-control-static.safetensors",
+    "dolly-in": "ltx-2-19b-lora-camera-control-dolly-in.safetensors",
+    "dolly-out": "ltx-2-19b-lora-camera-control-dolly-out.safetensors",
+    "truck-left": "ltx-2-19b-lora-camera-control-dolly-left.safetensors",
+    "truck-right": "ltx-2-19b-lora-camera-control-dolly-right.safetensors",
+    "crane-up": "ltx-2-19b-lora-camera-control-jib-up.safetensors",
+    "crane-down": "ltx-2-19b-lora-camera-control-jib-down.safetensors",
+}
 
 # Framings offered in the UI, in display order.
 FRAMINGS = [
@@ -67,6 +82,10 @@ CAMERA_PHRASES = {
     "static": "The camera is locked off and does not move",
     "dolly-in": "Slow dolly-in toward the subject",
     "dolly-out": "Slow dolly-out away from the subject",
+    "truck-left": "The camera trucks to the left, moving sideways parallel to the subject",
+    "truck-right": "The camera trucks to the right, moving sideways parallel to the subject",
+    "crane-up": "The camera cranes up, rising smoothly",
+    "crane-down": "The camera cranes down, descending smoothly",
     "pan-left": "Smooth pan to the left",
     "pan-right": "Smooth pan to the right",
     "tilt-up": "Slow tilt up",

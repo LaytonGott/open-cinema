@@ -21,15 +21,19 @@ class OptionsRouteTests(unittest.TestCase):
         self.assertEqual(
             set(body), {"cameras", "lenses", "apertures", "framings", "defaults"}
         )
-        self.assertEqual(len(body["cameras"]), 8)
+        self.assertEqual(len(body["cameras"]), 12)
         self.assertEqual(
             [c["id"] for c in body["cameras"]],
-            ["static", "dolly-in", "dolly-out", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"],
+            ["static", "dolly-in", "dolly-out", "truck-left", "truck-right", "crane-up", "crane-down", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"],
         )
         self.assertEqual(
             [c["label"] for c in body["cameras"]],
-            ["Static", "Dolly in", "Dolly out", "Pan left", "Pan right", "Tilt up", "Orbit", "Handheld"],
+            ["Static", "Dolly in", "Dolly out", "Truck left", "Truck right", "Crane up", "Crane down",
+             "Pan left", "Pan right", "Tilt up", "Orbit", "Handheld"],
         )
+        # the first seven moves have an LTX-2 camera LoRA (docs/app-spec.md 7.3)
+        self.assertEqual([c["lora"] for c in body["cameras"]], [True] * 7 + [False] * 5)
+        self.assertTrue(all(set(c) == {"id", "label", "lora"} for c in body["cameras"]))
         self.assertEqual(body["lenses"], [24, 35, 50, 85])
         self.assertEqual(body["apertures"], [1.4, 2, 2.8, 4, 5.6, 8, 11, 16])
         self.assertEqual(len(body["framings"]), 4)

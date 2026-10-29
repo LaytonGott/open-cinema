@@ -19,7 +19,7 @@ from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.record import new_record, public_record
 from app.runner import ShotRunner
 from app.shot import (
-    APERTURES, CAMERAS, FRAMINGS, LENSES, SUBJECT_HEIGHT_FRACTION, ShotError,
+    APERTURES, CAMERA_LORAS, CAMERAS, FRAMINGS, LENSES, SUBJECT_HEIGHT_FRACTION, ShotError,
     build_prompt, subject_distance, validate_shot,
 )
 from open_optics.framing import sensor_height_mm
@@ -104,7 +104,7 @@ async def options(request):
     """Return JSON with the choices (cameras, lenses in mm, apertures as f-numbers, framings) and the defaults."""
     return web.json_response(
         {
-            "cameras": CAMERAS,
+            "cameras": [{**c, "lora": c["id"] in CAMERA_LORAS} for c in CAMERAS],
             "lenses": LENSES,
             "apertures": APERTURES,
             "framings": FRAMINGS,
@@ -146,26 +146,31 @@ async def estimate(request):
     )
 
 
-async def preflight_refusal(url, graph_list):
-    """Ask ComfyUI whether it can run ``graph_list``; return the error response to send if not, else None.
+async def preflight_refusal(url, graph_list, camera_lora=None):
+    """Ask ComfyUI whether it can run ``graph_list``; return ``(refusal, use_lora)``.
 
-    503 ``comfy_unreachable`` if ComfyUI cannot be asked, 503 ``comfy_nodes_missing`` naming the nodes it lacks,
-    503 ``comfy_models_missing`` naming the model files it does not list.
+    ``refusal`` is the error response to send, or None: 503 ``comfy_unreachable`` if ComfyUI cannot be asked,
+    503 ``comfy_nodes_missing`` naming the nodes it lacks, 503 ``comfy_models_missing`` naming the model files it
+    does not list. ``use_lora`` is True when ``camera_lora`` (a LoRA file name, or None) is given and ComfyUI's
+    ``LoraLoaderModelOnly`` (fetched together with the graph's classes) lists it; a missing LoRA or loader never
+    causes a refusal.
     """
     unreachable = error_response(503, "comfy_unreachable", f"Can't reach ComfyUI at {url}. Start ComfyUI, then retry.")
+    extra = (preflight.LORA_LOADER,) if camera_lora else ()
     try:
-        missing = await preflight.missing_nodes(url, preflight.graph_class_types(*graph_list))
+        missing, info = await preflight.missing_nodes_and_info(url, preflight.graph_class_types(*graph_list), extra)
     except preflight.ObjectInfoUnreachable:
-        return unreachable
+        return unreachable, False
     if missing:
-        return error_response(503, "comfy_nodes_missing", preflight.nodes_missing_message(missing))
+        return error_response(503, "comfy_nodes_missing", preflight.nodes_missing_message(missing)), False
+    use_lora = bool(camera_lora) and preflight.lora_listed(info, camera_lora)
     try:
         items = await preflight.missing_choices(url, graph_list)
     except preflight.ObjectInfoUnreachable:
-        return unreachable
+        return unreachable, False
     if items:
-        return error_response(503, "comfy_models_missing", preflight.models_missing_message(items))
-    return None
+        return error_response(503, "comfy_models_missing", preflight.models_missing_message(items)), False
+    return None, use_lora
 
 
 async def create_shot(request):
@@ -186,14 +191,18 @@ async def create_shot(request):
     # a node or model ComfyUI lacks is reported now, not after ten minutes of generating
     lens, aperture = params["lens_mm"], params["aperture"]
     distance = subject_distance(lens, params["framing"])
-    refusal = await preflight_refusal(request.app[COMFYUI_URL], [
+    # a move with a camera LoRA uses it only when ComfyUI lists the file; it is never refused for it
+    camera_lora = CAMERA_LORAS.get(params["camera"])
+    check_graphs = [
         graphs.build_generation_graph(build_prompt(params), params["seed"], "opencinema/check"),
         graphs.build_optics_graph("check.mp4", lens, aperture, distance, "opencinema/check"),
-    ])
+    ]
+    refusal, use_lora = await preflight_refusal(request.app[COMFYUI_URL], check_graphs, camera_lora)
     if refusal is not None:
         return refusal
     store = request.app[STORE]
-    record = new_record(new_shot_id({r["id"] for r in store.list()}), params)
+    record = new_record(new_shot_id({r["id"] for r in store.list()}), params,
+                        camera_control="lora" if use_lora else "prompt")
     store.add(record)
     request.app[RUNNER].enqueue(record["id"])
     return web.json_response(public_record(record), status=201)
@@ -297,7 +306,7 @@ async def import_shot(request):
         if not comfy["reachable"]:
             return error_response(503, "comfy_unreachable", comfy["message"])
         distance = subject_distance(params["lens_mm"], params["framing"])
-        refusal = await preflight_refusal(request.app[COMFYUI_URL], [
+        refusal, _ = await preflight_refusal(request.app[COMFYUI_URL], [
             graphs.build_optics_graph("check.mp4", params["lens_mm"], params["aperture"], distance, "opencinema/check")])
         if refusal is not None:
             return refusal

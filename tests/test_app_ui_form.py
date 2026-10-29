@@ -8,7 +8,7 @@ from tests.app_harness import AppHarness
 
 STATUS = "[data-testid=comfy-status]"
 GROUPS = {
-    "camera-group": ("Camera move", ["static", "dolly-in", "dolly-out", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"]),
+    "camera-group": ("Camera move", ["static", "dolly-in", "dolly-out", "truck-left", "truck-right", "crane-up", "crane-down", "pan-left", "pan-right", "tilt-up", "orbit", "handheld"]),
     "lens-group": ("Lens", ["24", "35", "50", "85"]),
     "framing-group": ("Framing", ["close-up", "waist-up", "full-body", "wide"]),
 }

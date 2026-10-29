@@ -10,7 +10,7 @@ GENERATION_OUTPUT_NODE = "29"
 OPTICS_OUTPUT_NODE = "10"
 
 
-def build_generation_graph(prompt: str, seed: int, prefix: str) -> dict:
+def build_generation_graph(prompt: str, seed: int, prefix: str, camera_lora=None) -> dict:
     """Build the LTX-2 19B distilled two-stage text-to-video graph (ComfyUI API format).
 
     `prompt` is the positive text, `seed` the first-pass noise seed (the refine
@@ -18,8 +18,12 @@ def build_generation_graph(prompt: str, seed: int, prefix: str) -> dict:
     1280x704 pixels, 121 frames at 24 frames per second. Returns a new
     JSON-serialisable dict of node id -> node; the video is saved by node
     GENERATION_OUTPUT_NODE.
+
+    `camera_lora` is None or an LTX-2 camera LoRA file name (docs/app-spec.md
+    7.3): with one, node "30" (LoraLoaderModelOnly, strength 1.0) loads it on
+    the model and both CFGGuider nodes take the model from it.
     """
-    return {
+    graph = {
         "1": {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "ltx-2-19b-distilled_Q4_K_M.gguf"}},
         "2": {"class_type": "VAELoader", "inputs": {"vae_name": "LTX2_video_vae_bf16.safetensors"}},
         "3": {"class_type": "LTXVAudioVAELoader", "inputs": {"ckpt_name": "LTX2_audio_vae_bf16.safetensors"}},
@@ -52,6 +56,12 @@ def build_generation_graph(prompt: str, seed: int, prefix: str) -> dict:
         "28": {"class_type": "CreateVideo", "inputs": {"images": ["26", 0], "audio": ["27", 0], "fps": float(FPS)}},
         "29": {"class_type": "SaveVideo", "inputs": {"video": ["28", 0], "filename_prefix": prefix, "format": "auto", "codec": "auto"}},
     }
+    if camera_lora:
+        graph["30"] = {"class_type": "LoraLoaderModelOnly", "inputs": {
+            "model": ["1", 0], "lora_name": camera_lora, "strength_model": 1.0}}
+        graph["14"]["inputs"]["model"] = ["30", 0]
+        graph["23"]["inputs"]["model"] = ["30", 0]
+    return graph
 
 
 LOOK_NODES = ("11", "12", "13")
