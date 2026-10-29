@@ -103,7 +103,7 @@ function showShot(s) {
   const strong = document.createElement("b");
   strong.textContent = p.lens_mm + " mm · " + p.framing.replace("-", " ") + " · ";
   $("brief").append(strong, document.createTextNode(p.description));
-  showVersion(s.versions[s.versions.length > 1 ? 1 : 0]);
+  showVersion(s.versions.find((v) => v.n === s.current_version) || s.versions[s.versions.length - 1]);
 }
 async function init() {
   for (const id of SAMPLES) {
