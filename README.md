@@ -6,6 +6,16 @@ Open Cinema lets you direct a shot, then change the lens afterwards. Describe a 
 
 One generated shot, five apertures. Only the depth of field is recomputed, so each change takes about 7 seconds.
 
+**Focus where you click, and rack focus.** After a shot is made, choose "Pick point" and click anything in the video: that becomes the focus distance, measured from the shot's own depth on every frame. Choose "Rack focus" and click two points: focus pulls from the first to the second during the shot, eased and linear in diopters, the way a focus puller turns the ring. Only Depth of Field runs again.
+
+**Real camera moves.** Static, dolly in and out, truck left and right, and crane up and down use Lightricks' official LTX-2 camera-control LoRAs (marked "LoRA" in the app) when they are installed; the other moves are described in the prompt.
+
+**Lens looks.** Clean, Vintage (barrel distortion, chromatic aberration, vignetting) and Anamorphic (oval bokeh 1.5 times taller than wide, softer vignette), built from the Open Optics nodes rather than colour filters, and switchable after the shot like the aperture.
+
+**Open weights only.** LTX-2 19B (GGUF), the Gemma 3 12B text encoder, the LTX-2 camera LoRAs and Depth Anything 3, all running locally on one 24 GB GPU through ComfyUI and the Comfy SDK. No closed APIs.
+
+**See it without installing anything:** the [pre-rendered samples page](https://laytongott.github.io/open-cinema/site/) plays the bundled shots with every version.
+
 **Bring your own video.** You don't have to generate anything. Press "or use your own video" under Generate shot, choose an .mp4 or .webm clip (up to 200 MB), and set the lens, the framing (it tells the app how far the subject is) and the aperture first. Only depth estimation and depth of field run, so no LTX-2 models are needed and the memory use is far lower than for a generated shot.
 
 It has two parts: the **director app** (a browser page, see "Run the director app") and **Open Optics**, the ComfyUI node pack that does the lens maths.

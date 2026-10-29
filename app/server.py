@@ -19,7 +19,7 @@ from app.proxy import start_proxy, stop_proxy, use_proxy
 from app.record import new_record, public_record
 from app.runner import ShotRunner
 from app.shot import (
-    APERTURES, CAMERAS, FRAMINGS, LENSES, SUBJECT_HEIGHT_FRACTION, ShotError,
+    APERTURES, CAMERAS, FRAMINGS, LENSES, LOOKS, SUBJECT_HEIGHT_FRACTION, ShotError,
     build_prompt, subject_distance, validate_shot,
 )
 from open_optics.framing import sensor_height_mm
@@ -108,11 +108,13 @@ async def options(request):
             "lenses": LENSES,
             "apertures": APERTURES,
             "framings": FRAMINGS,
+            "looks": LOOKS,
             "defaults": {
                 "camera": "static",
                 "lens_mm": 50,
                 "aperture": 2.8,
                 "framing": "full-body",
+                "look": "clean",
             },
         }
     )
@@ -290,7 +292,8 @@ async def import_shot(request):
         try:
             params = validate_shot({
                 "description": f"Imported clip: {name}", "camera": "static", "lens_mm": lens_mm,
-                "aperture": aperture, "framing": fields.get("framing", ""), "seed": 0})
+                "aperture": aperture, "framing": fields.get("framing", ""), "seed": 0,
+                "look": fields.get("look", "clean")})
         except ShotError as exc:
             return error_response(400, "invalid_shot", exc.message, exc.field)
         comfy = await check_health(request.app[COMFYUI_URL])

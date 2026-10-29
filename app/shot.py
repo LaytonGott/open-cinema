@@ -28,6 +28,13 @@ FRAMINGS = [
     {"id": "wide", "label": "Wide"},
 ]
 
+# Lens looks (docs/app-spec.md 7.4), in display order; the optics graph adds the matching Open Optics nodes.
+LOOKS = [
+    {"id": "clean", "label": "Clean"},
+    {"id": "vintage", "label": "Vintage"},
+    {"id": "anamorphic", "label": "Anamorphic"},
+]
+
 # Allowed lens focal lengths in millimetres.
 LENSES = [24, 35, 50, 85]
 
@@ -121,6 +128,7 @@ def validate_shot(data):
     description must be a str of 3 to 1000 characters once stripped, camera
     and framing must be known ids, lens_mm and aperture must be allowed
     values, and seed, if present, must be an int from 0 to 2147483647.
+    `look` is optional (an id from LOOKS, default "clean") and always in the result.
     """
     for name in ("description", "camera", "lens_mm", "aperture", "framing"):
         if name not in data:
@@ -175,6 +183,11 @@ def validate_shot(data):
         "aperture": aperture,
         "framing": framing,
     }
+    look = data.get("look", "clean")
+    look_ids = [entry["id"] for entry in LOOKS]
+    if not isinstance(look, str) or look not in look_ids:
+        raise ShotError("look", f"The look must be one of: {', '.join(look_ids)}.")
+    shot["look"] = look
     if "seed" not in data:
         shot["seed"] = random.randint(0, 2147483647)
     else:

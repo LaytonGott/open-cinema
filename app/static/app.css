@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  --monitor-reserve: 340px;
+  --monitor-reserve: 380px;
   --bg: #0b0c0e;
   --surface: #14161a;
   --raised: #1b1e24;
@@ -1004,14 +1004,14 @@ main > * { flex: none; }
 [data-testid=focus-layer]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 [data-testid=focus-marker] {
   position: absolute; width: 26px; height: 26px; transform: translate(-50%, -50%);
-  border: 2px solid var(--accent); border-radius: 4px; box-sizing: border-box;
+  border: 2px solid var(--text); border-radius: 4px; box-sizing: border-box;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--accent);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text);
   background: rgba(11, 12, 14, 0.45); pointer-events: none;
 }
 [data-testid=focus-marker][hidden] { display: none; }
 .focus-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.focus-line line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.focus-line line { stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 4 4; }
 [data-testid=focus-mode] { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 [data-testid=focus-mode] [role=radio] { background: transparent; border: 0; border-right: 1px solid var(--line); color: var(--muted); padding: 4px 10px; cursor: pointer; transition: background 150ms ease, color 150ms ease; }
 [data-testid=focus-mode] [role=radio]:last-child { border-right: 0; }
@@ -1020,3 +1020,12 @@ main > * { flex: none; }
 [data-testid=focus-mode] [role=radio]:focus-visible, [data-testid=reapply-look]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 [data-testid=reapply-look] { background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
 @media (prefers-reduced-motion: reduce) { [data-testid=focus-mode] [role=radio] { transition: none; } }
+@media (max-width: 1599px) { [data-testid=reapply-blur] { display: none; } }
+[data-testid=focus-mode] [role=radio] { padding: 3px 8px; font-size: 0.875rem; }
+[data-testid=reapply-look] { padding: 3px 6px; font-size: 0.875rem; }
+[data-testid=optics-controls] { row-gap: 6px; padding-top: 8px; padding-bottom: 8px; }
+
+/* Lens look group (docs/app-spec.md 7.4): three compact options in one row */
+.lens-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+[data-testid=look-group] { display: inline-grid; grid-template-columns: repeat(3, auto); gap: 4px; }
+[data-testid=look-group] .opt { min-height: 28px; padding: 3px 8px; font-size: 0.8125rem; }

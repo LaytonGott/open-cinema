@@ -166,7 +166,7 @@ def _side_layers(level, side, width):
 
 
 def composite_layers(image_linear, depth_m, radius_map, n_layers, focus_m,
-                     max_layers=None, stats=None, focus_reach_px=FOCUS_REACH_PX):
+                     max_layers=None, stats=None, focus_reach_px=FOCUS_REACH_PX, bokeh_squeeze=1.0):
     """Blur signed CoC layers and composite them back to front; returns float32 [B, H, W, 3].
 
     Layers are chosen per frame, so the result does not depend on how frames
@@ -181,14 +181,14 @@ def composite_layers(image_linear, depth_m, radius_map, n_layers, focus_m,
     """
     frames = [
         _composite_frames(image_linear[i:i + 1], depth_m[i:i + 1], radius_map[i:i + 1],
-                          n_layers, focus_m, max_layers, stats, focus_reach_px)
+                          n_layers, focus_m, max_layers, stats, focus_reach_px, bokeh_squeeze)
         for i in range(image_linear.shape[0])
     ]
     return torch.cat(frames, dim=0)
 
 
 def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m,
-                      max_layers=None, stats=None, focus_reach_px=FOCUS_REACH_PX):
+                      max_layers=None, stats=None, focus_reach_px=FOCUS_REACH_PX, bokeh_squeeze=1.0):
     """Composite one batch with bins from the whole batch; returns float32 [B, H, W, 3].
 
     image_linear is float32 [B, H, W, 3] in linear light; depth_m (metres) and
@@ -255,7 +255,10 @@ def _composite_frames(image_linear, depth_m, radius_map, n_layers, focus_m,
         used += 1
         alpha = mask.to(torch.float32)[:, None]
         layer_radius = 0.0 if mask is sharp else radius[mask].mean().item()
-        res = blur_layer(torch.cat([chw * alpha, alpha], dim=1), layer_radius)
+        premult = torch.cat([chw * alpha, alpha], dim=1)
+        # bokeh_squeeze (>= 1) gives anamorphic, taller-than-wide bokeh; 1.0 keeps the round disc call as it was.
+        res = (blur_layer(premult, layer_radius) if bokeh_squeeze == 1.0
+               else blur_layer(premult, layer_radius, bokeh_squeeze))
         colour_b = res[:, :3]
         alpha_b = res[:, 3:]
         out = colour_b + out * (1.0 - alpha_b)

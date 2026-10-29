@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Cinema - try the samples</title>
+<meta name="description" content="Pre-rendered Open Cinema shots: one generated LTX-2 video, many lens settings applied afterwards.">
+<style>
+  :root {
+    --bg: #0b0c0e; --surface: #14161a; --raised: #1b1e24; --line: #262a31;
+    --text: #e9e6df; --muted: #9097a2; --accent: #f5a524;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 "Inter", "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .lede { color: var(--muted); margin: 0 0 20px; max-width: 70ch; }
+  .lede a { color: var(--accent); }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button, .chips button {
+    background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 12px; font: inherit; cursor: pointer;
+  }
+  .tabs button[aria-pressed=true], .chips button[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stage { position: relative; aspect-ratio: 20 / 11; background: #000; border: 1px solid var(--line); overflow: hidden; user-select: none; touch-action: none; }
+  .stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  #before { clip-path: inset(0 calc(100% - var(--split, 50%)) 0 0); z-index: 1; }
+  .divider { position: absolute; top: 0; bottom: 0; left: var(--split, 50%); width: 2px; margin-left: -1px; background: var(--accent); z-index: 2; cursor: ew-resize; }
+  .divider::after { content: ""; position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; transform: translate(-50%, -50%); border: 2px solid var(--accent); border-radius: 50%; background: var(--surface); }
+  .label { position: absolute; top: 10px; z-index: 3; font: 12px var(--mono); padding: 2px 8px; background: rgba(11,12,14,.7); border: 1px solid var(--line); }
+  .label.before { left: 10px; } .label.after { right: 10px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; font-family: var(--mono); }
+  .brief { color: var(--muted); font-size: .95rem; margin: 0; }
+  .brief b { color: var(--text); font-weight: 600; }
+  footer { margin-top: 28px; color: var(--muted); font-size: .9rem; }
+  footer a { color: var(--accent); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Open Cinema: change the lens after the shot</h1>
+  <p class="lede">Each shot below was generated once with LTX-2 19B on one RTX 3090. Every version after it is the same video with a different lens setting applied afterwards by the Open Optics node pack: metric depth from Depth Anything 3, then thin-lens depth of field. Drag the divider to compare, pick a version to switch. These are pre-rendered files; to direct your own shots, run the app from <a href="https://github.com/LaytonGott/open-cinema">the repository</a>.</p>
+  <div class="tabs" id="tabs" role="group" aria-label="Sample shot"></div>
+  <div class="stage" id="stage">
+    <video id="after" muted playsinline loop autoplay></video>
+    <video id="before" muted playsinline loop autoplay></video>
+    <div class="divider" id="divider" role="slider" tabindex="0" aria-label="Before and after" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"></div>
+    <span class="label before">Before</span><span class="label after" id="label-after">After</span>
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="Version"></div>
+  <p class="brief" id="brief"></p>
+  <footer>Open weights only: LTX-2 19B, Gemma 3 12B, Depth Anything 3. Built on ComfyUI through the Comfy SDK. <a href="https://github.com/LaytonGott/open-cinema">Source and setup (GPL-3.0)</a> · #OpenSourceHiggsfield</footer>
+</main>
+<script>
+const SAMPLES = ["sample-saxophone", "sample-red-coat"];
+const base = (id) => "../app/samples/" + id + "/";
+const $ = (id) => document.getElementById(id);
+let shots = [], shot = null, shown = null, split = 50;
+
+function fmtStop(a) { return "f/" + a; }
+function chipText(v) {
+  let t = fmtStop(v.aperture);
+  if (v.look && v.look !== "clean") t += " · " + v.look[0].toUpperCase() + v.look.slice(1);
+  if (v.rack) t += " · rack"; else if (v.focus) t += " · focus";
+  return t;
+}
+function setSplit(p) {
+  split = Math.max(0, Math.min(100, p));
+  $("stage").style.setProperty("--split", split + "%");
+  $("divider").setAttribute("aria-valuenow", String(Math.round(split)));
+}
+function sync() {
+  const a = $("after"), b = $("before");
+  if (Math.abs(a.currentTime - b.currentTime) > 0.15) a.currentTime = b.currentTime;
+}
+function file(url) { return base(shot.id) + url.split("/").pop(); }
+function showVersion(v) {
+  shown = v;
+  const t = $("before").currentTime || 0;
+  $("after").src = file(v.url);
+  $("after").currentTime = t;
+  $("after").play().catch(() => {});
+  $("label-after").textContent = "After " + chipText(v);
+  for (const b of $("chips").children) b.setAttribute("aria-pressed", b.dataset.n == v.n ? "true" : "false");
+}
+function showShot(s) {
+  shot = s;
+  for (const b of $("tabs").children) b.setAttribute("aria-pressed", b.dataset.id === s.id ? "true" : "false");
+  $("before").src = file(s.before_url);
+  $("before").play().catch(() => {});
+  $("chips").replaceChildren(...s.versions.map((v) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.n = v.n; b.textContent = chipText(v);
+    b.addEventListener("click", () => showVersion(v));
+    return b;
+  }));
+  const p = s.params;
+  $("brief").replaceChildren();
+  const strong = document.createElement("b");
+  strong.textContent = p.lens_mm + " mm · " + p.framing.replace("-", " ") + " · ";
+  $("brief").append(strong, document.createTextNode(p.description));
+  showVersion(s.versions[s.versions.length > 1 ? 1 : 0]);
+}
+async function init() {
+  for (const id of SAMPLES) {
+    try { const r = await fetch(base(id) + "shot.json"); if (r.ok) shots.push(await r.json()); } catch (e) {}
+  }
+  $("tabs").replaceChildren(...shots.map((s) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.id = s.id;
+    b.textContent = s.params.description.split(/[,.]/)[0].slice(0, 48);
+    b.addEventListener("click", () => showShot(s));
+    return b;
+  }));
+  if (shots.length) showShot(shots[0]);
+  setInterval(sync, 250);
+}
+const stage = $("stage");
+let dragging = false;
+const move = (e) => { const r = stage.getBoundingClientRect(); setSplit((e.clientX - r.left) / r.width * 100); };
+stage.addEventListener("pointerdown", (e) => { dragging = true; stage.setPointerCapture(e.pointerId); move(e); });
+stage.addEventListener("pointermove", (e) => { if (dragging) move(e); });
+stage.addEventListener("pointerup", () => { dragging = false; });
+$("divider").addEventListener("keydown", (e) => {
+  const step = e.shiftKey ? 10 : 1;
+  if (e.key === "ArrowLeft") setSplit(split - step);
+  else if (e.key === "ArrowRight") setSplit(split + step);
+  else if (e.key === "Home") setSplit(0);
+  else if (e.key === "End") setSplit(100);
+  else return;
+  e.preventDefault();
+});
+setSplit(50);
+init();
+</script>
+</body>
+</html>

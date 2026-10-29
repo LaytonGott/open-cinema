@@ -51,6 +51,12 @@ function renderHud(state) {
     parts.push(formatDistance(d) + " m");
   }
   parts.push(String(framing || "").toUpperCase());
+  const look = version && version.look ? version.look : p.look;
+  if (look && look !== "clean") {
+    const looks = (state.options && state.options.looks) || [];
+    const entry = looks.find((l) => l.id === look);
+    parts.push(String(entry ? entry.label : look).toUpperCase());
+  }
   hud.textContent = parts.join("  ");
 }
 

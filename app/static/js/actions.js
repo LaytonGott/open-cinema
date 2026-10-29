@@ -26,10 +26,10 @@ export function handlePostError(err) {
 
 export async function submitShot() {
   navigationToken++;
-  const { description, camera, lens_mm, aperture, framing } = getState().form;
+  const { description, camera, lens_mm, aperture, framing, look } = getState().form;
   setState({ submitting: true, error: null });
   try {
-    const record = await api.createShot({ description, camera, lens_mm, aperture, framing });
+    const record = await api.createShot({ description, camera, lens_mm, aperture, framing, look: look || "clean" });
     setShot(record);
     followShot(record.id);
   } catch (err) {
@@ -43,10 +43,10 @@ export async function submitShot() {
 // Use a video file of the user's own as the shot's "before": the lens, aperture and framing come from the form.
 export async function importClip(file) {
   navigationToken++;
-  const { lens_mm, aperture, framing } = getState().form;
+  const { lens_mm, aperture, framing, look } = getState().form;
   setState({ submitting: true, error: null });
   try {
-    const record = await api.importClip(file, { lens_mm, aperture, framing });
+    const record = await api.importClip(file, { lens_mm, aperture, framing, look: look || "clean" });
     setShot(record);
     followShot(record.id);
   } catch (err) {

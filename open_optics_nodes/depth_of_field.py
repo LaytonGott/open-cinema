@@ -70,6 +70,7 @@ class OpenOptics_DepthOfField:
                 "rack_y": _POINT,
                 "rack_start": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "rack_end": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "bokeh_squeeze": ("FLOAT", {"default": 1.0, "min": 1.0, "max": 2.0, "step": 0.05}),
             },
         }
 
@@ -81,7 +82,8 @@ class OpenOptics_DepthOfField:
     def apply(self, image, focal_mm=50.0, f_number=2.8, focus_m=3.0, sensor_width_mm=36.0,
               quality="normal", max_radius_px=16, colorspace="srgb",
               depth_mask=None, depth_image=None, chunk_frames=8, max_layers=12,
-              focus_x=-1.0, focus_y=-1.0, rack_x=-1.0, rack_y=-1.0, rack_start=0.2, rack_end=0.8):
+              focus_x=-1.0, focus_y=-1.0, rack_x=-1.0, rack_y=-1.0, rack_start=0.2, rack_end=0.8,
+              bokeh_squeeze=1.0):
         """Apply depth of field blur.
 
         focal_mm and sensor_width_mm are in millimetres, focus_m is in metres,
@@ -103,7 +105,8 @@ class OpenOptics_DepthOfField:
         convention; needs the focus point) pull focus from the focus point to
         the rack point: frame i of N gets rack_focus_m(d_a, d_b, i / (N - 1),
         rack_start, rack_end) metres, with rack_start < rack_end fractions of
-        the clip.
+        the clip. bokeh_squeeze (unitless, 1.0 to 2.0, default 1.0) makes the
+        bokeh that many times taller than wide, like an anamorphic lens.
         """
         t0 = time.perf_counter()
         common.check_chunk_frames(chunk_frames)
@@ -118,6 +121,8 @@ class OpenOptics_DepthOfField:
         if not math.isfinite(max_radius_px) or max_radius_px < 0:
             raise ValueError(f"max_radius_px must be finite and >= 0, got {max_radius_px}")
         common.require_choice("quality", quality, list(_LAYERS))
+        if not 1.0 <= bokeh_squeeze <= 2.0:
+            raise ValueError(f"bokeh_squeeze must be from 1.0 to 2.0, got {bokeh_squeeze}")
         point = _point_on("focus", focus_x, focus_y)
         rack = _point_on("rack", rack_x, rack_y)
         if rack and not point:
@@ -149,7 +154,7 @@ class OpenOptics_DepthOfField:
                 radius = coc_radius_map(depth_c, focal_mm, f_number, focus_m, sensor_width_mm,
                                         max_radius_px)
                 result = composite_layers(linear, depth_c, radius, _LAYERS[quality], focus_m,
-                                          max_layers, stats)
+                                          max_layers, stats, bokeh_squeeze=bokeh_squeeze)
             else:
                 radii, results = [], []
                 for j in range(stop - start):
@@ -157,7 +162,8 @@ class OpenOptics_DepthOfField:
                     r = coc_radius_map(depth_c[j:j + 1], focal_mm, f_number, f_m, sensor_width_mm,
                                        max_radius_px)
                     results.append(composite_layers(linear[j:j + 1], depth_c[j:j + 1], r,
-                                                    _LAYERS[quality], f_m, max_layers, stats))
+                                                    _LAYERS[quality], f_m, max_layers, stats,
+                                                    bokeh_squeeze=bokeh_squeeze))
                     radii.append(r)
                 radius, result = torch.cat(radii), torch.cat(results)
             used_device = result.device

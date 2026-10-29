@@ -10,6 +10,7 @@ const GROUPS = [
   { testid: "camera-group", key: "camera", list: "cameras", number: false, icons: CAMERA_ICONS },
   { testid: "lens-group", key: "lens_mm", list: "lenses", number: true },
   { testid: "framing-group", key: "framing", list: "framings", number: false, icons: FRAMING_ICONS },
+  { testid: "look-group", key: "look", list: "looks", number: false },
 ];
 
 // Last rendered lens figure text, and per group the element, options list and checked value.
@@ -90,7 +91,7 @@ export async function initOptionGroups() {
     const options = await getOptions();
     const d = options.defaults || {};
     const form = { ...getState().form };
-    for (const k of ["camera", "lens_mm", "aperture", "framing"]) {
+    for (const k of ["camera", "lens_mm", "aperture", "framing", "look"]) {
       if (d[k] !== undefined) form[k] = d[k];
     }
     setState({ options, form });

@@ -72,7 +72,7 @@ class FormGroupsTest(unittest.TestCase):
         for name, (label, values) in GROUPS.items():
             with self.subTest(group=name):
                 self.assertEqual(self.group(name).get_attribute("role"), "radiogroup")
-                self.assertEqual(self.page.get_by_role("radiogroup", name=label).count(), 1)
+                self.assertEqual(self.page.get_by_role("radiogroup", name=label, exact=True).count(), 1)
                 got = [b.get_attribute("data-value") for b in self.buttons(name).all()]
                 self.assertEqual(got, values)
 

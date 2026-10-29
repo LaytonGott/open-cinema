@@ -42,7 +42,7 @@ def check_node():
     dot = torch.zeros((1, 61, 61, 3))
     dot[0, 30, 30, :] = 1.0
     far = torch.full((1, 61, 61), 1000.0)
-    spot = dict(image=dot, focal_mm=50.0, f_number=1.4, focus_m=1.0, sensor_width_mm=36.0, quality="normal", max_radius_px=12, colorspace="linear", depth_mask=far)
+    spot = dict(image=dot, focal_mm=50.0, f_number=1.4, focus_m=1.0, sensor_width_mm=4.0, quality="normal", max_radius_px=12, colorspace="linear", depth_mask=far)
 
     def extent(out):
         m = out[0, :, :, 0] > 1e-6
@@ -144,7 +144,7 @@ def check_ui():
         chip = p.t("version-chip").nth(1)
         report.check(ok and re.sub(r"\s+", " ", chip.inner_text()).strip() == "f/2.8 · Vintage" and chip.get_attribute("data-look") == "vintage", f"the new chip must read 'f/2.8 · Vintage' with data-look vintage; got {chip.inner_text() if ok else None!r}")
         choose(p, "look-group", "anamorphic")
-        report.check("ANAMORPHIC" in p.t("hud").inner_text().upper() or "Anamorphic" in p.t("hud").inner_text(), "the HUD must mention a non-clean look while editing")
+        report.check("VINTAGE" in p.t("hud").inner_text().upper(), f"the HUD must name the shown version's look (Vintage); got {p.t('hud').inner_text()!r}")
         sizes = p.page.evaluate("() => [document.scrollingElement.scrollWidth, document.scrollingElement.scrollHeight, innerWidth, innerHeight]")
         report.check(sizes[0] <= sizes[2] and sizes[1] <= sizes[3], f"no page scrolling at 1280x720; got {sizes}")
         gb = p.t("generate-button").bounding_box()

@@ -19,7 +19,7 @@ class OptionsRouteTests(unittest.TestCase):
         status, body = self.harness.get("/api/options")
         self.assertEqual(status, 200)
         self.assertEqual(
-            set(body), {"cameras", "lenses", "apertures", "framings", "defaults"}
+            set(body), {"cameras", "lenses", "apertures", "framings", "looks", "defaults"}
         )
         self.assertEqual(len(body["cameras"]), 8)
         self.assertEqual(
@@ -39,8 +39,9 @@ class OptionsRouteTests(unittest.TestCase):
         )
         self.assertEqual(
             body["defaults"],
-            {"camera": "static", "lens_mm": 50, "aperture": 2.8, "framing": "full-body"},
+            {"camera": "static", "lens_mm": 50, "aperture": 2.8, "framing": "full-body", "look": "clean"},
         )
+        self.assertEqual([l["id"] for l in body["looks"]], ["clean", "vintage", "anamorphic"])
 
 
 class EstimateValueTests(unittest.TestCase):

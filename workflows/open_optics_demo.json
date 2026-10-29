@@ -56,7 +56,7 @@
         { "name": "coc_px", "type": "MASK", "links": null, "slot_index": 1 }
       ],
       "properties": { "Node name for S&R": "OpenOptics_DepthOfField" },
-      "widgets_values": [50.0, 2.8, 3.0, 36.0, "normal", 16, "srgb", 8, 12]
+      "widgets_values": [50.0, 2.8, 3.0, 36.0, "normal", 16, "srgb", 8, 12, -1.0, -1.0, -1.0, -1.0, 0.2, 0.8, 1.0]
     },
     {
       "id": 6, "type": "OpenOptics_LensDistortion", "pos": [1200, 200], "size": [315, 250], "flags": {}, "order": 5, "mode": 0,

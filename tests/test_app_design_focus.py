@@ -14,7 +14,7 @@ FOCUS_INFO = """() => {
   const own = el.getAttribute('data-testid');
   const owner = el.closest('[data-testid]');
   let group = null;
-  for (const g of ['shot-description', 'camera-group', 'lens-group', 'framing-group',
+  for (const g of ['shot-description', 'camera-group', 'look-group', 'lens-group', 'framing-group',
                    'aperture-slider', 'generate-button']) {
     if (own === g || el.closest('[data-testid=' + g + ']')) { group = g; break; }
   }
@@ -84,11 +84,11 @@ class FocusRingTest(unittest.TestCase):
             if s["group"] and s["group"] not in groups:
                 groups.append(s["group"])
         self.assertEqual(
-            groups[:6],
-            ["shot-description", "camera-group", "lens-group", "framing-group",
+            groups[:7],
+            ["shot-description", "camera-group", "look-group", "lens-group", "framing-group",
              "aperture-slider", "generate-button"],
         )
-        self.assertEqual([s["group"] for s in stops[:6]], groups[:6])
+        self.assertEqual([s["group"] for s in stops[:7]], groups[:7])
 
     def test_every_stop_has_an_amber_ring(self):
         for i, s in enumerate(self.tab_stops(30)):

@@ -82,7 +82,7 @@ def run():
         if status != 201:
             return
         sid = rec["id"]
-        report.check(rec["status"] in ("queued", "generating") and rec["params"] == {**SHOT}, f"new record: status must be queued or generating and params equal the request; got {rec['status']} {rec['params']}")
+        report.check(rec["status"] in ("queued", "generating") and rec["params"] in ({**SHOT}, {**SHOT, "look": "clean"}), f"new record: status must be queued or generating and params equal the request; got {rec['status']} {rec['params']}")
         report.check(rec["derived"]["subject_distance_m"] == 5.1005 or abs(rec["derived"]["subject_distance_m"] - 5.1005) < 6e-5, f"derived.subject_distance_m must be 5.1005; got {rec['derived']}")
         report.check(rec["derived"]["prompt"] == shotmod.build_prompt(rec["params"]), "derived.prompt must be build_prompt(params)")
         report.check([s["id"] for s in rec["stages"]] == ["generate", "optics"], f"stages must be generate, optics; got {rec['stages']}")

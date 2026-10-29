@@ -177,7 +177,10 @@ class TestDepthOfFieldEdgeCases(unittest.TestCase):
         optional = OpenOptics_DepthOfField.INPUT_TYPES()["optional"]
         self.assertEqual(optional["max_layers"],
                          ("INT", {"default": 12, "min": 1, "max": 64, "step": 1}))
-        self.assertEqual(list(optional)[-1], "max_layers")
+        # max_layers came last in its release; inputs added later are appended after it (workflow compatibility)
+        names = list(optional)
+        self.assertEqual(names[names.index("max_layers") + 1:],
+                         ["focus_x", "focus_y", "rack_x", "rack_y", "rack_start", "rack_end", "bokeh_squeeze"])
         img = self._img()
         depth = torch.full((1, 16, 16), 3.0)
         for bad in (0, 65, True, 2.5):

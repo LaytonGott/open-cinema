@@ -21,6 +21,7 @@ function render(state) {
   const options = state.options || {};
   const parts = [p.lens_mm + " mm", "f/" + p.aperture, labelOf(options.framings, p.framing)];
   if (!shot.imported) parts.push(labelOf(options.cameras, p.camera));
+  if (p.look && p.look !== "clean") parts.push(labelOf(options.looks, p.look));
   const settings = parts.join(" - ");
   const key = shot.id + "|" + p.description + "|" + settings;
   box.hidden = false;

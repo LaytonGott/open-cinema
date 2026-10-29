@@ -202,7 +202,10 @@ class ShotRunner:
                 if item["aperture"] is None:
                     await self.run_shot(shot_id)
                 else:
-                    await self.run_reapply(shot_id, item["aperture"], item.get("optics"))
+                    if item.get("optics"):
+                        await self.run_reapply(shot_id, item["aperture"], item["optics"])
+                    else:
+                        await self.run_reapply(shot_id, item["aperture"])
                 if self.cancel_requested == shot_id:
                     record = self.store.get(shot_id)
                     if record is not None:
@@ -427,7 +430,10 @@ class ShotRunner:
         """
         record = self.store.get(shot_id)
         n = max((v["n"] for v in record.get("versions") or []), default=0) + 1
-        await self.run_optics(record, aperture, n, optics)
+        if optics:
+            await self.run_optics(record, aperture, n, optics)
+        else:
+            await self.run_optics(record, aperture, n)
 
     async def run_shot(self, shot_id):
         """Run one shot: generate the video, then apply the optics as version 1."""
